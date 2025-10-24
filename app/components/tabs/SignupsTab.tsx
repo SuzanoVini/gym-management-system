@@ -80,13 +80,37 @@ export default function SignupsTab() {
     if (types) setMembershipTypes(types);
   };
 
+  // Helper function to parse dates from CSV
+  const parseDate = (dateStr: string): string | null => {
+    if (!dateStr || dateStr.trim() === '') return null;
+
+    try {
+      // Try parsing as MM/DD/YYYY or similar formats
+      const cleanStr = dateStr.trim();
+      const date = new Date(cleanStr);
+
+      if (!isNaN(date.getTime())) {
+        // Convert to YYYY-MM-DD format for database
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error parsing date:', dateStr, error);
+      return null;
+    }
+  };
+
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     Papa.parse(file, {
       header: true,
-      dynamicTyping: true,
+      dynamicTyping: false, // Keep as strings to parse dates manually
       skipEmptyLines: true,
       delimitersToGuess: [',', '\t', '|', ';'],
       transformHeader: (header: string) => header.trim(),
@@ -101,16 +125,40 @@ export default function SignupsTab() {
               if (lowerName === 'total' || lowerName === 'avg' || lowerName === 'average') return false;
               return true;
             })
-            .map((row: any) => ({
-              month: String(row.MONTH || row.month || row.Month || '').trim(),
-              name: String(row.NAME || row.name || row.Name || '').trim(),
-              membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
-              membership_date: String(row['MEMBERSHIP DATE'] || row.membership_date || row['Membership Date'] || '').trim() || null,
-              first_payment_date: String(row['1ST PAYMENT DATE'] || row.first_payment_date || row['First Payment Date'] || '').trim() || null,
-              signup_package: String(row['SIGN-UP PACKAGE?'] || row.signup_package || row['Signup Package'] || '').toLowerCase().includes('yes'),
-              notes: String(row.NOTES || row.notes || row.Notes || '').trim(),
-            }));
+            .map((row: any) => {
+              // Parse membership_date (could be "DATE", "MEMBERSHIP DATE", "SIGN UP DATE", etc.)
+              const membershipDateRaw = String(
+                row['DATE'] ||
+                row['MEMBERSHIP DATE'] ||
+                row['SIGN UP DATE'] ||
+                row['Sign Up Date'] ||
+                row['Membership Date'] ||
+                row.membership_date ||
+                row.date ||
+                ''
+              ).trim();
 
+              // Parse first_payment_date
+              const firstPaymentDateRaw = String(
+                row['1ST PAYMENT DATE'] ||
+                row['DATE 1ST PAYMENT'] ||
+                row['First Payment Date'] ||
+                row.first_payment_date ||
+                ''
+              ).trim();
+
+              return {
+                month: String(row.MONTH || row.month || row.Month || '').trim(),
+                name: String(row.NAME || row.name || row.Name || '').trim(),
+                membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
+                membership_date: parseDate(membershipDateRaw),
+                first_payment_date: parseDate(firstPaymentDateRaw),
+                signup_package: String(row['SIGN-UP PACKAGE?'] || row['SIGNUP PACKAGE'] || row.signup_package || row['Signup Package'] || '').toLowerCase().includes('yes'),
+                notes: String(row.NOTES || row.notes || row.Notes || '').trim(),
+              };
+            });
+
+          console.log('Parsed data with dates:', parsedData.slice(0, 3)); // Debug first 3 rows
           setImportPreviewData(parsedData);
           setShowImportPreview(true);
         } catch (error) {
@@ -136,20 +184,14 @@ export default function SignupsTab() {
     try {
       setLoading(true);
 
-      const newRecords = importPreviewData
-        .filter(row => {
-          if (!row.name || !row.month) return false;
-          const isDuplicate = signups.some(s =>
-            s.name.toLowerCase().trim() === row.name.toLowerCase().trim() &&
-            s.month === row.month
-          );
-          return !isDuplicate;
-        })
-        .map(row => ({
-          ...row,
-          membership_date: row.membership_date || null,
-          first_payment_date: row.first_payment_date || null,
-        }));
+      const newRecords = importPreviewData.filter(row => {
+        if (!row.name || !row.month) return false;
+        const isDuplicate = signups.some(s =>
+          s.name.toLowerCase().trim() === row.name.toLowerCase().trim() &&
+          s.month === row.month
+        );
+        return !isDuplicate;
+      });
 
       const duplicateCount = importPreviewData.length - newRecords.length;
 
@@ -160,6 +202,8 @@ export default function SignupsTab() {
         setLoading(false);
         return;
       }
+
+      console.log('Importing records with dates:', newRecords.slice(0, 3)); // Debug
 
       const { error } = await supabase.from('signups').insert(newRecords);
 
@@ -338,9 +382,23 @@ export default function SignupsTab() {
   });
 
   const sortedSignups = [...filteredSignups].sort((a, b) => {
-    const dateA = new Date(a.created_at || 0).getTime();
-    const dateB = new Date(b.created_at || 0).getTime();
-    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    // Sort by sign up date (membership_date)
+    const dateA = a.membership_date ? new Date(a.membership_date).getTime() : 0;
+    const dateB = b.membership_date ? new Date(b.membership_date).getTime() : 0;
+
+    // If both have dates, sort by date
+    if (dateA && dateB) {
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    }
+
+    // If only one has a date, put the one with date first
+    if (dateA && !dateB) return sortOrder === 'newest' ? -1 : 1;
+    if (!dateA && dateB) return sortOrder === 'newest' ? 1 : -1;
+
+    // If neither has a date, sort by created_at (when added to database)
+    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return sortOrder === 'newest' ? createdB - createdA : createdA - createdB;
   });
 
   const totalPages = Math.ceil(sortedSignups.length / itemsPerPage);
@@ -355,6 +413,18 @@ export default function SignupsTab() {
     special: filteredSignups.filter(s => s.membership === 'Special').length,
     asp: filteredSignups.filter(s => s.membership === 'ASP').length,
     withPackage: filteredSignups.filter(s => s.signup_package).length,
+  };
+
+  // Helper to format dates for display
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return '-';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return '-';
+    }
   };
 
   if (loading) {
@@ -499,7 +569,7 @@ export default function SignupsTab() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Membership</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Membership Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sign Up Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">First Payment</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
@@ -525,8 +595,8 @@ export default function SignupsTab() {
                       {signup.membership}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm">{signup.membership_date || '-'}</td>
-                  <td className="px-6 py-4 text-sm">{signup.first_payment_date || '-'}</td>
+                  <td className="px-6 py-4 text-sm">{formatDate(signup.membership_date)}</td>
+                  <td className="px-6 py-4 text-sm">{formatDate(signup.first_payment_date)}</td>
                   <td className="px-6 py-4 text-sm">
                     {signup.signup_package ? <span className="text-green-600 font-medium">✓ Yes</span> : <span className="text-gray-400">No</span>}
                   </td>
@@ -572,7 +642,7 @@ export default function SignupsTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Membership Date</label>
+                <label className="block text-sm font-medium mb-1">Sign Up Date</label>
                 <input type="date" value={newSignup.membership_date} onChange={(e) => setNewSignup({ ...newSignup, membership_date: e.target.value })} className="w-full px-3 py-2 border rounded" />
               </div>
               <div>
@@ -621,7 +691,7 @@ export default function SignupsTab() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Membership Date</label>
+                <label className="block text-sm font-medium mb-1">Sign Up Date</label>
                 <input type="date" value={editingSignup.membership_date || ''} onChange={(e) => setEditingSignup({ ...editingSignup, membership_date: e.target.value })} className="w-full px-3 py-2 border rounded" />
               </div>
               <div>
@@ -660,6 +730,8 @@ export default function SignupsTab() {
                     <th className="px-4 py-2 text-left">Month</th>
                     <th className="px-4 py-2 text-left">Name</th>
                     <th className="px-4 py-2 text-left">Membership</th>
+                    <th className="px-4 py-2 text-left">Sign Up Date</th>
+                    <th className="px-4 py-2 text-left">First Payment</th>
                     <th className="px-4 py-2 text-left">Status</th>
                   </tr>
                 </thead>
@@ -670,6 +742,8 @@ export default function SignupsTab() {
                       <td className="px-4 py-2">{row.month}</td>
                       <td className="px-4 py-2">{row.name}</td>
                       <td className="px-4 py-2">{row.membership}</td>
+                      <td className="px-4 py-2">{row.membership_date || '-'}</td>
+                      <td className="px-4 py-2">{row.first_payment_date || '-'}</td>
                       <td className="px-4 py-2">
                         {signups.some(s => s.name.toLowerCase().trim() === row.name.toLowerCase().trim() && s.month === row.month) ? (
                           <span className="text-red-600 text-xs font-medium">Duplicate</span>
