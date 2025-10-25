@@ -29,7 +29,7 @@ export const fetchIntros = async () => {
       .range(from, from + pageSize - 1);
 
     if (error) throw error;
-    
+
     if (data && data.length > 0) {
       allIntros = [...allIntros, ...data];
       from += pageSize;
@@ -48,7 +48,7 @@ export const createIntro = async (intro: any) => {
     .insert([intro])
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -60,7 +60,7 @@ export const updateIntro = async (id: string, updates: any) => {
     .eq('id', id)
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -70,7 +70,7 @@ export const deleteIntro = async (id: string) => {
     .from('intros')
     .delete()
     .eq('id', id);
-  
+
   if (error) throw error;
 };
 
@@ -85,18 +85,18 @@ export const createFollowUpNote = async (note: {
     .insert([note])
     .select()
     .single();
-  
+
   if (error) throw error;
-  
+
   // Update last_follow_up on intro
   await supabase
     .from('intros')
-    .update({ 
+    .update({
       last_follow_up: new Date().toISOString(),
       follow_up_status: 'Contacted'
     })
     .eq('id', note.intro_id);
-  
+
   return data;
 };
 
@@ -106,7 +106,7 @@ export const fetchFollowUpNotes = async (introId: string) => {
     .select('*')
     .eq('intro_id', introId)
     .order('created_at', { ascending: false });
-  
+
   if (error) throw error;
   return data;
 };
@@ -118,7 +118,7 @@ export const fetchSignups = async () => {
     .select('*')
     .order('created_at', { ascending: false })
     .range(0, 9999); // Up to 10,000 records
-  
+
   if (error) throw error;
   return data || [];
 };
@@ -129,7 +129,7 @@ export const createSignup = async (signup: any) => {
     .insert([signup])
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -141,7 +141,7 @@ export const updateSignup = async (id: string, updates: any) => {
     .eq('id', id)
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -151,7 +151,7 @@ export const deleteSignup = async (id: string) => {
     .from('signups')
     .delete()
     .eq('id', id);
-  
+
   if (error) throw error;
 };
 
@@ -161,7 +161,7 @@ export const fetchCancellations = async () => {
     .from('cancellations')
     .select('*')
     .order('created_at', { ascending: false });
-  
+
   if (error) throw error;
   return data || [];
 };
@@ -172,7 +172,7 @@ export const createCancellation = async (cancellation: any) => {
     .insert([cancellation])
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -184,7 +184,7 @@ export const updateCancellation = async (id: string, updates: any) => {
     .eq('id', id)
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -194,7 +194,7 @@ export const deleteCancellation = async (id: string) => {
     .from('cancellations')
     .delete()
     .eq('id', id);
-  
+
   if (error) throw error;
 };
 
@@ -204,7 +204,7 @@ export const fetchHolds = async () => {
     .from('holds')
     .select('*')
     .order('created_at', { ascending: false });
-  
+
   if (error) throw error;
   return data || [];
 };
@@ -215,7 +215,7 @@ export const createHold = async (hold: any) => {
     .insert([hold])
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -227,7 +227,7 @@ export const updateHold = async (id: string, updates: any) => {
     .eq('id', id)
     .select()
     .single();
-  
+
   if (error) throw error;
   return data;
 };
@@ -237,7 +237,7 @@ export const deleteHold = async (id: string) => {
     .from('holds')
     .delete()
     .eq('id', id);
-  
+
   if (error) throw error;
 };
 
@@ -251,7 +251,7 @@ export const fetchSettings = async (key: string) => {
 
   if (error) {
     console.error(`Error fetching settings for ${key}:`, error);
-    
+
     // Fallback defaults if database fails
     const defaults: { [key: string]: any[] } = {
       'class_types': ['GB1', 'GB 1/2', 'GB2', 'NO Gi', 'No Gi', 'Kids 3 - 6 yo', 'Kids 6 - 8 yo', 'Kids 7 - 9 yo', 'Kids All Ages', 'Kids & Parents', 'Juniors & Teens', "Women's", 'MUAY THAI', 'Wrestling', 'Judo', 'Jiu-Jitsu Drills'],
@@ -261,7 +261,7 @@ export const fetchSettings = async (key: string) => {
       'hold_reasons': ['Injury', 'Illness', 'Travel', 'Break Time', 'Work', 'No reason', 'Other'],
       'age_categories': ['3-6 YO', '7-9 YO', '10-15 YO', 'Adult']
     };
-    
+
     return defaults[key] || [];
   }
 

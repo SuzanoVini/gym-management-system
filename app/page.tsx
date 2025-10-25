@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import IntrosTab from './components/tabs/IntrosTab';
 import SignupsTab from './components/tabs/SignupsTab';
+import CancellationsTab from './components/tabs/CancellationsTab';
+import HoldsTab from './components/tabs/HoldsTab';
+import OverviewTab from './components/tabs/OverviewTab';
 // Import other tabs as we create them
 
 export default function Home() {
@@ -88,12 +91,11 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'overview' && <div>Overview Tab - Coming Soon</div>}
+        {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'intros' && <IntrosTab />}
         {activeTab === 'signups' && <SignupsTab />}
-        {activeTab === 'cancellations' && <div>Cancellations Tab - Coming Soon</div>}
-        {activeTab === 'holds' && <div>Holds Tab - Coming Soon</div>}
-        {activeTab === 'followup' && <div>Follow-up Tab - Coming Soon</div>}
+        {activeTab === 'cancellations' && <CancellationsTab />}
+        {activeTab === 'holds' && <HoldsTab />}
       </main>
     </div>
   );

@@ -5,7 +5,6 @@ import { TrendingUp, Users, MessageSquare, UserCheck, UserX, Clock } from 'lucid
 const tabs = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'intros', label: 'Intros', icon: Users },
-  { id: 'followup', label: 'Follow-up', icon: MessageSquare },
   { id: 'signups', label: 'Sign-ups', icon: UserCheck },
   { id: 'cancellations', label: 'Cancellations', icon: UserX },
   { id: 'holds', label: 'Holds', icon: Clock },
