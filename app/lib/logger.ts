@@ -1,4 +1,5 @@
 // lib/logger.ts
+import { useCallback, useEffect } from 'react';
 import { errorHandler } from './errorHandler';
 
 export enum LogLevel {
