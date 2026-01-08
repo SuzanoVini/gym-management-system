@@ -7,7 +7,7 @@ import { config } from './config';
  */
 export const introSchema = z.object({
   month: z.enum(config.months, {
-    errorMap: () => ({ message: 'Please select a valid month' }),
+    message: 'Please select a valid month',
   }),
   date: z
     .string()
@@ -31,7 +31,7 @@ export const introSchema = z.object({
  */
 export const signupSchema = z.object({
   month: z.enum(config.months, {
-    errorMap: () => ({ message: 'Please select a valid month' }),
+    message: 'Please select a valid month',
   }),
   name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
   membership: z.string().min(1, 'Membership type is required'), // Now dynamic from settings
@@ -56,7 +56,7 @@ export const signupSchema = z.object({
  */
 export const cancellationSchema = z.object({
   month: z.enum(config.months, {
-    errorMap: () => ({ message: 'Please select a valid month' }),
+    message: 'Please select a valid month',
   }),
   name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
   date: z // Renamed from cancellation_date
@@ -76,7 +76,7 @@ export const cancellationSchema = z.object({
 export const holdSchema = z
   .object({
     month: z.enum(config.months, {
-      errorMap: () => ({ message: 'Please select a valid month' }),
+      message: 'Please select a valid month',
     }),
     name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
     start: z // Renamed from start_date
