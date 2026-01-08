@@ -1,10 +1,10 @@
 'use client';
 
+import clsx from 'clsx';
+import FocusTrap from 'focus-trap-react';
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import FocusTrap from 'focus-trap-react';
-import clsx from 'clsx';
 
 interface ModalProps {
   isOpen: boolean;

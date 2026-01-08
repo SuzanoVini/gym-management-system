@@ -1,6 +1,7 @@
 // app/lib/supabase/intros.ts
+
+import type { ClassHistoryFormData, FollowUpNoteFormData, Intro, IntroFormData } from '@/types';
 import { supabase } from './client';
-import type { Intro, IntroFormData, ClassHistoryFormData, FollowUpNoteFormData } from '@/types';
 
 // ============= INTRO CLASS HISTORY FUNCTIONS =============
 // Fetch class history for a specific intro

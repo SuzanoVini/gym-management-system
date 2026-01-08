@@ -33,11 +33,7 @@ export default function Header({ onLogoClick }: HeaderProps) {
             className="app-logo-wrap flex items-center min-w-0 bg-transparent"
             aria-label="Go to overview"
           >
-            <img
-              src="/brand/gb-logo-title.png"
-              alt="Gracie Barra Kitsilano"
-              className="app-logo"
-            />
+            <img src="/brand/gb-logo-title.png" alt="Gracie Barra Kitsilano" className="app-logo" />
           </button>
         </div>
         <button

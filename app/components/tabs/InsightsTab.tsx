@@ -1,7 +1,5 @@
 'use client';
 
-import React, { useState } from 'react';
-
 import {
   AlertCircle,
   AlertTriangle,
@@ -15,6 +13,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import React, { useState } from 'react';
 
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 

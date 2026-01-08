@@ -1,6 +1,7 @@
 // app/lib/supabase/holds.ts
-import { supabase } from './client';
+
 import type { Hold, HoldFormData } from '@/types';
+import { supabase } from './client';
 
 // HOLDS
 export const fetchHolds = async (): Promise<Hold[]> => {

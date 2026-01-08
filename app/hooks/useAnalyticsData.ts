@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { errorHandler } from '@/lib/errorHandler';
 import { fetchCancellations } from '@/lib/supabase/cancellations';
 import { fetchHolds } from '@/lib/supabase/holds';
 import { fetchIntros } from '@/lib/supabase/intros';
 import { fetchSignups } from '@/lib/supabase/signups';
-import type { Intro, Signup, Cancellation, Hold } from '@/types';
-import { errorHandler } from '@/lib/errorHandler';
+import type { Cancellation, Hold, Intro, Signup } from '@/types';
 
 interface AnalyticsData {
   intros: Intro[];

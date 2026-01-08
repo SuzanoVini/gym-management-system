@@ -2,17 +2,15 @@
 
 import { Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import Table from '@/components/ui/Table';
 import { useSignups } from '@/hooks/useSignups';
+import { parseCSV } from '@/lib/csv';
+import { supabase } from '@/lib/supabase/client';
 import { useFilterStore } from '@/store/useFilterStore';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Signup } from '@/types';
-
-import { parseCSV } from '@/lib/csv';
-import Table from '@/components/ui/Table';
-
 import { SignupModals } from './modals/SignupModals';
-import { supabase } from '@/lib/supabase/client';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

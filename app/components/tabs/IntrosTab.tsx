@@ -5,6 +5,8 @@ import { useMemo, useRef, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import Table from '@/components/ui/Table';
 import { useIntros } from '@/hooks/useIntros';
+import { parseCSV } from '@/lib/csv';
+import { supabase } from '@/lib/supabase/client';
 import { useFilterStore } from '@/store/useFilterStore';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -12,8 +14,6 @@ import type { Intro } from '@/types';
 import IntroForm from './forms/IntroForm';
 import FollowUpModal from './modals/FollowUpModal';
 import SettingsModal from './modals/SettingsModal';
-import { parseCSV } from '@/lib/csv';
-import { supabase } from '@/lib/supabase/client';
 
 export default function IntrosTab() {
   const { intros, loading, error, addIntro, editIntro, removeIntro, refresh } = useIntros();

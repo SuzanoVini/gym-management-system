@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { Edit2, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { useUIStore } from '@/store/useUIStore';
 import { useSignups } from '@/hooks/useSignups';
-import { useSelectionStore } from '@/store/useSelectionStore';
-import { SignupForm } from '../forms/SignupForm';
 import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
-import { X, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useSelectionStore } from '@/store/useSelectionStore';
+import { useUIStore } from '@/store/useUIStore';
+import { SignupForm } from '../forms/SignupForm';
 
 const SignupModalIcons = {
   X,

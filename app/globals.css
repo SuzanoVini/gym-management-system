@@ -146,7 +146,9 @@ button.app-logo-wrap:active:not(:disabled) {
   width: var(--sidebar-width-collapsed);
   background: linear-gradient(180deg, #1e3a8a 0%, #172554 55%, #0f172a 100%);
   box-shadow: 8px 0 24px rgba(15, 23, 42, 0.25);
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition:
+    width 0.3s ease,
+    transform 0.3s ease;
   z-index: 40;
 }
 

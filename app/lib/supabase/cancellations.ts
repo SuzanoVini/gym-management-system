@@ -1,6 +1,7 @@
 // app/lib/supabase/cancellations.ts
-import { supabase } from './client';
+
 import type { Cancellation, CancellationFormData } from '@/types';
+import { supabase } from './client';
 
 // CANCELLATIONS
 export const fetchCancellations = async (): Promise<Cancellation[]> => {

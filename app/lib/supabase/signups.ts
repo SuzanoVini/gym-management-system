@@ -1,6 +1,7 @@
 // app/lib/supabase/signups.ts
-import { supabase } from './client';
+
 import type { Signup, SignupFormData } from '@/types';
+import { supabase } from './client';
 
 // SIGNUPS
 export const fetchSignups = async (): Promise<Signup[]> => {

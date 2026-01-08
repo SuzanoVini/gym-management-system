@@ -157,7 +157,7 @@ export const validate = <T>(schema: z.ZodSchema<T>, data: unknown): ValidationRe
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((e: z.ZodIssue) => {
+      const errors = error.issues.map((e: z.ZodIssue) => {
         const path = e.path.join('.');
         return path ? `${path}: ${e.message}` : e.message;
       });
@@ -182,7 +182,7 @@ export const validateAsync = async <T>(
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errors = error.errors.map((e: z.ZodIssue) => {
+      const errors = error.issues.map((e: z.ZodIssue) => {
         const path = e.path.join('.');
         return path ? `${path}: ${e.message}` : e.message;
       });
@@ -196,11 +196,11 @@ export const validateAsync = async <T>(
  * Partial validation - allows partial object validation
  */
 export const validatePartial = <T>(
-  schema: z.ZodSchema<T>,
+  schema: z.ZodObject<any>,
   data: unknown
 ): ValidationResult<Partial<T>> => {
-  const partialSchema = schema.partial() as z.ZodSchema<Partial<T>>;
-  return validate(partialSchema, data);
+  const partialSchema = schema.partial();
+  return validate(partialSchema, data) as ValidationResult<Partial<T>>;
 };
 
 /**
@@ -210,7 +210,7 @@ export const validatePartial = <T>(
  */
 export const formatValidationErrors = (errors: string[]): string => {
   if (errors.length === 1) {
-    return errors[0];
+    return errors[0] ?? 'Validation error';
   }
   return `Please fix the following errors:\n${errors.map((e) => `• ${e}`).join('\n')}`;
 };

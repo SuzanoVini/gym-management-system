@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { Intro, Signup, Cancellation, Hold } from '@/types';
+import type { Cancellation, Hold, Intro, Signup } from '@/types';
 
 interface SelectionState {
   selectedIntro: Intro | null;

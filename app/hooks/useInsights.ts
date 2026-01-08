@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Intro, Signup, Cancellation, Hold, Insight } from '@/types';
+import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
 
 interface UseInsightsProps {
   intros: Intro[];

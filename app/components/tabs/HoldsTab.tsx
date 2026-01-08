@@ -2,16 +2,16 @@
 
 import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import Table from '@/components/ui/Table';
 import { useHolds } from '@/hooks/useHolds';
+import { parseCSV } from '@/lib/csv';
+import { supabase } from '@/lib/supabase/client';
+import { exportToCSV } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Hold } from '@/types';
-import { exportToCSV } from '@/lib/supabase/utils';
-import { parseCSV } from '@/lib/csv';
-import Table from '@/components/ui/Table';
 import { HoldModals } from './modals/HoldModals';
-import { supabase } from '@/lib/supabase/client';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { Edit2, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { useUIStore } from '@/store/useUIStore';
 import { useHolds } from '@/hooks/useHolds';
-import { useSelectionStore } from '@/store/useSelectionStore';
-import { HoldForm } from '../forms/HoldForm';
 import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
-import { X, Plus, Edit2, Trash2 } from 'lucide-react';
+import { useSelectionStore } from '@/store/useSelectionStore';
+import { useUIStore } from '@/store/useUIStore';
+import { HoldForm } from '../forms/HoldForm';
 
 const HoldModalIcons = {
   X,
