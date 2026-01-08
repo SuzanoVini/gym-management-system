@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp, Users, MessageSquare, UserCheck, UserX, Clock } from 'lucide-react';
+import { Clock, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
@@ -23,9 +23,10 @@ export default function Navigation({ activeTab, setActiveTab }: NavigationProps)
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
               <button
+                type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-3 py-4 border-b-3 font-medium text-sm transition-colors whitespace-nowrap ${

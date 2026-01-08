@@ -21,11 +21,49 @@
   .modal-content {
     background-color: white;
     border-radius: 0.5rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
     position: relative;
     max-height: 90vh;
     overflow-y: auto;
     animation: slideIn 0.3s ease-out;
+  }
+
+  /* Custom Card Styles */
+  .card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    box-shadow:
+      0 10px 15px -3px rgba(0, 0, 0, 0.1),
+      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Stat Cards with Border Accent */
+  .stat-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    transition: width 0.3s ease;
+  }
+
+  .stat-card:hover::before {
+    width: 6px;
   }
 }
 
@@ -37,6 +75,127 @@
   --gb-dark-gray: #374151;
   --gb-light-gray: #f3f4f6;
   --gb-white: #ffffff;
+
+  /* Layout Constants */
+  --header-height: 5rem; /* 80px */
+  --sidebar-width-expanded: 16rem; /* 256px */
+  --sidebar-width-collapsed: 4rem; /* 64px */
+
+  /* Gracie Barra Enhanced Colors */
+  --gb-primary: #dc2626; /* Red 600 */
+  --gb-primary-dark: #991b1b; /* Red 800 */
+  --gb-primary-light: #f87171; /* Red 400 */
+  --gb-dark-bg: #111827; /* Gray 900 */
+  --gb-dark-surface: #1f2937; /* Gray 800 */
+  --gb-dark-border: #374151; /* Gray 700 */
+}
+
+/* App Shell Layout */
+.app-shell {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 60%, #e2e8f0 100%);
+}
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 55%, #e2e8f0 100%);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+  z-index: 50;
+}
+
+.app-logo {
+  height: 8rem;
+  max-height: 8rem;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.app-logo-wrap {
+  margin-left: 4rem;
+}
+
+.app-logo-wrap:hover,
+.app-logo-wrap:active {
+  transform: none;
+  box-shadow: none;
+}
+
+button.app-logo-wrap:hover:not(:disabled),
+button.app-logo-wrap:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .app-logo {
+    height: 8rem;
+    max-height: 8rem;
+  }
+}
+
+.app-sidebar {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  height: calc(100vh - var(--header-height));
+  width: var(--sidebar-width-collapsed);
+  background: linear-gradient(180deg, #1e3a8a 0%, #172554 55%, #0f172a 100%);
+  box-shadow: 8px 0 24px rgba(15, 23, 42, 0.25);
+  transition: width 0.3s ease, transform 0.3s ease;
+  z-index: 40;
+}
+
+.app-sidebar[data-state="expanded"] {
+  width: var(--sidebar-width-expanded);
+}
+
+.app-main {
+  min-height: 100vh;
+  padding-top: var(--header-height);
+  margin-left: var(--sidebar-width-collapsed);
+  transition: margin-left 0.3s ease;
+}
+
+.app-shell[data-sidebar="expanded"] .app-main {
+  margin-left: var(--sidebar-width-expanded);
+}
+
+.sidebar-item {
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+  color: rgba(255, 255, 255, 0.78);
+  background: transparent;
+}
+
+.sidebar-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sidebar-item.is-active {
+  color: #ffffff;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.1) 100%);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    margin-left: 0;
+  }
+
+  .app-sidebar {
+    width: var(--sidebar-width-expanded);
+    transform: translateX(-100%);
+  }
+
+  .app-sidebar[data-state="expanded"] {
+    transform: translateX(0);
+  }
 }
 
 /* Base Styles */
@@ -47,9 +206,9 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--gb-black);
@@ -58,7 +217,12 @@ body {
 }
 
 /* Typography */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   line-height: 1.2;
   color: var(--gb-black);
@@ -93,7 +257,9 @@ button:disabled {
 
 button:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 button:active:not(:disabled) {
@@ -144,6 +310,7 @@ textarea {
   padding: 0.5rem 0.75rem;
   transition: all 0.2s ease-in-out;
   background-color: white;
+  box-sizing: border-box;
 }
 
 input:focus,
@@ -160,15 +327,12 @@ label {
   color: var(--gb-dark-gray);
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* Animations are now defined in tailwind.config.js */
+/* @keyframes slideIn { ... } */
+/* @keyframes fadeIn { ... } */
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
 }
 
 /* Prevent body scroll when modal is open */
@@ -176,23 +340,7 @@ body.modal-open {
   overflow: hidden;
 }
 
-/* Brand Colors */
-.bg-red-600 {
-  background-color: var(--gb-red) !important;
-}
-
-.bg-red-700,
-.bg-red-600:hover {
-  background-color: var(--gb-dark-red) !important;
-}
-
-.text-red-600 {
-  color: var(--gb-red) !important;
-}
-
-.border-red-600 {
-  border-color: var(--gb-red) !important;
-}
+/* Removed redundant brand color classes, now handled by tailwind.config.js */
 
 /* Scrollbar */
 ::-webkit-scrollbar {
@@ -215,11 +363,7 @@ body.modal-open {
 }
 
 /* Loading spinner */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* @keyframes spin { ... } */
 
 .animate-spin {
   animation: spin 1s linear infinite;

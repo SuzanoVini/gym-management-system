@@ -1,171 +1,137 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Users, UserPlus, UserMinus, Clock, AlertCircle, CheckCircle, DollarSign, Target } from 'lucide-react';
-import { fetchIntros, fetchSignups, fetchCancellations, fetchHolds } from '../../lib/supabase/client';
-import { LineChart, Line, BarChart, Bar, LabelList, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Download,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  UserMinus,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { exportToCSV } from '@/lib/supabase/utils';
+import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 
-interface Intro {
-  id: string;
-  month: string;
-  name: string;
-  class: string;
-  staff: string;
-  attended: string;
-  signed_up: string;
-  [key: string]: any;
-}
-
-interface Signup {
-  id: string;
-  month: string;
-  name: string;
-  membership: string;
-  membership_date?: string;
-  [key: string]: any;
-}
-
-interface Cancellation {
-  id: string;
-  month: string;
-  name: string;
-  reason: string;
-  date: string;
-  [key: string]: any;
-}
-
-interface Hold {
-  id: string;
-  month: string;
-  name: string;
-  start: string;
-  end: string;
-  reason: string;
-  [key: string]: any;
-}
+const OverviewIcons = {
+  AlertCircle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Download,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  UserMinus,
+  UserPlus,
+  Users,
+};
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function OverviewTab() {
-  const [intros, setIntros] = useState<Intro[]>([]);
-  const [signups, setSignups] = useState<Signup[]>([]);
-  const [cancellations, setCancellations] = useState<Cancellation[]>([]);
-  const [holds, setHolds] = useState<Hold[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('all'); // all, 3months, 6months, year
+  const [dateRange, setDateRange] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
-  const loadAllData = async () => {
-    try {
-      setLoading(true);
-      const [introsData, signupsData, cancellationsData, holdsData] = await Promise.all([
-        fetchIntros(),
-        fetchSignups(),
-        fetchCancellations(),
-        fetchHolds()
-      ]);
-      setIntros(introsData);
-      setSignups(signupsData);
-      setCancellations(cancellationsData);
-      setHolds(holdsData);
+  const { filteredData, loading, error, refresh } = useAnalyticsData({
+    dateRange,
+    customStartDate,
+    customEndDate,
+  });
 
-      // DEBUG: Log sample data to check formats
-      console.log('=== DATA SAMPLE ===');
-      console.log('Sample Intro:', introsData[0]);
-      console.log('Sample Signup:', signupsData[0]);
-      console.log('Sample Cancellation:', cancellationsData[0]);
-      console.log('Sample Hold:', holdsData[0]);
-
-      console.log('\n=== DATA COUNTS ===');
-      console.log('Total Intros:', introsData.length);
-      console.log('Total Signups:', signupsData.length);
-      console.log('Total Cancellations:', cancellationsData.length);
-      console.log('Total Holds:', holdsData.length);
-
-      // Check boolean formats
-      console.log('\n=== BOOLEAN CHECKS ===');
-      console.log('Attended values:', [...new Set(introsData.map(i => i.attended))]);
-      console.log('Signed Up values:', [...new Set(introsData.map(i => i.signed_up))]);
-
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleApplyCustomDates = () => {
+    setCustomStartDate(tempStartDate);
+    setCustomEndDate(tempEndDate);
   };
 
-  // Filter by date range
-  const filterByDateRange = (data: any[], dateField: string = 'created_at') => {
-    if (dateRange === 'all') return data;
-
-    const now = new Date();
-    const cutoffDate = new Date();
-
-    if (dateRange === '3months') {
-      cutoffDate.setMonth(now.getMonth() - 3);
-    } else if (dateRange === '6months') {
-      cutoffDate.setMonth(now.getMonth() - 6);
-    } else if (dateRange === 'year') {
-      cutoffDate.setFullYear(now.getFullYear() - 1);
-    }
-
-    return data.filter(item => {
-      const itemDate = new Date(item[dateField] || item.created_at);
-      return itemDate >= cutoffDate;
-    });
-  };
-
-  const filteredIntros = filterByDateRange(intros);
-  const filteredSignups = filterByDateRange(signups);
-  const filteredCancellations = filterByDateRange(cancellations);
-  const filteredHolds = filterByDateRange(holds);
+  const { intros, signups, cancellations, holds } = filteredData;
 
   // Key Metrics
-  const totalIntros = filteredIntros.length;
-  const attendedIntros = filteredIntros.filter(i => i.attended === 'Yes').length;
-  const totalSignups = filteredSignups.length;
-  const totalCancellations = filteredCancellations.length;
-  const activeHolds = filteredHolds.filter(h => {
-    const end = new Date(h.end);
-    return end > new Date();
+  const totalIntros = intros.length;
+  const attendedIntros = intros.filter((i) => i.attended === 'Yes').length;
+  const totalSignups = signups.length;
+  const totalCancellations = cancellations.length;
+  const activeHolds = holds.filter((h) => {
+    const end = h.end ? new Date(h.end) : null;
+    return end && end > new Date();
   }).length;
 
-  const signupsFromIntros = filteredSignups.filter(signup =>
-    filteredIntros.some(intro => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim())
+  const signupsFromIntros = signups.filter((signup) =>
+    intros.some((intro) => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim())
   ).length;
 
-  const conversionRate = attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(1) : '0';
+  const conversionRate =
+    attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(1) : '0';
   const netGrowth = totalSignups - totalCancellations;
 
   // Monthly Trends
-  const monthlyData = MONTHS.map(month => {
-    const monthIntros = filteredIntros.filter(i => i.month === month).length;
-    const monthSignups = filteredSignups.filter(s => s.month === month).length;
-    const monthCancellations = filteredCancellations.filter(c => c.month === month).length;
+  const monthlyData = MONTHS.map((month) => {
+    const monthIntros = intros.filter((i) => i.month === month).length;
+    const monthSignups = signups.filter((s) => s.month === month).length;
+    const monthCancellations = cancellations.filter((c) => c.month === month).length;
 
     return {
       month,
       Intros: monthIntros,
       'Sign-ups': monthSignups,
       Cancellations: monthCancellations,
-      'Net Growth': monthSignups - monthCancellations
+      'Net Growth': monthSignups - monthCancellations,
     };
-  }).filter(m => m.Intros > 0 || m['Sign-ups'] > 0 || m.Cancellations > 0);
+  }).filter((m) => m.Intros > 0 || m['Sign-ups'] > 0 || m.Cancellations > 0);
 
   // Conversion Funnel
   const funnelData = [
-    { stage: 'Intros', count: totalIntros, percentage: 100 },
-    { stage: 'Attended', count: attendedIntros, percentage: totalIntros > 0 ? ((attendedIntros / totalIntros) * 100).toFixed(0) : 0 },
-    { stage: 'Signed Up', count: totalSignups, percentage: totalIntros > 0 ? ((totalSignups / totalIntros) * 100).toFixed(0) : 0 }
+    {
+      stage: 'Intros',
+      count: totalIntros,
+      percentage: 100,
+      countLabel: `${totalIntros} (100%)`,
+    },
+    {
+      stage: 'Attended',
+      count: attendedIntros,
+      percentage: totalIntros > 0 ? ((attendedIntros / totalIntros) * 100).toFixed(0) : 0,
+      countLabel: `${attendedIntros} (${totalIntros > 0 ? ((attendedIntros / totalIntros) * 100).toFixed(0) : 0}%)`,
+    },
+    {
+      stage: 'Signed Up',
+      count: totalSignups,
+      percentage: attendedIntros > 0 ? ((totalSignups / attendedIntros) * 100).toFixed(0) : 0,
+      countLabel: `${totalSignups} (${attendedIntros > 0 ? ((totalSignups / attendedIntros) * 100).toFixed(0) : 0}%)`,
+    },
   ];
 
-  // Top Classes by Sign-ups
-  const classSignups = filteredIntros.reduce((acc: any, intro) => {
-    if (intro.signed_up === 'Yes') {
-      acc[intro.class] = (acc[intro.class] || 0) + 1;
+  // Top Classes by Sign-ups (matches actual signups to intro classes by name)
+  const classSignups = signups.reduce((acc: any, signup) => {
+    const matchingIntro = intros.find(
+      (intro) => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim()
+    );
+    if (matchingIntro && matchingIntro.class) {
+      acc[matchingIntro.class] = (acc[matchingIntro.class] || 0) + 1;
     }
     return acc;
   }, {});
@@ -176,399 +142,632 @@ export default function OverviewTab() {
     .slice(0, 5);
 
   // Membership Type Breakdown
-  const membershipData = filteredSignups.reduce((acc: any, signup) => {
+  const membershipData = signups.reduce((acc: any, signup) => {
     acc[signup.membership] = (acc[signup.membership] || 0) + 1;
     return acc;
   }, {});
 
   const membershipChart = Object.entries(membershipData).map(([name, value]) => ({ name, value }));
 
-  // Cancellation Reasons
-  const cancellationReasons = filteredCancellations.reduce((acc: any, cancel) => {
-    acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
+  // Cancellation Reasons (case-insensitive)
+  const cancellationReasons = cancellations.reduce((acc: any, cancel) => {
+    const normalizedReason = cancel.reason.toLowerCase();
+    acc[normalizedReason] = (acc[normalizedReason] || 0) + 1;
     return acc;
   }, {});
 
+  const capitalizeWords = (str: string) => {
+    return str.replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   const reasonsChart = Object.entries(cancellationReasons)
-    .map(([name, value]) => ({ name, value }))
+    .map(([name, value]) => ({ name: capitalizeWords(name), value }))
     .sort((a: any, b: any) => b.value - a.value)
     .slice(0, 5);
 
-  // Staff Performance - only count intros where they actually attended
-  const staffStats = filteredIntros.reduce((acc: any, intro) => {
-    // Only count if they attended
-    if (intro.attended !== 'Yes') return acc;
+  // Staff Performance with ABSOLUTE NUMBERS + PERCENTAGES
+  const staffStats = intros.reduce((acc: any, intro) => {
+    if (!intro.staff) {
+      return acc;
+    }
 
     if (!acc[intro.staff]) {
-      acc[intro.staff] = { attended: 0, signedUp: 0 };
+      acc[intro.staff] = {
+        total: 0,
+        attended: 0,
+        signedUp: 0,
+      };
     }
-    acc[intro.staff].attended++;
 
-    if (intro.signed_up === 'Yes') {
-      acc[intro.staff].signedUp++;
+    acc[intro.staff].total++;
+    if (intro.attended === 'Yes') {
+      acc[intro.staff].attended++;
+      if (intro.signed_up === 'Yes') {
+        acc[intro.staff].signedUp++;
+      }
     }
 
     return acc;
   }, {});
-
-  // staffPerformance is computed below with a single declaration (deduplicated)
-
-  // Debug: Log the data to see what we're getting
-  console.log('Staff Stats:', staffStats);
-  console.log('Sample intro:', filteredIntros[0]);
 
   const staffPerformance = Object.entries(staffStats)
     .map(([name, stats]: [string, any]) => ({
       name,
+      totalIntros: stats.total,
       attended: stats.attended,
       signedUp: stats.signedUp,
-      conversionRate: stats.attended > 0 ? parseFloat(((stats.signedUp / stats.attended) * 100).toFixed(1)) : 0
+      conversionRate:
+        stats.attended > 0 ? ((stats.signedUp / stats.attended) * 100).toFixed(1) : '0',
+      label: `${stats.signedUp}/${stats.attended} (${stats.attended > 0 ? ((stats.signedUp / stats.attended) * 100).toFixed(1) : '0'}%)`,
     }))
-    .filter(s => s.attended >= 3) // Lowered threshold for testing
-    .sort((a: any, b: any) => b.conversionRate - a.conversionRate)
+    .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
 
-  console.log('Staff Performance:', staffPerformance);
+  // ENHANCED: Smart Business Insights - Focus on Retention, Conversion, and Business Health
+  const insights: any[] = [];
 
-  // Smart Insights
-  const generateInsights = () => {
-    const insights = [];
-
-    // Recent cancellations
-    const last3Months = new Date();
-    last3Months.setMonth(last3Months.getMonth() - 3);
-    const recentSignups = signups.filter(s => new Date(s.membership_date || s.created_at) >= last3Months);
-    const recentCancellations = cancellations.filter(c => {
-      const cancelDate = new Date(c.date || c.created_at);
-      const signup = signups.find(s => s.name.toLowerCase() === c.name.toLowerCase());
-      if (!signup) return false;
-      const signupDate = new Date(signup.membership_date || signup.created_at);
-      const daysSinceSignup = (cancelDate.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24);
-      return daysSinceSignup <= 90;
+  // 1. Conversion Rate Analysis
+  if (parseFloat(conversionRate) < 30 && attendedIntros > 10) {
+    insights.push({
+      icon: 'TrendingDown',
+      title: 'Low Conversion Rate',
+      message: `Your conversion rate is ${conversionRate}%. Review intro class quality, instructor engagement, and pricing strategy to improve conversions.`,
+      color: 'red',
     });
+  } else if (parseFloat(conversionRate) >= 50 && attendedIntros > 5) {
+    insights.push({
+      icon: 'CheckCircle',
+      title: 'Excellent Conversion Rate',
+      message: `Outstanding ${conversionRate}% conversion rate! Your intro program is highly effective. Consider scaling your marketing efforts.`,
+      color: 'green',
+    });
+  }
 
-    if (recentCancellations.length > 0 && recentSignups.length > 0) {
-      const earlyChurnRate = ((recentCancellations.length / recentSignups.length) * 100).toFixed(0);
-      if (parseInt(earlyChurnRate) > 10) {
-        insights.push({
-          type: 'warning',
-          icon: AlertCircle,
-          title: 'High Early Cancellation Rate',
-          message: `${earlyChurnRate}% of members who signed up in the last 3 months have cancelled. Consider improving onboarding.`,
-          color: 'red'
-        });
-      }
+  // 2. Retention & Growth Analysis
+  if (netGrowth < 0) {
+    const churnRate =
+      totalSignups > 0 ? ((totalCancellations / totalSignups) * 100).toFixed(1) : '0';
+    insights.push({
+      icon: 'UserMinus',
+      title: 'Negative Member Growth',
+      message: `Net loss of ${Math.abs(netGrowth)} members (${churnRate}% churn rate). Priority: improve retention programs and address cancellation reasons.`,
+      color: 'red',
+    });
+  } else if (netGrowth > 10) {
+    insights.push({
+      icon: 'TrendingUp',
+      title: 'Strong Growth Trajectory',
+      message: `Net gain of ${netGrowth} members! Maintain this momentum with consistent intro quality and member engagement.`,
+      color: 'green',
+    });
+  }
+
+  // 3. Cancellation Reason Analysis
+  const cancellationReasonsForInsights = cancellations.reduce((acc: any, cancel) => {
+    if (cancel.reason) {
+      acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const topCancellationReason = Object.entries(cancellationReasonsForInsights).sort(
+    (a: any, b: any) => b[1] - a[1]
+  )[0];
+
+  if (topCancellationReason && (topCancellationReason[1] as number) > 3) {
+    const [reason, count] = topCancellationReason;
+    let actionableAdvice = '';
+
+    if (reason.toLowerCase().includes('time')) {
+      actionableAdvice =
+        'Consider offering more flexible class schedules or virtual training options.';
+    } else if (
+      reason.toLowerCase().includes('financial') ||
+      reason.toLowerCase().includes('money')
+    ) {
+      actionableAdvice =
+        'Review pricing tiers and consider introducing budget-friendly membership options or payment plans.';
+    } else if (
+      reason.toLowerCase().includes('injury') ||
+      reason.toLowerCase().includes('medical')
+    ) {
+      actionableAdvice =
+        'Emphasize injury prevention training and consider specialized classes for recovery.';
+    } else if (reason.toLowerCase().includes('moving')) {
+      actionableAdvice =
+        'Offer temporary holds for relocations and promote your gym network if applicable.';
+    } else {
+      actionableAdvice = 'Schedule exit interviews to better understand this cancellation pattern.';
     }
 
-    // Conversion rate
-    if (parseFloat(conversionRate) < 40) {
-      insights.push({
-        type: 'warning',
-        icon: Target,
-        title: 'Low Conversion Rate',
-        message: `Conversion rate is ${conversionRate}%. Industry standard is 40-50%. Focus on follow-ups and trial experience.`,
-        color: 'yellow'
-      });
-    } else if (parseFloat(conversionRate) > 50) {
-      insights.push({
-        type: 'success',
-        icon: CheckCircle,
-        title: 'Excellent Conversion Rate',
-        message: `Your ${conversionRate}% conversion rate is above industry average! Keep up the great work.`,
-        color: 'green'
-      });
+    insights.push({
+      icon: 'AlertCircle',
+      title: `Top Cancellation: ${reason}`,
+      message: `${count} cancellations due to "${reason}". ${actionableAdvice}`,
+      color: 'orange',
+    });
+  }
+
+  // 4. Hold Rate Analysis
+  const holdRate = totalSignups > 0 ? (activeHolds / totalSignups) * 100 : 0;
+  if (holdRate > 15) {
+    insights.push({
+      icon: 'Clock',
+      title: 'High Hold Rate Alert',
+      message: `${activeHolds} members on hold (${holdRate.toFixed(0)}% of active base). Implement re-engagement campaigns to bring them back.`,
+      color: 'yellow',
+    });
+  }
+
+  // 5. Seasonal Hold Patterns
+  const holdsByMonth = holds.reduce((acc: any, hold) => {
+    if (hold.month) {
+      acc[hold.month] = (acc[hold.month] || 0) + 1;
     }
+    return acc;
+  }, {});
 
-    // Seasonal holds
-    const summerMonths = ['Jun', 'Jul', 'Aug'];
-    const summerHolds = holds.filter(h => summerMonths.includes(h.month));
-    const avgHolds = holds.length / 12;
-    const summerAvg = summerHolds.length / 3;
+  const peakHoldMonth = Object.entries(holdsByMonth).sort((a: any, b: any) => b[1] - a[1])[0];
 
-    if (summerAvg > avgHolds * 2) {
-      insights.push({
-        type: 'info',
-        icon: Clock,
-        title: 'Seasonal Hold Pattern Detected',
-        message: `Holds spike ${((summerAvg / avgHolds) * 100).toFixed(0)}% in summer. Plan for reduced summer revenue and consider summer programs.`,
-        color: 'blue'
-      });
-    }
+  if (peakHoldMonth && (peakHoldMonth[1] as number) > 5) {
+    insights.push({
+      icon: 'Calendar',
+      title: 'Seasonal Hold Pattern Detected',
+      message: `${peakHoldMonth[1]} holds in ${peakHoldMonth[0]}. Plan promotions or special events during this period to minimize seasonal drops.`,
+      color: 'blue',
+    });
+  }
 
-    // Staff performance
-    const topStaff = staffPerformance[0];
-    if (topStaff && Number(topStaff.conversionRate) > 60) {
-      insights.push({
-        type: 'success',
-        icon: Users,
-        title: 'Top Performer Identified',
-        message: `${topStaff.name} has a ${topStaff.conversionRate}% conversion rate! Learn from their approach and share best practices.`,
-        color: 'green'
-      });
-    }
+  // 6. Conversion Opportunity (but only for active, uncontacted intros)
+  const attendedNotSigned = intros.filter(
+    (i) =>
+      i.attended === 'Yes' &&
+      i.signed_up !== 'Yes' &&
+      i.status !== 'Completed' &&
+      i.status !== 'Cancelled'
+  ).length;
 
-    // Follow-ups needed
-    const needFollowUp = intros.filter(i => {
-      const attended = i.attended === 'Yes';
-      const notSignedUp = i.signed_up !== 'Yes';
-      const noFollowUp = i.follow_up === null || i.follow_up === '' || i.follow_up === undefined || (Array.isArray(i.follow_up) && i.follow_up.length === 0);
-      return attended && notSignedUp && noFollowUp;
-    }).length;
+  if (attendedNotSigned > 5) {
+    insights.push({
+      icon: 'Target',
+      title: 'Conversion Opportunity',
+      message: `${attendedNotSigned} active prospects attended but haven't signed up. Focus conversion efforts here for quick wins.`,
+      color: 'blue',
+    });
+  }
 
-    if (needFollowUp > 10) {
-      insights.push({
-        type: 'action',
-        icon: AlertCircle,
-        title: 'Follow-ups Needed',
-        message: `${needFollowUp} intros attended but haven't signed up yet. Follow up within 48 hours for best conversion.`,
-        color: 'purple'
-      });
-    }
+  // Export functionality
+  const handleExportAllData = () => {
+    const exportData = {
+      intros: intros.map((i) => ({
+        name: i.name,
+        month: i.month,
+        class: i.class,
+        staff: i.staff,
+        attended: i.attended,
+        signed_up: i.signed_up,
+        date: i.created_at,
+      })),
+      signups: signups.map((s) => ({
+        name: s.name,
+        month: s.month,
+        membership: s.membership,
+        date: s.membership_date,
+      })),
+      cancellations: cancellations.map((c) => ({
+        name: c.name,
+        month: c.month,
+        reason: c.reason,
+        date: c.date,
+      })),
+      holds: holds.map((h) => ({
+        name: h.name,
+        month: h.month,
+        reason: h.reason,
+        start: h.start,
+        end: h.end,
+      })),
+    };
 
-    // Net growth
-    if (netGrowth < 0) {
-      insights.push({
-        type: 'warning',
-        icon: TrendingDown,
-        title: 'Negative Net Growth',
-        message: `You have ${Math.abs(netGrowth)} more cancellations than sign-ups. Prioritize both acquisition and retention.`,
-        color: 'red'
-      });
-    } else if (netGrowth > 10) {
-      insights.push({
-        type: 'success',
-        icon: TrendingUp,
-        title: 'Strong Growth',
-        message: `Net growth of +${netGrowth} members! Your gym is expanding healthily.`,
-        color: 'green'
-      });
-    }
+    // Export each dataset
+    exportToCSV(exportData.intros, 'intros');
+    exportToCSV(exportData.signups, 'signups');
+    exportToCSV(exportData.cancellations, 'cancellations');
+    exportToCSV(exportData.holds, 'holds');
 
-    return insights;
+    alert('✅ All data exported successfully! Check your downloads folder.');
   };
-
-  const insights = generateInsights();
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">Error: {error.message}</div>
+        <button
+          type="button"
+          onClick={refresh}
+          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-          <p className="text-gray-600 mt-1">GB Kits' performance at a glance</p>
-        </div>
-        <div>
-          <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg">
-            <option value="all">All Time</option>
-            <option value="3months">Last 3 Months</option>
-            <option value="6months">Last 6 Months</option>
-            <option value="year">Last Year</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Intros</p>
-              <p className="text-3xl font-bold mt-1">{totalIntros}</p>
-            </div>
-            <Users className="w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Sign-ups</p>
-              <p className="text-3xl font-bold mt-1">{totalSignups}</p>
-            </div>
-            <UserPlus className="w-8 h-8 text-green-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Cancellations</p>
-              <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
-            </div>
-            <UserMinus className="w-8 h-8 text-red-600" />
-          </div>
-        </div>
-
-        <div className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Net Growth</p>
-              <p className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {netGrowth >= 0 ? '+' : ''}{netGrowth}
-              </p>
-            </div>
-            {netGrowth >= 0 ? <TrendingUp className="w-8 h-8 text-green-600" /> : <TrendingDown className="w-8 h-8 text-red-600" />}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Conversion Rate</p>
-              <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
-            </div>
-            <Target className="w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Active Holds</p>
-              <p className="text-3xl font-bold mt-1">{activeHolds}</p>
-            </div>
-            <Clock className="w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Smart Insights */}
-      {insights.length > 0 && (
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+      <div className="space-y-6">
+        {/* ENHANCED: Date Range Filter */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4 flex items-center">
-            <AlertCircle className="w-6 h-6 mr-2" />
-            Smart Insights & Recommendations
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {insights.map((insight, index) => {
-              const Icon = insight.icon;
-              return (
-                <div key={index} className={`p-4 rounded-lg border-l-4 ${insight.color === 'red' ? 'bg-red-50 border-red-500' :
-                  insight.color === 'orange' ? 'bg-orange-50 border-orange-500' :
-                    insight.color === 'yellow' ? 'bg-yellow-50 border-yellow-500' :
-                      insight.color === 'green' ? 'bg-green-50 border-green-500' :
-                        insight.color === 'blue' ? 'bg-blue-50 border-blue-500' :
-                          'bg-purple-50 border-purple-500'
-                  }`}>
-                  <div className="flex items-start">
-                    <Icon className={`w-5 h-5 mr-3 mt-0.5 ${insight.color === 'red' ? 'text-red-600' :
-                      insight.color === 'orange' ? 'text-orange-600' :
-                        insight.color === 'yellow' ? 'text-yellow-600' :
-                          insight.color === 'green' ? 'text-green-600' :
-                            insight.color === 'blue' ? 'text-blue-600' :
-                              'text-purple-600'
-                      }`} />
-                    <div>
-                      <h3 className="font-semibold text-sm">{insight.title}</h3>
-                      <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center">
+              <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
+              Date Range Filter
+            </h2>
+            <button
+              onClick={handleExportAllData}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+            >
+              <OverviewIcons.Download className="w-4 h-4" />
+              Export All Data
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            {[
+              { value: 'all', label: 'All Time' },
+              { value: '1month', label: 'Last Month' },
+              { value: '3months', label: 'Last 3 Months' },
+              { value: '6months', label: 'Last 6 Months' },
+              { value: 'year', label: 'Last Year' },
+              { value: 'ytd', label: 'Year to Date' },
+              { value: 'custom', label: '📅 Custom Range' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setDateRange(option.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  dateRange === option.value
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Range Inputs */}
+          {dateRange === 'custom' && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-red-200">
+              <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={tempStartDate}
+                    onChange={(e) => setTempStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={tempEndDate}
+                    onChange={(e) => setTempEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <button
+                  onClick={handleApplyCustomDates}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
+                >
+                  Apply Filter
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Intros</p>
+                <p className="text-3xl font-bold mt-1">{totalIntros}</p>
+              </div>
+              <OverviewIcons.Users className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Sign-ups</p>
+                <p className="text-3xl font-bold mt-1">{totalSignups}</p>
+              </div>
+              <OverviewIcons.UserPlus className="w-8 h-8 text-green-600" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Cancellations</p>
+                <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
+              </div>
+              <OverviewIcons.UserMinus className="w-8 h-8 text-red-600" />
+            </div>
+          </div>
+
+          <div
+            className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Net Growth</p>
+                <p
+                  className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                >
+                  {netGrowth >= 0 ? '+' : ''}
+                  {netGrowth}
+                </p>
+              </div>
+              {netGrowth >= 0 ? (
+                <OverviewIcons.TrendingUp className="w-8 h-8 text-green-600" />
+              ) : (
+                <OverviewIcons.TrendingDown className="w-8 h-8 text-red-600" />
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Conversion Rate</p>
+                <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
+              </div>
+              <OverviewIcons.Target className="w-8 h-8 text-purple-600" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Holds</p>
+                <p className="text-3xl font-bold mt-1">{activeHolds}</p>
+              </div>
+              <OverviewIcons.Clock className="w-8 h-8 text-yellow-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Smart Insights */}
+        {insights.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center">
+              <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
+              Smart Insights & Recommendations
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {insights.map((insight, index) => {
+                const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
+                return (
+                  <div
+                    key={index}
+                    className={`p-4 rounded-lg border-l-4 ${
+                      insight.color === 'red'
+                        ? 'bg-red-50 border-red-500'
+                        : insight.color === 'orange'
+                          ? 'bg-orange-50 border-orange-500'
+                          : insight.color === 'yellow'
+                            ? 'bg-yellow-50 border-yellow-500'
+                            : insight.color === 'green'
+                              ? 'bg-green-50 border-green-500'
+                              : insight.color === 'blue'
+                                ? 'bg-blue-50 border-blue-500'
+                                : 'bg-purple-50 border-purple-500'
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <Icon
+                        className={`w-5 h-5 mr-3 mt-0.5 ${
+                          insight.color === 'red'
+                            ? 'text-red-600'
+                            : insight.color === 'orange'
+                              ? 'text-orange-600'
+                              : insight.color === 'yellow'
+                                ? 'text-yellow-600'
+                                : insight.color === 'green'
+                                  ? 'text-green-600'
+                                  : insight.color === 'blue'
+                                    ? 'text-blue-600'
+                                    : 'text-purple-600'
+                        }`}
+                      />
+                      <div>
+                        <h3 className="font-semibold text-sm">{insight.title}</h3>
+                        <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Monthly Trends */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="Intros" stroke="#3b82f6" strokeWidth={2} />
+              <Line type="monotone" dataKey="Sign-ups" stroke="#10b981" strokeWidth={2} />
+              <Line type="monotone" dataKey="Cancellations" stroke="#ef4444" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Conversion Funnel */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={funnelData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="stage" type="category" width={100} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3b82f6">
+                  <LabelList dataKey="countLabel" position="right" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Top Classes */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topClasses}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Membership Breakdown */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4">Membership Types</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={membershipChart}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label
+                >
+                  {membershipChart.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Cancellation Reasons */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={reasonsChart}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label
+                >
+                  {reasonsChart.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
 
-      {/* Monthly Trends */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="Intros" stroke="#3b82f6" strokeWidth={2} />
-            <Line type="monotone" dataKey="Sign-ups" stroke="#10b981" strokeWidth={2} />
-            <Line type="monotone" dataKey="Cancellations" stroke="#ef4444" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Conversion Funnel */}
+        {/* Staff Performance with Absolute Numbers + Percentages */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={funnelData} layout="vertical">
+          <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rates)</h2>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={staffPerformance}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="stage" type="category" width={100} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#3b82f6">
-                <LabelList dataKey="countLabel" position="right" />
+              <XAxis dataKey="name" />
+              <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
+              <Tooltip
+                formatter={(_value, _name, props) => {
+                  const data = props.payload;
+                  return [`${data.label}`, 'Conversion'];
+                }}
+              />
+              <Bar dataKey="conversionRate" fill="#8b5cf6">
+                <LabelList
+                  dataKey="label"
+                  position="top"
+                  style={{ fontSize: '12px', fill: '#6b7280' }}
+                />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
 
-        {/* Top Classes */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topClasses}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#10b981" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Membership Breakdown */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Membership Types</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={membershipChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {membershipChart.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          {/* Staff Performance Table */}
+          <div className="mt-6 overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Staff
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Total Intros
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Attended
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Signed Up
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Conversion Rate
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {staffPerformance.map((staff) => (
+                  <tr key={staff.name}>
+                    <td className="px-4 py-2 font-medium">{staff.name}</td>
+                    <td className="px-4 py-2">{staff.totalIntros}</td>
+                    <td className="px-4 py-2">{staff.attended}</td>
+                    <td className="px-4 py-2">{staff.signedUp}</td>
+                    <td className="px-4 py-2">
+                      <span className="font-semibold text-purple-600">{staff.label}</span>
+                    </td>
+                  </tr>
                 ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+              </tbody>
+            </table>
+          </div>
         </div>
-
-        {/* Cancellation Reasons */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={reasonsChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {reasonsChart.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Staff Performance */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rate)</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={staffPerformance}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
-            <Tooltip formatter={(value) => `${value}%`} />
-            <Bar dataKey="conversionRate" fill="#8b5cf6" label={{ position: 'top', formatter: (value: any) => `${value}%` }} />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
     </div>
   );

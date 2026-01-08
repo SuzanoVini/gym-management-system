@@ -1,0 +1,99 @@
+// hooks/useSignups.ts
+import { useCallback, useEffect, useState } from 'react';
+import { errorHandler } from '@/lib/errorHandler';
+import { createSignup, deleteSignup, fetchSignups, updateSignup } from '@/lib/supabase/signups';
+import { signupSchema, validate } from '@/lib/validations';
+import type { Signup, SignupFormData } from '@/types';
+
+export const useSignups = () => {
+  const [signups, setSignups] = useState<Signup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const loadSignups = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchSignups();
+      setSignups(data);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to load signups');
+      setError(error);
+      errorHandler.handle(error, 'loadSignups');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const addSignup = useCallback(
+    async (signup: SignupFormData) => {
+      // Validate data before sending to database
+      const validation = validate(signupSchema, signup);
+
+      if (!validation.success) {
+        const errorMessage = validation.errors?.join('\n') || 'Validation failed';
+        errorHandler.notify(errorMessage, 'error');
+        throw new Error(errorMessage);
+      }
+
+      try {
+        await createSignup(validation.data!);
+        await loadSignups();
+        errorHandler.notify('Signup added successfully', 'success');
+      } catch (err) {
+        errorHandler.handle(err, 'addSignup');
+        throw err;
+      }
+    },
+    [loadSignups]
+  );
+
+  const editSignup = useCallback(
+    async (id: string, updates: Partial<SignupFormData>) => {
+      try {
+        await updateSignup(id, updates);
+        await loadSignups();
+        errorHandler.notify('Signup updated successfully', 'success');
+      } catch (err) {
+        errorHandler.handle(err, 'editSignup');
+        throw err;
+      }
+    },
+    [loadSignups]
+  );
+
+  const removeSignup = useCallback(
+    async (id: string, name: string) => {
+      if (typeof window !== 'undefined') {
+        const confirmed = window.confirm(`Delete signup for ${name}?`);
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      try {
+        await deleteSignup(id);
+        await loadSignups();
+        errorHandler.notify('Signup deleted successfully', 'success');
+      } catch (err) {
+        errorHandler.handle(err, 'removeSignup');
+        throw err;
+      }
+    },
+    [loadSignups]
+  );
+
+  useEffect(() => {
+    loadSignups();
+  }, [loadSignups]);
+
+  return {
+    signups,
+    loading,
+    error,
+    refresh: loadSignups,
+    addSignup,
+    editSignup,
+    removeSignup,
+  };
+};

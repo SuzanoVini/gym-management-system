@@ -1,102 +1,60 @@
 'use client';
 
 import { useState } from 'react';
-import IntrosTab from './components/tabs/IntrosTab';
-import SignupsTab from './components/tabs/SignupsTab';
+import Header from './components/layout/Header';
+import Sidebar from './components/layout/Sidebar';
+import ProtectedRoute from './components/providers/ProtectedRoute';
 import CancellationsTab from './components/tabs/CancellationsTab';
 import HoldsTab from './components/tabs/HoldsTab';
+import InsightsTab from './components/tabs/InsightsTab';
+import IntrosTab from './components/tabs/IntrosTab';
 import OverviewTab from './components/tabs/OverviewTab';
-// Import other tabs as we create them
+import SignupsTab from './components/tabs/SignupsTab';
+import { useSidebarStore } from './store/useSidebarStore';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('intros');
+  const [activeTab, setActiveTab] = useState('overview');
+  const { isOpen } = useSidebarStore();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b-4 border-red-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-3xl font-bold text-gray-900">Gracie Barra Kitsilano</h1>
-          <p className="text-sm text-gray-600 mt-1">Gym Management System</p>
+    <ProtectedRoute>
+      <div className="app-shell" data-sidebar={isOpen ? 'expanded' : 'collapsed'}>
+        {/* Header Container */}
+        <div>
+          <Header onLogoClick={() => setActiveTab('overview')} />
         </div>
-      </header>
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('intros')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'intros'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Intros
-            </button>
-            <button
-              onClick={() => setActiveTab('signups')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'signups'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Sign-ups
-            </button>
-            <button
-              onClick={() => setActiveTab('cancellations')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'cancellations'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Cancellations
-            </button>
-            <button
-              onClick={() => setActiveTab('holds')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'holds'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Holds
-            </button>
-            <button
-              onClick={() => setActiveTab('followup')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'followup'
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Follow-up
-            </button>
-          </div>
+        {/* Sidebar Container */}
+        <div>
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
-      </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'overview' && <OverviewTab />}
-        {activeTab === 'intros' && <IntrosTab />}
-        {activeTab === 'signups' && <SignupsTab />}
-        {activeTab === 'cancellations' && <CancellationsTab />}
-        {activeTab === 'holds' && <HoldsTab />}
-      </main>
-    </div>
+        {/* Main Content Container */}
+        <div className="app-main">
+          {/* Main Content Area */}
+          <main className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="animate-fadeIn">
+                {activeTab === 'overview' && <OverviewTab />}
+                {activeTab === 'insights' && <InsightsTab />}
+                {activeTab === 'intros' && <IntrosTab />}
+                {activeTab === 'signups' && <SignupsTab />}
+                {activeTab === 'cancellations' && <CancellationsTab />}
+                {activeTab === 'holds' && <HoldsTab />}
+              </div>
+            </div>
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-300 mt-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <p className="text-center text-sm text-gray-600">
+                © {new Date().getFullYear()} Gracie Barra Kitsilano. All rights reserved.
+              </p>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </ProtectedRoute>
   );
 }

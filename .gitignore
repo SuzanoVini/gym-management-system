@@ -42,5 +42,10 @@ next-env.d.ts
 *.swo
 *~
 
+# AI files
+.Claude
+PRODUCTION_READY_CHECKLIST.md
+GEMINI.md
+
 # OS
 Thumbs.db
