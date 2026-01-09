@@ -258,9 +258,9 @@ export default function IntrosTab() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-      <div className="space-y-6">
-        {/* Header */}
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="section-container">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Intro Classes</h2>
           <div className="flex space-x-3">
@@ -297,37 +297,38 @@ export default function IntrosTab() {
             </button>
           </div>
         </div>
+      </div>
 
         {/* Overview Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-600">
+          <div className="section-container border-l-4 border-blue-600">
             <div className="text-sm text-gray-600">Total Intros</div>
             <div className="text-3xl font-bold mt-1">{metrics.total}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-600">
+          <div className="section-container border-l-4 border-green-600">
             <div className="text-sm text-gray-600">Attended</div>
             <div className="text-3xl font-bold mt-1">{metrics.attended}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-600">
+          <div className="section-container border-l-4 border-purple-600">
             <div className="text-sm text-gray-600">Signed Up</div>
             <div className="text-3xl font-bold mt-1">{metrics.signedUp}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-cyan-600">
+          <div className="section-container border-l-4 border-cyan-600">
             <div className="text-sm text-gray-600">Active</div>
             <div className="text-3xl font-bold mt-1">{metrics.active}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-emerald-600">
+          <div className="section-container border-l-4 border-emerald-600">
             <div className="text-sm text-gray-600">Completed</div>
             <div className="text-3xl font-bold mt-1">{metrics.completed}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
+          <div className="section-container border-l-4 border-red-600">
             <div className="text-sm text-gray-600">Cancelled</div>
             <div className="text-3xl font-bold mt-1">{metrics.cancelled}</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow">
+        <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <input
               type="text"
@@ -401,7 +402,7 @@ export default function IntrosTab() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="section-container">
           <Table
             data={filteredIntros}
             columns={columns}
@@ -514,7 +515,6 @@ export default function IntrosTab() {
             </div>
           </div>
         </Modal>
-      </div>
     </div>
   );
 }

@@ -312,8 +312,8 @@ export default function CancellationsTab() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="section-container">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Cancellations</h2>
           <div className="flex space-x-3">
@@ -354,16 +354,17 @@ export default function CancellationsTab() {
             </button>
           </div>
         </div>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
+          <div className="section-container border-l-4 border-red-600">
             <div className="text-sm text-gray-600">Total Cancellations</div>
             <div className="text-3xl font-bold mt-1">{filteredAndSearchedCancellations.length}</div>
           </div>
           {topReasons.map(([reason, count], idx) => (
             <div
               key={reason}
-              className={`bg-white rounded-lg shadow-sm p-4 border-l-4 ${
+              className={`section-container border-l-4 ${
                 idx === 0
                   ? 'border-orange-600'
                   : idx === 1
@@ -389,7 +390,7 @@ export default function CancellationsTab() {
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
@@ -451,7 +452,7 @@ export default function CancellationsTab() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="section-container">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Show:</label>
@@ -555,7 +556,6 @@ export default function CancellationsTab() {
           importPreviewData={importPreviewData}
           confirmCSVImport={confirmCSVImport}
         />
-      </div>
     </div>
   );
 }

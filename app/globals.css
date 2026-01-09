@@ -30,20 +30,33 @@
     animation: slideIn 0.3s ease-out;
   }
 
-  /* Custom Card Styles */
+  /* Custom Card Styles - Matching good example with subtle shadows */
   .card {
     background-color: white;
     border-radius: 0.5rem;
-    box-shadow:
-      0 1px 3px 0 rgba(0, 0, 0, 0.1),
-      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
+    padding: 1.5rem;
   }
 
   .card:hover {
-    box-shadow:
-      0 10px 15px -3px rgba(0, 0, 0, 0.1),
-      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Section Container - for grouping content */
+  .section-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Subtle background variation for nested sections */
+  .section-nested {
+    background-color: #fafbfc;
+    border-radius: 0.375rem;
+    padding: 1rem;
   }
 
   /* Stat Cards with Border Accent */
@@ -160,11 +173,20 @@ button.app-logo-wrap:active:not(:disabled) {
   min-height: 100vh;
   padding-top: var(--header-height);
   margin-left: var(--sidebar-width-collapsed);
+  padding-left: 2rem; /* 32px spacing from sidebar */
+  padding-right: 2rem; /* 32px spacing on right edge */
   transition: margin-left 0.3s ease;
 }
 
 .app-shell[data-sidebar="expanded"] .app-main {
   margin-left: var(--sidebar-width-expanded);
+}
+
+@media (min-width: 1024px) {
+  .app-main {
+    padding-left: 3rem; /* 48px on larger screens */
+    padding-right: 3rem;
+  }
 }
 
 .sidebar-item {

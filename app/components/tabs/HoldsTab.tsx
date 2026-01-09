@@ -348,8 +348,8 @@ export default function HoldsTab() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="section-container">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Membership Holds</h2>
           <div className="flex space-x-3">
@@ -390,21 +390,22 @@ export default function HoldsTab() {
             </button>
           </div>
         </div>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-600">
+          <div className="section-container border-l-4 border-blue-600">
             <div className="text-sm text-gray-600">Total Holds</div>
             <div className="text-3xl font-bold mt-1">{filteredAndSearchedHolds.length}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-600">
+          <div className="section-container border-l-4 border-green-600">
             <div className="text-sm text-gray-600">Active</div>
             <div className="text-3xl font-bold mt-1">{statusCounts.active}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-yellow-600">
+          <div className="section-container border-l-4 border-yellow-600">
             <div className="text-sm text-gray-600">Upcoming</div>
             <div className="text-3xl font-bold mt-1">{statusCounts.upcoming}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-gray-600">
+          <div className="section-container border-l-4 border-gray-600">
             <div className="text-sm text-gray-600">Ended</div>
             <div className="text-3xl font-bold mt-1">{statusCounts.ended}</div>
           </div>
@@ -420,7 +421,7 @@ export default function HoldsTab() {
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
@@ -480,7 +481,7 @@ export default function HoldsTab() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="section-container">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Show:</label>
@@ -579,7 +580,6 @@ export default function HoldsTab() {
         </div>
 
         <HoldModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
-      </div>
     </div>
   );
 }

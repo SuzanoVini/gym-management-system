@@ -310,8 +310,8 @@ export default function SignupsTab() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="section-container">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Sign-ups</h2>
           <div className="flex space-x-3">
@@ -345,35 +345,36 @@ export default function SignupsTab() {
             </button>
           </div>
         </div>
+      </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-600">
+          <div className="section-container border-l-4 border-blue-600">
             <div className="text-sm text-gray-600">Total Sign-ups</div>
             <div className="text-3xl font-bold mt-1">{metrics.total}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-600">
+          <div className="section-container border-l-4 border-green-600">
             <div className="text-sm text-gray-600">Integrity</div>
             <div className="text-3xl font-bold mt-1">{metrics.integrity}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-600">
+          <div className="section-container border-l-4 border-purple-600">
             <div className="text-sm text-gray-600">Legacy</div>
             <div className="text-3xl font-bold mt-1">{metrics.legacy}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-yellow-600">
+          <div className="section-container border-l-4 border-yellow-600">
             <div className="text-sm text-gray-600">Special</div>
             <div className="text-3xl font-bold mt-1">{metrics.special}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
+          <div className="section-container border-l-4 border-red-600">
             <div className="text-sm text-gray-600">ASP</div>
             <div className="text-3xl font-bold mt-1">{metrics.asp}</div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-indigo-600">
+          <div className="section-container border-l-4 border-indigo-600">
             <div className="text-sm text-gray-600">With Package</div>
             <div className="text-3xl font-bold mt-1">{metrics.withPackage}</div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <div className="section-container mb-4">
           <input
             type="text"
             placeholder="Search by name, membership type, dates, or notes..."
@@ -383,7 +384,7 @@ export default function SignupsTab() {
           />
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
@@ -432,7 +433,7 @@ export default function SignupsTab() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="section-container">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-700">Show:</label>
@@ -531,7 +532,6 @@ export default function SignupsTab() {
         </div>
 
         <SignupModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
-      </div>
     </div>
   );
 }
