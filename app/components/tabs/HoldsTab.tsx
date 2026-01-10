@@ -4,7 +4,7 @@ import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Table from '@/components/ui/Table';
 import { useHolds } from '@/hooks/useHolds';
-import { parseCSV } from '@/lib/csv';
+import { parseHoldsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
@@ -31,7 +31,7 @@ export default function HoldsTab() {
     if (!file) {
       return;
     }
-    parseCSV(file, (data) => {
+    parseHoldsCSV(file, (data) => {
       setImportPreviewData(data);
       openModal('importPreview');
     });
@@ -315,14 +315,14 @@ export default function HoldsTab() {
               setSelectedHold(hold);
               openModal('editHold');
             }}
-            className="text-blue-600 hover:text-blue-800"
+            className="btn-icon hover:text-blue-600"
             title="Edit"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => removeHold(hold.id, hold.name)}
-            className="text-red-600 hover:text-red-800"
+            className="btn-icon hover:text-red-600"
             title="Delete"
           >
             <Trash2 className="w-4 h-4" />
@@ -336,11 +336,7 @@ export default function HoldsTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-        >
+        <button type="button" onClick={refresh} className="btn btn-primary">
           Retry
         </button>
       </div>
@@ -353,10 +349,7 @@ export default function HoldsTab() {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Membership Holds</h2>
           <div className="flex space-x-3">
-            <button
-              onClick={() => openModal('settings')}
-              className="flex items-center space-x-2 px-4 py-2 border-2 border-gray-600 text-gray-600 rounded font-medium hover:bg-gray-50"
-            >
+            <button onClick={() => openModal('settings')} className="btn btn-secondary">
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </button>
@@ -369,22 +362,16 @@ export default function HoldsTab() {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center space-x-2 px-4 py-2 border-2 border-blue-600 text-blue-600 rounded font-medium hover:bg-blue-50"
+              className="btn btn-secondary-blue"
             >
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
-            <button
-              onClick={handleExportHolds}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded font-medium hover:bg-green-700"
-            >
+            <button onClick={handleExportHolds} className="btn btn-primary">
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <button
-              onClick={() => openModal('addHold')}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700"
-            >
+            <button onClick={() => openModal('addHold')} className="btn btn-primary">
               <Plus className="w-4 h-4" />
               <span>Add Hold</span>
             </button>
@@ -392,194 +379,191 @@ export default function HoldsTab() {
         </div>
       </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="section-container border-l-4 border-blue-600">
-            <div className="text-sm text-gray-600">Total Holds</div>
-            <div className="text-3xl font-bold mt-1">{filteredAndSearchedHolds.length}</div>
-          </div>
-          <div className="section-container border-l-4 border-green-600">
-            <div className="text-sm text-gray-600">Active</div>
-            <div className="text-3xl font-bold mt-1">{statusCounts.active}</div>
-          </div>
-          <div className="section-container border-l-4 border-yellow-600">
-            <div className="text-sm text-gray-600">Upcoming</div>
-            <div className="text-3xl font-bold mt-1">{statusCounts.upcoming}</div>
-          </div>
-          <div className="section-container border-l-4 border-gray-600">
-            <div className="text-sm text-gray-600">Ended</div>
-            <div className="text-3xl font-bold mt-1">{statusCounts.ended}</div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="section-container border-l-4 border-blue-600">
+          <div className="text-sm text-gray-600">Total Holds</div>
+          <div className="text-3xl font-bold mt-1">{filteredAndSearchedHolds.length}</div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <input
-            type="text"
-            placeholder="Search by name, reason, or dates..."
-            value={filters.searchTerm}
-            onChange={(e) => setFilters({ searchTerm: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-          />
+        <div className="section-container border-l-4 border-green-600">
+          <div className="text-sm text-gray-600">Active</div>
+          <div className="text-3xl font-bold mt-1">{statusCounts.active}</div>
         </div>
+        <div className="section-container border-l-4 border-yellow-600">
+          <div className="text-sm text-gray-600">Upcoming</div>
+          <div className="text-3xl font-bold mt-1">{statusCounts.upcoming}</div>
+        </div>
+        <div className="section-container border-l-4 border-gray-600">
+          <div className="text-sm text-gray-600">Ended</div>
+          <div className="text-3xl font-bold mt-1">{statusCounts.ended}</div>
+        </div>
+      </div>
 
-        <div className="section-container">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-              <select
-                value={filters.month}
-                onChange={(e) => setFilters({ month: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All Months</option>
-                {MONTHS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-              <select
-                value={filters.reason}
-                onChange={(e) => setFilters({ reason: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All Reasons</option>
-                {/* Reasons will be loaded in HoldModals */}
-                {/* {holdReasons.map((reason) => (
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search by name, reason, or dates..."
+          value={filters.searchTerm}
+          onChange={(e) => setFilters({ searchTerm: e.target.value })}
+          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+        />
+      </div>
+
+      <div className="section-container">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="form-label">Sort By</label>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+              className="form-select"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Month</label>
+            <select
+              value={filters.month}
+              onChange={(e) => setFilters({ month: e.target.value })}
+              className="form-select"
+            >
+              <option value="all">All Months</option>
+              {MONTHS.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Reason</label>
+            <select
+              value={filters.reason}
+              onChange={(e) => setFilters({ reason: e.target.value })}
+              className="form-select"
+            >
+              <option value="all">All Reasons</option>
+              {/* Reasons will be loaded in HoldModals */}
+              {/* {holdReasons.map((reason) => (
                   <option key={reason} value={reason}>
                     {reason}
                   </option>
                 ))} */}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={filters.holdStatus}
-                onChange={(e) => setFilters({ holdStatus: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="ended">Ended</option>
-              </select>
-            </div>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Status</label>
+            <select
+              value={filters.holdStatus}
+              onChange={(e) => setFilters({ holdStatus: e.target.value })}
+              className="form-select"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="ended">Ended</option>
+            </select>
           </div>
         </div>
+      </div>
 
-        <div className="section-container">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">Show:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-                <option value={500}>500</option>
-                <option value={1000}>1000</option>
-              </select>
-              <span className="text-sm text-gray-600">per page</span>
-            </div>
-            <div className="text-sm text-gray-600">
-              Showing {startIndex + 1}-{Math.min(endIndex, sortedHolds.length)} of{' '}
-              {sortedHolds.length}
-            </div>
-            <div className="flex items-center gap-2">
+      <div className="section-container">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700">Show:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="form-select"
+            >
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+              <option value={500}>500</option>
+              <option value={1000}>1000</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+          <div className="text-sm text-gray-600">
+            Showing {startIndex + 1}-{Math.min(endIndex, sortedHolds.length)} of{' '}
+            {sortedHolds.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              First
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              Prev
+            </button>
+            <span className="px-4 py-2 text-sm font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              Last
+            </button>
+          </div>
+        </div>
+        {selectedIds.size > 0 && (
+          <div className="mt-3 pt-3 border-t">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
               <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+                onClick={clearSelection}
+                className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
-                First
-              </button>
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-              >
-                Prev
-              </button>
-              <span className="px-4 py-2 text-sm font-medium">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-              >
-                Last
+                Clear Selection
               </button>
             </div>
           </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b flex justify-between items-center">
+          <h3 className="text-lg font-semibold">All Holds ({sortedHolds.length})</h3>
           {selectedIds.size > 0 && (
-            <div className="mt-3 pt-3 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
-                <button
-                  onClick={clearSelection}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </div>
+            <button onClick={handleDeleteSelected} className="btn btn-primary">
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Selected ({selectedIds.size})</span>
+            </button>
           )}
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h3 className="text-lg font-semibold">All Holds ({sortedHolds.length})</h3>
-            {selectedIds.size > 0 && (
-              <button
-                onClick={handleDeleteSelected}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Selected ({selectedIds.size})</span>
-              </button>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <Table
-              data={paginatedHolds}
-              columns={columns}
-              loading={loading}
-              selectedIds={selectedIds}
-              onSelectId={toggleSelection}
-              emptyMessage="No holds found matching your criteria"
-            />
-          </div>
+        <div className="overflow-x-auto">
+          <Table
+            data={paginatedHolds}
+            columns={columns}
+            loading={loading}
+            selectedIds={selectedIds}
+            onSelectId={toggleSelection}
+            emptyMessage="No holds found matching your criteria"
+          />
         </div>
+      </div>
 
-        <HoldModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
+      <HoldModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
     </div>
   );
 }
