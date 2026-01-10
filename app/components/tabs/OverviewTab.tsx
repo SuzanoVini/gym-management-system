@@ -13,7 +13,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -26,6 +26,7 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Sector,
   Tooltip,
   XAxis,
   YAxis,
@@ -56,6 +57,8 @@ export default function OverviewTab() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
+  const [activeMembershipIndex, setActiveMembershipIndex] = useState<number | null>(null);
+  const [activeReasonIndex, setActiveReasonIndex] = useState<number | null>(null);
 
   const { filteredData, loading, error, refresh } = useAnalyticsData({
     dateRange,
@@ -67,6 +70,40 @@ export default function OverviewTab() {
     setCustomStartDate(tempStartDate);
     setCustomEndDate(tempEndDate);
   };
+
+  // Pie chart active shape renderer
+  const renderActiveShape = (props: any) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius * 1.08}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+          style={{
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
+          }}
+        />
+      </g>
+    );
+  };
+
+  // Click outside handler to reset pie chart active states
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.recharts-pie')) {
+        setActiveMembershipIndex(null);
+        setActiveReasonIndex(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const { intros, signups, cancellations, holds } = filteredData;
 
@@ -392,11 +429,7 @@ export default function OverviewTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-        >
+        <button type="button" onClick={refresh} className="btn btn-primary">
           Retry
         </button>
       </div>
@@ -407,366 +440,427 @@ export default function OverviewTab() {
     <div className="space-y-6">
       {/* Date Range Filter Section */}
       <div className="section-container">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center">
-              <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
-              Date Range Filter
-            </h2>
-            <button
-              onClick={handleExportAllData}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-            >
-              <OverviewIcons.Download className="w-4 h-4" />
-              Export All Data
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 items-center">
-            {[
-              { value: 'all', label: 'All Time' },
-              { value: '1month', label: 'Last Month' },
-              { value: '3months', label: 'Last 3 Months' },
-              { value: '6months', label: 'Last 6 Months' },
-              { value: 'year', label: 'Last Year' },
-              { value: 'ytd', label: 'Year to Date' },
-              { value: 'custom', label: '📅 Custom Range' },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setDateRange(option.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  dateRange === option.value
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom Date Range Inputs */}
-          {dateRange === 'custom' && (
-            <div className="mt-4 section-nested border border-gray-200">
-              <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={tempStartDate}
-                    onChange={(e) => setTempStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={tempEndDate}
-                    onChange={(e) => setTempEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <button
-                  onClick={handleApplyCustomDates}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                >
-                  Apply Filter
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <div className="section-container border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Intros</p>
-                <p className="text-3xl font-bold mt-1">{totalIntros}</p>
-              </div>
-              <OverviewIcons.Users className="w-8 h-8 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="section-container border-l-4 border-green-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Sign-ups</p>
-                <p className="text-3xl font-bold mt-1">{totalSignups}</p>
-              </div>
-              <OverviewIcons.UserPlus className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-
-          <div className="section-container border-l-4 border-red-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Cancellations</p>
-                <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
-              </div>
-              <OverviewIcons.UserMinus className="w-8 h-8 text-red-600" />
-            </div>
-          </div>
-
-          <div
-            className={`section-container border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold flex items-center">
+            <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
+            Date Range Filter
+          </h2>
+          <button
+            onClick={handleExportAllData}
+            className="btn btn-primary bg-green-600 hover:bg-green-700"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Net Growth</p>
-                <p
-                  className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {netGrowth >= 0 ? '+' : ''}
-                  {netGrowth}
-                </p>
-              </div>
-              {netGrowth >= 0 ? (
-                <OverviewIcons.TrendingUp className="w-8 h-8 text-green-600" />
-              ) : (
-                <OverviewIcons.TrendingDown className="w-8 h-8 text-red-600" />
-              )}
-            </div>
-          </div>
-
-          <div className="section-container border-l-4 border-purple-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Conversion Rate</p>
-                <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
-              </div>
-              <OverviewIcons.Target className="w-8 h-8 text-purple-600" />
-            </div>
-          </div>
-
-          <div className="section-container border-l-4 border-yellow-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Holds</p>
-                <p className="text-3xl font-bold mt-1">{activeHolds}</p>
-              </div>
-              <OverviewIcons.Clock className="w-8 h-8 text-yellow-600" />
-            </div>
-          </div>
+            <OverviewIcons.Download className="w-4 h-4" />
+            Export All Data
+          </button>
         </div>
 
-        {/* Smart Insights */}
-        {insights.length > 0 && (
-          <div className="section-container">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
-              Smart Insights & Recommendations
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {insights.map((insight, index) => {
-                const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
-                return (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      insight.color === 'red'
-                        ? 'bg-red-50 border-red-500'
-                        : insight.color === 'orange'
-                          ? 'bg-orange-50 border-orange-500'
-                          : insight.color === 'yellow'
-                            ? 'bg-yellow-50 border-yellow-500'
-                            : insight.color === 'green'
-                              ? 'bg-green-50 border-green-500'
-                              : insight.color === 'blue'
-                                ? 'bg-blue-50 border-blue-500'
-                                : 'bg-purple-50 border-purple-500'
-                    }`}
-                  >
-                    <div className="flex items-start">
-                      <Icon
-                        className={`w-5 h-5 mr-3 mt-0.5 ${
-                          insight.color === 'red'
-                            ? 'text-red-600'
-                            : insight.color === 'orange'
-                              ? 'text-orange-600'
-                              : insight.color === 'yellow'
-                                ? 'text-yellow-600'
-                                : insight.color === 'green'
-                                  ? 'text-green-600'
-                                  : insight.color === 'blue'
-                                    ? 'text-blue-600'
-                                    : 'text-purple-600'
-                        }`}
-                      />
-                      <div>
-                        <h3 className="font-semibold text-sm">{insight.title}</h3>
-                        <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="flex flex-wrap gap-2 items-center">
+          {[
+            { value: 'all', label: 'All Time' },
+            { value: '1month', label: 'Last Month' },
+            { value: '3months', label: 'Last 3 Months' },
+            { value: '6months', label: 'Last 6 Months' },
+            { value: 'year', label: 'Last Year' },
+            { value: 'ytd', label: 'Year to Date' },
+            { value: 'custom', label: '📅 Custom Range' },
+          ].map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setDateRange(option.value)}
+              className={`btn ${
+                dateRange === option.value
+                  ? 'btn-primary'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Date Range Inputs */}
+        {dateRange === 'custom' && (
+          <div className="mt-4 section-nested border border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="form-label">Start Date</label>
+                <input
+                  type="date"
+                  value={tempStartDate}
+                  onChange={(e) => setTempStartDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="form-label">End Date</label>
+                <input
+                  type="date"
+                  value={tempEndDate}
+                  onChange={(e) => setTempEndDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <button onClick={handleApplyCustomDates} className="btn btn-primary">
+                Apply Filter
+              </button>
             </div>
           </div>
         )}
+      </div>
 
-        {/* Monthly Trends */}
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="section-container summary-card border-l-4 border-blue-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Intros</p>
+              <p className="text-3xl font-bold mt-1">{totalIntros}</p>
+            </div>
+            <OverviewIcons.Users className="summary-card-icon w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-green-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Sign-ups</p>
+              <p className="text-3xl font-bold mt-1">{totalSignups}</p>
+            </div>
+            <OverviewIcons.UserPlus className="summary-card-icon w-8 h-8 text-green-600" />
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-red-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Cancellations</p>
+              <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
+            </div>
+            <OverviewIcons.UserMinus className="summary-card-icon w-8 h-8 text-red-600" />
+          </div>
+        </div>
+
+        <div
+          className={`section-container summary-card border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Net Growth</p>
+              <p
+                className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {netGrowth >= 0 ? '+' : ''}
+                {netGrowth}
+              </p>
+            </div>
+            {netGrowth >= 0 ? (
+              <OverviewIcons.TrendingUp className="summary-card-icon w-8 h-8 text-green-600" />
+            ) : (
+              <OverviewIcons.TrendingDown className="summary-card-icon w-8 h-8 text-red-600" />
+            )}
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-purple-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Conversion Rate</p>
+              <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
+            </div>
+            <OverviewIcons.Target className="summary-card-icon w-8 h-8 text-purple-600" />
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-yellow-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Active Holds</p>
+              <p className="text-3xl font-bold mt-1">{activeHolds}</p>
+            </div>
+            <OverviewIcons.Clock className="summary-card-icon w-8 h-8 text-yellow-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Smart Insights */}
+      {insights.length > 0 && (
         <div className="section-container">
-          <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
+          <h2 className="text-xl font-bold mb-4 flex items-center">
+            <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
+            Smart Insights & Recommendations
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {insights.map((insight, index) => {
+              const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
+              return (
+                <div
+                  key={index}
+                  className={`insight-card p-4 rounded-lg border-l-4 ${
+                    insight.color === 'red'
+                      ? 'bg-red-50 border-red-500'
+                      : insight.color === 'orange'
+                        ? 'bg-orange-50 border-orange-500'
+                        : insight.color === 'yellow'
+                          ? 'bg-yellow-50 border-yellow-500'
+                          : insight.color === 'green'
+                            ? 'bg-green-50 border-green-500'
+                            : insight.color === 'blue'
+                              ? 'bg-blue-50 border-blue-500'
+                              : 'bg-purple-50 border-purple-500'
+                  }`}
+                >
+                  <div className="flex items-start">
+                    <Icon
+                      className={`w-5 h-5 mr-3 mt-0.5 ${
+                        insight.color === 'red'
+                          ? 'text-red-600'
+                          : insight.color === 'orange'
+                            ? 'text-orange-600'
+                            : insight.color === 'yellow'
+                              ? 'text-yellow-600'
+                              : insight.color === 'green'
+                                ? 'text-green-600'
+                                : insight.color === 'blue'
+                                  ? 'text-blue-600'
+                                  : 'text-purple-600'
+                      }`}
+                    />
+                    <div>
+                      <h3 className="font-semibold text-sm">{insight.title}</h3>
+                      <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Trends */}
+      <div className="section-container">
+        <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="Intros"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-in-out"
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="Sign-ups"
+              stroke="#10b981"
+              strokeWidth={2}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-in-out"
+              animationBegin={200}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="Cancellations"
+              stroke="#ef4444"
+              strokeWidth={2}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-in-out"
+              animationBegin={400}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Conversion Funnel */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
+            <BarChart data={funnelData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
+              <XAxis type="number" />
+              <YAxis dataKey="stage" type="category" width={100} />
               <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="Intros" stroke="#3b82f6" strokeWidth={2} />
-              <Line type="monotone" dataKey="Sign-ups" stroke="#10b981" strokeWidth={2} />
-              <Line type="monotone" dataKey="Cancellations" stroke="#ef4444" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Conversion Funnel */}
-          <div className="section-container">
-            <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={funnelData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="stage" type="category" width={100} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6">
-                  <LabelList dataKey="countLabel" position="right" />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Top Classes */}
-          <div className="section-container">
-            <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topClasses}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#10b981" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Membership Breakdown */}
-          <div className="section-container">
-            <h2 className="text-xl font-bold mb-4">Membership Types</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={membershipChart}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
-                >
-                  {membershipChart.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Cancellation Reasons */}
-          <div className="section-container">
-            <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={reasonsChart}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
-                >
-                  {reasonsChart.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Staff Performance with Absolute Numbers + Percentages */}
-        <div className="section-container">
-          <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rates)</h2>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={staffPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip
-                formatter={(_value, _name, props) => {
-                  const data = props.payload;
-                  return [`${data.label}`, 'Conversion'];
-                }}
-              />
-              <Bar dataKey="conversionRate" fill="#8b5cf6">
-                <LabelList
-                  dataKey="label"
-                  position="top"
-                  style={{ fontSize: '12px', fill: '#6b7280' }}
-                />
+              <Bar
+                dataKey="count"
+                fill="#3b82f6"
+                isAnimationActive={true}
+                animationDuration={600}
+                animationEasing="ease-out"
+              >
+                <LabelList dataKey="countLabel" position="right" />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-
-          {/* Staff Performance Table */}
-          <div className="mt-6 overflow-x-auto section-nested">
-            <table className="min-w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Staff
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Total Intros
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Attended
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Signed Up
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Conversion Rate
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {staffPerformance.map((staff) => (
-                  <tr key={staff.name}>
-                    <td className="px-4 py-2 font-medium">{staff.name}</td>
-                    <td className="px-4 py-2">{staff.totalIntros}</td>
-                    <td className="px-4 py-2">{staff.attended}</td>
-                    <td className="px-4 py-2">{staff.signedUp}</td>
-                    <td className="px-4 py-2">
-                      <span className="font-semibold text-purple-600">{staff.label}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
+
+        {/* Top Classes */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={topClasses}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+              <YAxis />
+              <Tooltip />
+              <Bar
+                dataKey="count"
+                fill="#10b981"
+                isAnimationActive={true}
+                animationDuration={600}
+                animationEasing="ease-out"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Membership Breakdown */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Membership Types</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={membershipChart}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label
+                {...({ activeIndex: activeMembershipIndex ?? undefined } as any)}
+                {...({ activeShape: renderActiveShape } as any)}
+                onMouseEnter={(_, index) => setActiveMembershipIndex(index)}
+                onMouseLeave={() => setActiveMembershipIndex(null)}
+                onClick={(_, index) => {
+                  setActiveMembershipIndex(index);
+                }}
+              >
+                {membershipChart.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Cancellation Reasons */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={reasonsChart}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label
+                {...({ activeIndex: activeReasonIndex ?? undefined } as any)}
+                {...({ activeShape: renderActiveShape } as any)}
+                onMouseEnter={(_, index) => setActiveReasonIndex(index)}
+                onMouseLeave={() => setActiveReasonIndex(null)}
+                onClick={(_, index) => {
+                  setActiveReasonIndex(index);
+                }}
+              >
+                {reasonsChart.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Staff Performance with Absolute Numbers + Percentages */}
+      <div className="section-container">
+        <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rates)</h2>
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={staffPerformance}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
+            <Tooltip
+              formatter={(_value, _name, props) => {
+                const data = props.payload;
+                return [`${data.label}`, 'Conversion'];
+              }}
+            />
+            <Bar
+              dataKey="conversionRate"
+              fill="#8b5cf6"
+              isAnimationActive={true}
+              animationDuration={600}
+              animationEasing="ease-out"
+            >
+              <LabelList
+                dataKey="label"
+                position="top"
+                style={{ fontSize: '12px', fill: '#6b7280' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+
+        {/* Staff Performance Table */}
+        <div className="mt-6 overflow-x-auto section-nested">
+          <table className="min-w-full">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Staff
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Total Intros
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Attended
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Signed Up
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Conversion Rate
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {staffPerformance.map((staff) => (
+                <tr key={staff.name}>
+                  <td className="px-4 py-2 font-medium">{staff.name}</td>
+                  <td className="px-4 py-2">{staff.totalIntros}</td>
+                  <td className="px-4 py-2">{staff.attended}</td>
+                  <td className="px-4 py-2">{staff.signedUp}</td>
+                  <td className="px-4 py-2">
+                    <span className="font-semibold text-purple-600">{staff.label}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

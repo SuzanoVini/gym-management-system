@@ -264,7 +264,7 @@ h3 {
   font-size: 1.5rem;
 }
 
-/* Buttons */
+/* Buttons - Base Styles */
 button {
   cursor: pointer;
   user-select: none;
@@ -288,6 +288,106 @@ button:hover:not(:disabled) {
 
 button:active:not(:disabled) {
   transform: translateY(0);
+}
+
+/* Button Component Classes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: #991b1b;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: #4b5563;
+  border: 2px solid #4b5563;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.btn-secondary:active:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.btn-secondary-blue {
+  background-color: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+}
+
+.btn-secondary-blue:hover:not(:disabled) {
+  background-color: #eff6ff;
+}
+
+.btn-secondary-blue:active:not(:disabled) {
+  background-color: #dbeafe;
+}
+
+.btn-tertiary {
+  background-color: transparent;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.btn-tertiary:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-tertiary:active:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  color: #6b7280;
+  background-color: transparent;
+  border: none;
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: #374151;
+  background-color: #f3f4f6;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Tables */
@@ -349,6 +449,150 @@ label {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--gb-dark-gray);
+}
+
+/* Form Component Classes - Match button height */
+.form-input,
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #111827;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-input:disabled,
+.form-select:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.form-select {
+  cursor: pointer;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.375rem;
+}
+
+/* Chart Animations */
+.recharts-pie-sector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.recharts-bar-rectangle {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.recharts-bar-rectangle:hover {
+  filter: brightness(1.1);
+  opacity: 0.9;
+}
+
+.recharts-dot {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.recharts-line {
+  transition: stroke-width 0.2s ease;
+}
+
+/* Summary Card Enhancements */
+.summary-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 16px -2px rgba(0, 0, 0, 0.1),
+    0 4px 8px -2px rgba(0, 0, 0, 0.06);
+}
+
+.summary-card:hover .summary-card-icon {
+  transform: scale(1.1);
+}
+
+.summary-card-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Insight Card Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.insight-card {
+  animation: slideInUp 0.5s ease-out backwards;
+}
+
+.insight-card:nth-child(1) {
+  animation-delay: 0ms;
+}
+.insight-card:nth-child(2) {
+  animation-delay: 100ms;
+}
+.insight-card:nth-child(3) {
+  animation-delay: 200ms;
+}
+.insight-card:nth-child(4) {
+  animation-delay: 300ms;
+}
+.insight-card:nth-child(5) {
+  animation-delay: 400ms;
+}
+.insight-card:nth-child(6) {
+  animation-delay: 500ms;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .recharts-pie-sector,
+  .recharts-bar-rectangle,
+  .recharts-dot,
+  .recharts-line,
+  .summary-card,
+  .summary-card-icon,
+  .insight-card {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 /* Animations are now defined in tailwind.config.js */
