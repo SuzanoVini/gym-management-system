@@ -137,6 +137,25 @@ export const classHistorySchema = z.object({
 });
 
 /**
+ * Validation schema for User Profile
+ */
+export const profileSchema = z.object({
+  full_name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
+  avatar_url: z.string().url('Invalid URL').optional().nullable().or(z.literal('')),
+});
+
+/**
+ * Validation schema for Password Update
+ */
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters long')
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+    'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+  );
+
+/**
  * Validation result type
  */
 export interface ValidationResult<T> {
@@ -196,6 +215,7 @@ export const validateAsync = async <T>(
  * Partial validation - allows partial object validation
  */
 export const validatePartial = <T>(
+  // biome-ignore lint/suspicious/noExplicitAny: Generic schema validation requires any type
   schema: z.ZodObject<any>,
   data: unknown
 ): ValidationResult<Partial<T>> => {

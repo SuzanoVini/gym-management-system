@@ -2,6 +2,7 @@
 
 import { BarChart3, Clock, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
 import { useSidebarStore } from '@/store/useSidebarStore';
+import ProfileSection from './ProfileSection';
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
@@ -41,8 +42,8 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
       {/* Sidebar */}
       <aside className="app-sidebar" data-state={isOpen ? 'expanded' : 'collapsed'}>
-        <nav className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-          <div className="py-6 px-2 space-y-1.5">
+        <nav className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent flex flex-col">
+          <div className="py-6 px-2 space-y-1.5 flex-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -68,6 +69,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               );
             })}
           </div>
+
+          {/* Profile Section at bottom */}
+          <ProfileSection />
         </nav>
       </aside>
     </>

@@ -265,6 +265,29 @@ export interface Database {
           updated_at?: string;
         };
       };
+      user_profiles: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          full_name: string;
+          avatar_url: string | null;
+        };
+        Insert: {
+          id: string;
+          created_at?: string;
+          updated_at?: string;
+          full_name: string;
+          avatar_url?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          full_name?: string;
+          avatar_url?: string | null;
+        };
+      };
     };
     Views: {
       [_ in never]: never;
