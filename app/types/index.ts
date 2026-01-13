@@ -30,7 +30,6 @@ export interface Intro extends BaseRecord {
   // Relations
   follow_up_notes?: FollowUpNote[];
   intro_class_history?: ClassHistory[];
-  [key: string]: any; // Add index signature
 }
 
 /**
@@ -45,7 +44,8 @@ export interface Signup extends BaseRecord {
   signup_package?: boolean;
   notes?: string;
   created_by?: string;
-  [key: string]: any; // Add index signature
+  // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
+  [key: string]: any;
 }
 
 /**
@@ -59,7 +59,8 @@ export interface Cancellation extends BaseRecord {
   age_group?: string;
   notes?: string;
   created_by?: string;
-  [key: string]: any; // Add index signature
+  // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
+  [key: string]: any;
 }
 
 /**
@@ -73,7 +74,6 @@ export interface Hold extends BaseRecord {
   reason?: string;
   fee?: string;
   created_by?: string;
-  [key: string]: any; // Add index signature
 }
 
 /**
@@ -110,8 +110,17 @@ export interface ClassHistory {
 export interface Settings {
   id: string;
   key: string;
-  value: any; // JSON value
+  // biome-ignore lint/suspicious/noExplicitAny: Settings value can be any JSON type
+  value: any;
   updated_at: string;
+}
+
+/**
+ * User profile record - stores user information
+ */
+export interface UserProfile extends BaseRecord {
+  full_name: string;
+  avatar_url?: string | null;
 }
 
 // ============================================================================
@@ -227,6 +236,11 @@ export type ClassHistoryFormData = Omit<ClassHistory, 'id' | 'created_at'>;
  */
 export type FollowUpNoteFormData = Omit<FollowUpNote, 'id' | 'created_at'>;
 
+/**
+ * Form data for creating/updating a user profile
+ */
+export type ProfileFormData = Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>;
+
 // ============================================================================
 // Analytics & Stats Types
 // ============================================================================
@@ -329,6 +343,7 @@ export interface PaginationInfo {
  */
 export interface ModalState {
   isOpen: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: Modal data can be any record type
   data?: any;
 }
 
@@ -385,6 +400,7 @@ export interface ImportResult {
 /**
  * Check if a value is a valid Intro
  */
+// biome-ignore lint/suspicious/noExplicitAny: Type guard requires any to check unknown values
 export function isIntro(value: any): value is Intro {
   return (
     typeof value === 'object' &&
@@ -399,6 +415,7 @@ export function isIntro(value: any): value is Intro {
 /**
  * Check if a value is a valid Signup
  */
+// biome-ignore lint/suspicious/noExplicitAny: Type guard requires any to check unknown values
 export function isSignup(value: any): value is Signup {
   return (
     typeof value === 'object' &&

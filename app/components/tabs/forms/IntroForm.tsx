@@ -157,18 +157,10 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
       </div>
 
       <div className="flex space-x-3 mt-6">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-        >
+        <button type="button" onClick={onCancel} className="btn btn-tertiary flex-1">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
-        >
+        <button type="submit" disabled={loading} className="btn btn-primary flex-1">
           {loading ? 'Saving...' : intro ? 'Update' : 'Create'}
         </button>
       </div>

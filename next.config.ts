@@ -1,5 +1,5 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -16,7 +16,13 @@ const nextConfig: NextConfig = {
   }),
 
   images: {
-    domains: [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
   },
 

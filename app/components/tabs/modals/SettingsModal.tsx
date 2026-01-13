@@ -140,14 +140,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               value={newClassType}
               onChange={(e) => setNewClassType(e.target.value)}
               placeholder="Add new class type"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="form-input flex-1"
               onKeyPress={(e) => e.key === 'Enter' && handleAddClassType()}
             />
             <button
               type="button"
               onClick={handleAddClassType}
               disabled={loading || !newClassType.trim()}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="btn btn-primary"
             >
               Add
             </button>
@@ -164,7 +164,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="button"
                   onClick={() => handleRemoveClassType(classType)}
                   disabled={loading}
-                  className="text-red-600 hover:text-red-800 text-sm"
+                  className="btn-icon text-red-600 hover:text-red-800 text-sm"
                 >
                   Remove
                 </button>
@@ -182,14 +182,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               value={newStaffMember}
               onChange={(e) => setNewStaffMember(e.target.value)}
               placeholder="Add new staff member"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="form-input flex-1"
               onKeyPress={(e) => e.key === 'Enter' && handleAddStaffMember()}
             />
             <button
               type="button"
               onClick={handleAddStaffMember}
               disabled={loading || !newStaffMember.trim()}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
+              className="btn btn-primary"
             >
               Add
             </button>
@@ -206,7 +206,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="button"
                   onClick={() => handleRemoveStaffMember(staffMember)}
                   disabled={loading}
-                  className="text-red-600 hover:text-red-800 text-sm"
+                  className="btn-icon text-red-600 hover:text-red-800 text-sm"
                 >
                   Remove
                 </button>
