@@ -12,9 +12,23 @@ interface IntroFormProps {
 }
 
 export default function IntroForm({ intro, onSubmit, loading = false, onCancel }: IntroFormProps) {
-  const [formData, setFormData] = useState<IntroFormData>({
+  type IntroFormValues = {
+    month: string;
+    date: string;
+    time: string;
+    class: string;
+    name: string;
+    email: string;
+    phone: string;
+    staff: string;
+    attended: '' | 'Yes' | 'No';
+    signed_up: '' | 'Yes' | 'No';
+    status: 'Active' | 'Cancelled' | 'Completed';
+  };
+
+  const [formData, setFormData] = useState<IntroFormValues>({
     month: intro?.month || '',
-    date: intro?.date || 1,
+    date: intro?.date || '',
     time: intro?.time || '',
     class: intro?.class || '',
     name: intro?.name || '',
@@ -28,10 +42,38 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const payload: IntroFormData = {
+      month: formData.month,
+      class: formData.class,
+      name: formData.name,
+      staff: formData.staff,
+      status: formData.status,
+    };
+    if (formData.date) {
+      payload.date = formData.date;
+    }
+    if (formData.time) {
+      payload.time = formData.time;
+    }
+    if (formData.email) {
+      payload.email = formData.email;
+    }
+    if (formData.phone) {
+      payload.phone = formData.phone;
+    }
+    if (formData.attended) {
+      payload.attended = formData.attended;
+    }
+    if (formData.signed_up) {
+      payload.signed_up = formData.signed_up;
+    }
+    onSubmit(payload);
   };
 
-  const updateField = (field: keyof IntroFormData, value: string | number | readonly string[]) => {
+  const updateField = (
+    field: keyof IntroFormValues,
+    value: string | number | readonly string[]
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -91,12 +133,9 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
         <FormField
           label="Date"
           name="date"
-          type="number"
+          type="date"
           value={formData.date}
           onChange={(value) => updateField('date', value)}
-          placeholder="1-31"
-          min={1}
-          max={31}
           required
         />
 
