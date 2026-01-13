@@ -13,8 +13,7 @@ export const introSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
     .transform((str) => (str === '' ? undefined : str))
-    .optional()
-    .nullable(),
+    .optional(),
   time: z.string().optional().or(z.literal('')),
   class: z.string().min(1, 'Class is required').max(100, 'Class name too long'),
   name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
@@ -39,14 +38,12 @@ export const signupSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
     .transform((str) => (str === '' ? undefined : str))
-    .optional()
-    .nullable(),
+    .optional(),
   first_payment_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
     .transform((str) => (str === '' ? undefined : str))
-    .optional()
-    .nullable(),
+    .optional(),
   signup_package: z.boolean().optional(),
   notes: z.string().max(500, 'Notes too long (max 500 characters)').optional().or(z.literal('')),
 });
@@ -63,8 +60,7 @@ export const cancellationSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
     .transform((str) => (str === '' ? undefined : str))
-    .optional()
-    .nullable(),
+    .optional(),
   reason: z.string().min(1, 'Reason is required').max(200, 'Reason too long'), // Now dynamic from settings
   age_group: z.string().max(50, 'Age category too long').optional().or(z.literal('')),
   notes: z.string().max(500, 'Notes too long (max 500 characters)').optional().or(z.literal('')),
@@ -83,14 +79,12 @@ export const holdSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be in YYYY-MM-DD format')
       .transform((str) => (str === '' ? undefined : str))
-      .optional()
-      .nullable(),
+      .optional(),
     end: z // Renamed from end_date
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be in YYYY-MM-DD format')
       .transform((str) => (str === '' ? undefined : str))
-      .optional()
-      .nullable(),
+      .optional(),
     reason: z.string().min(1, 'Reason is required').max(200, 'Reason too long'), // Now dynamic from settings
     fee: z.string().max(50, 'Fee too long').optional().or(z.literal('')),
   })
@@ -127,8 +121,7 @@ export const classHistorySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
     .transform((str) => (str === '' ? undefined : str))
-    .optional()
-    .nullable(),
+    .optional(),
   time: z.string().optional().or(z.literal('')),
   class: z.string().optional().or(z.literal('')),
   staff: z.string().optional().or(z.literal('')),
