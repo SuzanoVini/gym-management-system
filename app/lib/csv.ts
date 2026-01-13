@@ -1,9 +1,9 @@
-import Papa from 'papaparse';
+import Papa, { type ParseResult } from 'papaparse';
 
 // Helper function to parse dates from CSV
-const parseDate = (dateStr: string): string | null => {
+const parseDate = (dateStr: string): string | undefined => {
   if (!dateStr || dateStr.trim() === '') {
-    return null;
+    return undefined;
   }
 
   try {
@@ -19,19 +19,22 @@ const parseDate = (dateStr: string): string | null => {
       return `${year}-${month}-${day}`;
     }
 
-    return null;
+    return undefined;
   } catch (error) {
     console.error('Error parsing date:', dateStr, error);
-    return null;
+    return undefined;
   }
 };
 
 // Common filter function for all parsers
-const filterRow = (row: any): boolean => {
+export type CsvRow = Record<string, unknown>;
+
+const filterRow = (row: unknown): boolean => {
   if (!row || typeof row !== 'object') {
     return false;
   }
-  const name = String(row.NAME || row.name || row.Name || '').trim();
+  const record = row as CsvRow;
+  const name = String(record.NAME || record.name || record.Name || '').trim();
   if (!name) {
     return false;
   }
@@ -43,18 +46,33 @@ const filterRow = (row: any): boolean => {
 };
 
 // Parser for Intros table
-export const parseIntrosCSV = (file: File, onComplete: (data: any[]) => void) => {
+export type IntroCsvRecord = {
+  month: string;
+  date: string | undefined;
+  time: string | null;
+  class: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  staff: string | null;
+  attended: 'Yes' | 'No' | '';
+  signed_up: 'Yes' | 'No' | '';
+  status: 'Active';
+};
+
+export const parseIntrosCSV = (file: File, onComplete: (data: IntroCsvRecord[]) => void) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
     skipEmptyLines: true,
     delimitersToGuess: [',', '\t', '|', ';'],
     transformHeader: (header: string) => header.trim(),
-    complete: (results: any) => {
+    complete: (results: ParseResult<CsvRow>) => {
       try {
-        const parsedData = results.data.filter(filterRow).map((row: any) => ({
+        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: CSV mapping normalizes many fields.
+        const parsedData = results.data.filter(filterRow).map((row) => ({
           month: String(row.MONTH || row.month || row.Month || '').trim(),
-          date: Number.parseInt(String(row.DATE || row.date || row.Date || '1').trim(), 10) || 1,
+          date: parseDate(String(row.DATE || row.date || row.Date || '').trim()),
           time: String(row.TIME || row.time || row.Time || '').trim() || null,
           class: String(row.CLASS || row.class || row.Class || '').trim() || null,
           name: String(row.NAME || row.name || row.Name || '').trim(),
@@ -75,7 +93,7 @@ export const parseIntrosCSV = (file: File, onComplete: (data: any[]) => void) =>
         alert('Error processing CSV file. Please check the file format.');
       }
     },
-    error: (error: any) => {
+    error: (error: unknown) => {
       console.error('CSV parsing error:', error);
       alert('Error parsing CSV file. Please check the file format.');
     },
@@ -83,16 +101,26 @@ export const parseIntrosCSV = (file: File, onComplete: (data: any[]) => void) =>
 };
 
 // Parser for Signups table (renamed from parseCSV)
-export const parseSignupsCSV = (file: File, onComplete: (data: any[]) => void) => {
+export type SignupCsvRecord = {
+  month: string;
+  name: string;
+  membership: string;
+  membership_date: string | undefined;
+  first_payment_date: string | undefined;
+  signup_package: boolean;
+  notes: string;
+};
+
+export const parseSignupsCSV = (file: File, onComplete: (data: SignupCsvRecord[]) => void) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
     skipEmptyLines: true,
     delimitersToGuess: [',', '\t', '|', ';'],
     transformHeader: (header: string) => header.trim(),
-    complete: (results: any) => {
+    complete: (results: ParseResult<CsvRow>) => {
       try {
-        const parsedData = results.data.filter(filterRow).map((row: any) => {
+        const parsedData = results.data.filter(filterRow).map((row) => {
           const membershipDateRaw = String(
             row.DATE ||
               row['MEMBERSHIP DATE'] ||
@@ -136,7 +164,7 @@ export const parseSignupsCSV = (file: File, onComplete: (data: any[]) => void) =
         alert('Error processing CSV file. Please check the file format.');
       }
     },
-    error: (error: any) => {
+    error: (error: unknown) => {
       console.error('CSV parsing error:', error);
       alert('Error parsing CSV file. Please check the file format.');
     },
@@ -144,16 +172,28 @@ export const parseSignupsCSV = (file: File, onComplete: (data: any[]) => void) =
 };
 
 // Parser for Cancellations table
-export const parseCancellationsCSV = (file: File, onComplete: (data: any[]) => void) => {
+export type CancellationCsvRecord = {
+  month: string;
+  name: string;
+  date: string | undefined;
+  reason: string | null;
+  age_group: string | null;
+  notes: string | null;
+};
+
+export const parseCancellationsCSV = (
+  file: File,
+  onComplete: (data: CancellationCsvRecord[]) => void
+) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
     skipEmptyLines: true,
     delimitersToGuess: [',', '\t', '|', ';'],
     transformHeader: (header: string) => header.trim(),
-    complete: (results: any) => {
+    complete: (results: ParseResult<CsvRow>) => {
       try {
-        const parsedData = results.data.filter(filterRow).map((row: any) => {
+        const parsedData = results.data.filter(filterRow).map((row) => {
           const cancellationDateRaw = String(
             row['CANCELLATION DATE'] ||
               row['Cancellation Date'] ||
@@ -166,11 +206,10 @@ export const parseCancellationsCSV = (file: File, onComplete: (data: any[]) => v
           return {
             month: String(row.MONTH || row.month || row.Month || '').trim(),
             name: String(row.NAME || row.name || row.Name || '').trim(),
-            cancellation_date: parseDate(cancellationDateRaw),
+            date: parseDate(cancellationDateRaw),
             reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
-            age_category:
-              String(row['AGE CATEGORY'] || row.age_category || row['Age Category'] || '').trim() ||
-              null,
+            age_group:
+              String(row['AGE CATEGORY'] || row.age_group || row['Age Group'] || '').trim() || null,
             notes: String(row.NOTES || row.notes || row.Notes || '').trim() || null,
           };
         });
@@ -180,7 +219,7 @@ export const parseCancellationsCSV = (file: File, onComplete: (data: any[]) => v
         alert('Error processing CSV file. Please check the file format.');
       }
     },
-    error: (error: any) => {
+    error: (error: unknown) => {
       console.error('CSV parsing error:', error);
       alert('Error parsing CSV file. Please check the file format.');
     },
@@ -188,16 +227,25 @@ export const parseCancellationsCSV = (file: File, onComplete: (data: any[]) => v
 };
 
 // Parser for Holds table
-export const parseHoldsCSV = (file: File, onComplete: (data: any[]) => void) => {
+export type HoldCsvRecord = {
+  month: string;
+  name: string;
+  start: string | undefined;
+  end: string | undefined;
+  reason: string | null;
+  fee: string | null;
+};
+
+export const parseHoldsCSV = (file: File, onComplete: (data: HoldCsvRecord[]) => void) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
     skipEmptyLines: true,
     delimitersToGuess: [',', '\t', '|', ';'],
     transformHeader: (header: string) => header.trim(),
-    complete: (results: any) => {
+    complete: (results: ParseResult<CsvRow>) => {
       try {
-        const parsedData = results.data.filter(filterRow).map((row: any) => {
+        const parsedData = results.data.filter(filterRow).map((row) => {
           const startDateRaw = String(
             row['START DATE'] || row['Start Date'] || row.start_date || ''
           ).trim();
@@ -209,8 +257,8 @@ export const parseHoldsCSV = (file: File, onComplete: (data: any[]) => void) => 
           return {
             month: String(row.MONTH || row.month || row.Month || '').trim(),
             name: String(row.NAME || row.name || row.Name || '').trim(),
-            start_date: parseDate(startDateRaw),
-            end_date: parseDate(endDateRaw),
+            start: parseDate(startDateRaw),
+            end: parseDate(endDateRaw),
             reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
             fee: String(row.FEE || row.fee || row.Fee || '').trim() || null,
           };
@@ -221,7 +269,7 @@ export const parseHoldsCSV = (file: File, onComplete: (data: any[]) => void) => 
         alert('Error processing CSV file. Please check the file format.');
       }
     },
-    error: (error: any) => {
+    error: (error: unknown) => {
       console.error('CSV parsing error:', error);
       alert('Error parsing CSV file. Please check the file format.');
     },
