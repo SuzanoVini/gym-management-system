@@ -10,6 +10,10 @@ export const useHolds = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const stripUndefined = <T extends object>(data: T): T => {
+    return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as T;
+  };
+
   const loadHolds = useCallback(async () => {
     try {
       setLoading(true);
@@ -30,14 +34,15 @@ export const useHolds = () => {
       // Validate data before sending to database
       const validation = validate(holdSchema, hold);
 
-      if (!validation.success) {
+      if (!validation.success || !validation.data) {
         const errorMessage = validation.errors?.join('\n') || 'Validation failed';
         errorHandler.notify(errorMessage, 'error');
         throw new Error(errorMessage);
       }
 
       try {
-        await createHold(validation.data!);
+        const sanitized = stripUndefined(validation.data) as HoldFormData;
+        await createHold(sanitized);
         await loadHolds();
         errorHandler.notify('Hold added successfully', 'success');
       } catch (err) {
@@ -45,7 +50,7 @@ export const useHolds = () => {
         throw err;
       }
     },
-    [loadHolds]
+    [loadHolds, stripUndefined]
   );
 
   const editHold = useCallback(
