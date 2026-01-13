@@ -4,10 +4,10 @@ import { Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Table from '@/components/ui/Table';
 import { useSignups } from '@/hooks/useSignups';
-import { parseSignupsCSV } from '@/lib/csv';
+import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { useFilterStore } from '@/store/useFilterStore';
-import { useSelectionStore } from '@/store/useSelectionStore';
+import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Signup } from '@/types';
 import { SignupModals } from './modals/SignupModals';
@@ -18,9 +18,14 @@ export default function SignupsTab() {
   const { signups, loading, error, removeSignup, refresh } = useSignups();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
-  const { selectedIds, toggleSelection, clearSelection, setSelectedSignup } = useSelectionStore();
+  const selectionTab: SelectionTabKey = 'signups';
+  const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
+  const toggleSelection = useSelectionStore((state) => state.toggleSelection);
+  const selectAll = useSelectionStore((state) => state.selectAll);
+  const clearSelection = useSelectionStore((state) => state.clearSelection);
+  const setSelectedSignup = useSelectionStore((state) => state.setSelectedSignup);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
+  const [importPreviewData, setImportPreviewData] = useState<SignupCsvRecord[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -114,7 +119,7 @@ export default function SignupsTab() {
       }
 
       await refresh();
-      clearSelection();
+      clearSelection(selectionTab);
       setCurrentPage(1);
       alert(`✅ Deleted ${idsToDelete.length} sign-ups`);
     } catch (error) {
@@ -153,28 +158,21 @@ export default function SignupsTab() {
     return filtered;
   }, [signups, filters]);
 
+  const getSortTimestamp = (signup: Signup) => {
+    const dateValue = signup.membership_date ? new Date(signup.membership_date).getTime() : 0;
+    if (dateValue) {
+      return dateValue;
+    }
+    return signup.created_at ? new Date(signup.created_at).getTime() : 0;
+  };
+
   const sortedSignups = [...filteredAndSearchedSignups].sort((a, b) => {
-    // Sort by sign up date (membership_date)
-    const dateA = a.membership_date ? new Date(a.membership_date).getTime() : 0;
-    const dateB = b.membership_date ? new Date(b.membership_date).getTime() : 0;
-
-    // If both have dates, sort by date
-    if (dateA && dateB) {
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    const dateA = getSortTimestamp(a);
+    const dateB = getSortTimestamp(b);
+    if (dateA === dateB) {
+      return 0;
     }
-
-    // If only one has a date, put the one with date first
-    if (dateA && !dateB) {
-      return sortOrder === 'newest' ? -1 : 1;
-    }
-    if (!dateA && dateB) {
-      return sortOrder === 'newest' ? 1 : -1;
-    }
-
-    // If neither has a date, sort by created_at (when added to database)
-    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return sortOrder === 'newest' ? createdB - createdA : createdA - createdB;
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   const totalPages = Math.ceil(sortedSignups.length / itemsPerPage);
@@ -274,6 +272,7 @@ export default function SignupsTab() {
       render: (_value: unknown, signup: Signup) => (
         <div className="flex space-x-2">
           <button
+            type="button"
             onClick={() => {
               setSelectedSignup(signup);
               openModal('editSignup');
@@ -284,6 +283,7 @@ export default function SignupsTab() {
             <Edit2 className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => removeSignup(signup.id, signup.name)}
             className="btn-icon hover:text-red-600"
             title="Delete"
@@ -311,7 +311,11 @@ export default function SignupsTab() {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Sign-ups</h2>
           <div className="flex space-x-3">
-            <button onClick={() => openModal('settings')} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={() => openModal('settings')}
+              className="btn btn-secondary"
+            >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </button>
@@ -323,13 +327,18 @@ export default function SignupsTab() {
               onChange={handleCSVImport}
             />
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="btn btn-secondary-blue"
             >
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
-            <button onClick={() => openModal('addSignup')} className="btn btn-primary">
+            <button
+              type="button"
+              onClick={() => openModal('addSignup')}
+              className="btn btn-primary"
+            >
               <Plus className="w-4 h-4" />
               <span>Add Sign-up</span>
             </button>
@@ -377,8 +386,11 @@ export default function SignupsTab() {
       <div className="section-container">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="form-label">Sort By</label>
+            <label className="form-label" htmlFor="signups-sort">
+              Sort By
+            </label>
             <select
+              id="signups-sort"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
               className="form-select"
@@ -388,8 +400,11 @@ export default function SignupsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Month</label>
+            <label className="form-label" htmlFor="signups-month">
+              Month
+            </label>
             <select
+              id="signups-month"
               value={filters.month}
               onChange={(e) => setFilters({ month: e.target.value })}
               className="form-select"
@@ -403,8 +418,11 @@ export default function SignupsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Membership Type</label>
+            <label className="form-label" htmlFor="signups-membership">
+              Membership Type
+            </label>
             <select
+              id="signups-membership"
               value={filters.membership}
               onChange={(e) => setFilters({ membership: e.target.value })}
               className="form-select"
@@ -424,8 +442,11 @@ export default function SignupsTab() {
       <div className="section-container">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Show:</label>
+            <label className="text-sm font-medium text-gray-700" htmlFor="signups-items-per-page">
+              Show:
+            </label>
             <select
+              id="signups-items-per-page"
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));
@@ -447,6 +468,7 @@ export default function SignupsTab() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -454,6 +476,7 @@ export default function SignupsTab() {
               First
             </button>
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -464,6 +487,7 @@ export default function SignupsTab() {
               Page {currentPage} of {totalPages}
             </span>
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -471,6 +495,7 @@ export default function SignupsTab() {
               Next
             </button>
             <button
+              type="button"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -484,7 +509,8 @@ export default function SignupsTab() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
               <button
-                onClick={clearSelection}
+                type="button"
+                onClick={() => clearSelection(selectionTab)}
                 className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
                 Clear Selection
@@ -499,6 +525,7 @@ export default function SignupsTab() {
           <h3 className="text-lg font-semibold">All Sign-ups ({sortedSignups.length})</h3>
           {selectedIds.size > 0 && (
             <button
+              type="button"
               onClick={handleDeleteSelected}
               className="flex items-center space-x-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
             >
@@ -513,7 +540,9 @@ export default function SignupsTab() {
             columns={columns}
             loading={loading}
             selectedIds={selectedIds}
-            onSelectId={toggleSelection}
+            onSelectId={(id) => toggleSelection(selectionTab, id)}
+            onSelectAll={(ids) => selectAll(selectionTab, ids)}
+            onClearSelection={(ids) => clearSelection(selectionTab, ids)}
             emptyMessage="No sign-ups found matching your criteria"
           />
         </div>

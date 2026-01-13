@@ -1,14 +1,14 @@
 'use client';
 
 import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import Table from '@/components/ui/Table';
 import { useHolds } from '@/hooks/useHolds';
-import { parseHoldsCSV } from '@/lib/csv';
+import { type HoldCsvRecord, parseHoldsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
-import { useSelectionStore } from '@/store/useSelectionStore';
+import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Hold } from '@/types';
 import { HoldModals } from './modals/HoldModals';
@@ -19,9 +19,14 @@ export default function HoldsTab() {
   const { holds, loading, error, removeHold, refresh } = useHolds();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
-  const { selectedIds, toggleSelection, clearSelection, setSelectedHold } = useSelectionStore();
+  const selectionTab: SelectionTabKey = 'holds';
+  const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
+  const toggleSelection = useSelectionStore((state) => state.toggleSelection);
+  const selectAll = useSelectionStore((state) => state.selectAll);
+  const clearSelection = useSelectionStore((state) => state.clearSelection);
+  const setSelectedHold = useSelectionStore((state) => state.setSelectedHold);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
+  const [importPreviewData, setImportPreviewData] = useState<HoldCsvRecord[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -117,7 +122,7 @@ export default function HoldsTab() {
       }
 
       await refresh();
-      clearSelection();
+      clearSelection(selectionTab);
       setCurrentPage(1);
       alert(`✅ Deleted ${idsToDelete.length} holds`);
     } catch (error) {
@@ -142,7 +147,7 @@ export default function HoldsTab() {
     alert('✅ Holds exported successfully!');
   };
 
-  const getHoldStatus = (start?: string, end?: string): string => {
+  const getHoldStatus = useCallback((start?: string, end?: string): string => {
     if (!start) {
       return 'unknown';
     }
@@ -157,7 +162,7 @@ export default function HoldsTab() {
       return 'ended';
     }
     return 'active';
-  };
+  }, []);
 
   const filteredAndSearchedHolds = useMemo(() => {
     let filtered = holds;
@@ -192,24 +197,21 @@ export default function HoldsTab() {
     return filtered;
   }, [holds, filters, getHoldStatus]);
 
+  const getSortTimestamp = (hold: Hold) => {
+    const startValue = hold.start ? new Date(hold.start).getTime() : 0;
+    if (startValue) {
+      return startValue;
+    }
+    return hold.created_at ? new Date(hold.created_at).getTime() : 0;
+  };
+
   const sortedHolds = [...filteredAndSearchedHolds].sort((a, b) => {
-    const dateA = a.start ? new Date(a.start).getTime() : 0;
-    const dateB = b.start ? new Date(b.start).getTime() : 0;
-
-    if (dateA && dateB) {
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    const dateA = getSortTimestamp(a);
+    const dateB = getSortTimestamp(b);
+    if (dateA === dateB) {
+      return 0;
     }
-
-    if (dateA && !dateB) {
-      return sortOrder === 'newest' ? -1 : 1;
-    }
-    if (!dateA && dateB) {
-      return sortOrder === 'newest' ? 1 : -1;
-    }
-
-    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return sortOrder === 'newest' ? createdB - createdA : createdA - createdB;
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   const totalPages = Math.ceil(sortedHolds.length / itemsPerPage);
@@ -311,6 +313,7 @@ export default function HoldsTab() {
       render: (_value: unknown, hold: Hold) => (
         <div className="flex space-x-2">
           <button
+            type="button"
             onClick={() => {
               setSelectedHold(hold);
               openModal('editHold');
@@ -321,6 +324,7 @@ export default function HoldsTab() {
             <Edit2 className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => removeHold(hold.id, hold.name)}
             className="btn-icon hover:text-red-600"
             title="Delete"
@@ -349,7 +353,11 @@ export default function HoldsTab() {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Membership Holds</h2>
           <div className="flex space-x-3">
-            <button onClick={() => openModal('settings')} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={() => openModal('settings')}
+              className="btn btn-secondary"
+            >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </button>
@@ -361,17 +369,18 @@ export default function HoldsTab() {
               onChange={handleCSVImport}
             />
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="btn btn-secondary-blue"
             >
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
-            <button onClick={handleExportHolds} className="btn btn-primary">
+            <button type="button" onClick={handleExportHolds} className="btn btn-primary">
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <button onClick={() => openModal('addHold')} className="btn btn-primary">
+            <button type="button" onClick={() => openModal('addHold')} className="btn btn-primary">
               <Plus className="w-4 h-4" />
               <span>Add Hold</span>
             </button>
@@ -411,8 +420,11 @@ export default function HoldsTab() {
       <div className="section-container">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="form-label">Sort By</label>
+            <label className="form-label" htmlFor="holds-sort">
+              Sort By
+            </label>
             <select
+              id="holds-sort"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
               className="form-select"
@@ -422,8 +434,11 @@ export default function HoldsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Month</label>
+            <label className="form-label" htmlFor="holds-month">
+              Month
+            </label>
             <select
+              id="holds-month"
               value={filters.month}
               onChange={(e) => setFilters({ month: e.target.value })}
               className="form-select"
@@ -437,8 +452,11 @@ export default function HoldsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Reason</label>
+            <label className="form-label" htmlFor="holds-reason">
+              Reason
+            </label>
             <select
+              id="holds-reason"
               value={filters.reason}
               onChange={(e) => setFilters({ reason: e.target.value })}
               className="form-select"
@@ -453,8 +471,11 @@ export default function HoldsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Status</label>
+            <label className="form-label" htmlFor="holds-status">
+              Status
+            </label>
             <select
+              id="holds-status"
               value={filters.holdStatus}
               onChange={(e) => setFilters({ holdStatus: e.target.value })}
               className="form-select"
@@ -471,8 +492,11 @@ export default function HoldsTab() {
       <div className="section-container">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Show:</label>
+            <label className="text-sm font-medium text-gray-700" htmlFor="holds-items-per-page">
+              Show:
+            </label>
             <select
+              id="holds-items-per-page"
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));
@@ -494,6 +518,7 @@ export default function HoldsTab() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -501,6 +526,7 @@ export default function HoldsTab() {
               First
             </button>
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -511,6 +537,7 @@ export default function HoldsTab() {
               Page {currentPage} of {totalPages}
             </span>
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -518,6 +545,7 @@ export default function HoldsTab() {
               Next
             </button>
             <button
+              type="button"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -531,7 +559,8 @@ export default function HoldsTab() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
               <button
-                onClick={clearSelection}
+                type="button"
+                onClick={() => clearSelection(selectionTab)}
                 className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
                 Clear Selection
@@ -545,7 +574,7 @@ export default function HoldsTab() {
         <div className="px-6 py-4 border-b flex justify-between items-center">
           <h3 className="text-lg font-semibold">All Holds ({sortedHolds.length})</h3>
           {selectedIds.size > 0 && (
-            <button onClick={handleDeleteSelected} className="btn btn-primary">
+            <button type="button" onClick={handleDeleteSelected} className="btn btn-primary">
               <Trash2 className="w-4 h-4" />
               <span>Delete Selected ({selectedIds.size})</span>
             </button>
@@ -557,7 +586,9 @@ export default function HoldsTab() {
             columns={columns}
             loading={loading}
             selectedIds={selectedIds}
-            onSelectId={toggleSelection}
+            onSelectId={(id) => toggleSelection(selectionTab, id)}
+            onSelectAll={(ids) => selectAll(selectionTab, ids)}
+            onClearSelection={(ids) => clearSelection(selectionTab, ids)}
             emptyMessage="No holds found matching your criteria"
           />
         </div>

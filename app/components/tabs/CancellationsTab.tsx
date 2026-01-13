@@ -4,11 +4,11 @@ import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Table from '@/components/ui/Table';
 import { useCancellations } from '@/hooks/useCancellations';
-import { parseCancellationsCSV } from '@/lib/csv';
+import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
-import { useSelectionStore } from '@/store/useSelectionStore';
+import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Cancellation } from '@/types';
 import { CancellationModals } from './modals/CancellationModals';
@@ -20,10 +20,14 @@ export default function CancellationsTab() {
   const { cancellations, loading, error, removeCancellation, refresh } = useCancellations();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
-  const { selectedIds, toggleSelection, clearSelection, setSelectedCancellation } =
-    useSelectionStore();
+  const selectionTab: SelectionTabKey = 'cancellations';
+  const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
+  const toggleSelection = useSelectionStore((state) => state.toggleSelection);
+  const selectAll = useSelectionStore((state) => state.selectAll);
+  const clearSelection = useSelectionStore((state) => state.clearSelection);
+  const setSelectedCancellation = useSelectionStore((state) => state.setSelectedCancellation);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
+  const [importPreviewData, setImportPreviewData] = useState<CancellationCsvRecord[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -119,7 +123,7 @@ export default function CancellationsTab() {
       }
 
       await refresh();
-      clearSelection();
+      clearSelection(selectionTab);
       setCurrentPage(1);
       alert(`✅ Deleted ${idsToDelete.length} cancellations`);
     } catch (error) {
@@ -172,24 +176,21 @@ export default function CancellationsTab() {
     return filtered;
   }, [cancellations, filters]);
 
+  const getSortTimestamp = (cancellation: Cancellation) => {
+    const dateValue = cancellation.date ? new Date(cancellation.date).getTime() : 0;
+    if (dateValue) {
+      return dateValue;
+    }
+    return cancellation.created_at ? new Date(cancellation.created_at).getTime() : 0;
+  };
+
   const sortedCancellations = [...filteredAndSearchedCancellations].sort((a, b) => {
-    const dateA = a.date ? new Date(a.date).getTime() : 0;
-    const dateB = b.date ? new Date(b.date).getTime() : 0;
-
-    if (dateA && dateB) {
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    const dateA = getSortTimestamp(a);
+    const dateB = getSortTimestamp(b);
+    if (dateA === dateB) {
+      return 0;
     }
-
-    if (dateA && !dateB) {
-      return sortOrder === 'newest' ? -1 : 1;
-    }
-    if (!dateA && dateB) {
-      return sortOrder === 'newest' ? 1 : -1;
-    }
-
-    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return sortOrder === 'newest' ? createdB - createdA : createdA - createdB;
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   const totalPages = Math.ceil(sortedCancellations.length / itemsPerPage);
@@ -275,6 +276,7 @@ export default function CancellationsTab() {
       render: (_value: unknown, cancellation: Cancellation) => (
         <div className="flex space-x-2">
           <button
+            type="button"
             onClick={() => {
               setSelectedCancellation(cancellation);
               openModal('editCancellation');
@@ -285,6 +287,7 @@ export default function CancellationsTab() {
             <Edit2 className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => removeCancellation(cancellation.id, cancellation.name)}
             className="btn-icon hover:text-red-600"
             title="Delete"
@@ -313,7 +316,11 @@ export default function CancellationsTab() {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Cancellations</h2>
           <div className="flex space-x-3">
-            <button onClick={() => openModal('settings')} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={() => openModal('settings')}
+              className="btn btn-secondary"
+            >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </button>
@@ -325,17 +332,22 @@ export default function CancellationsTab() {
               onChange={handleCSVImport}
             />
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="btn btn-secondary-blue"
             >
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
-            <button onClick={handleExportCancellations} className="btn btn-primary">
+            <button type="button" onClick={handleExportCancellations} className="btn btn-primary">
               <Download className="w-4 h-4" />
               <span>Export</span>
             </button>
-            <button onClick={() => openModal('addCancellation')} className="btn btn-primary">
+            <button
+              type="button"
+              onClick={() => openModal('addCancellation')}
+              className="btn btn-primary"
+            >
               <Plus className="w-4 h-4" />
               <span>Add Cancellation</span>
             </button>
@@ -380,8 +392,11 @@ export default function CancellationsTab() {
       <div className="section-container">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="form-label">Sort By</label>
+            <label className="form-label" htmlFor="cancellations-sort">
+              Sort By
+            </label>
             <select
+              id="cancellations-sort"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
               className="form-select"
@@ -391,8 +406,11 @@ export default function CancellationsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Month</label>
+            <label className="form-label" htmlFor="cancellations-month">
+              Month
+            </label>
             <select
+              id="cancellations-month"
               value={filters.month}
               onChange={(e) => setFilters({ month: e.target.value })}
               className="form-select"
@@ -406,8 +424,11 @@ export default function CancellationsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Reason</label>
+            <label className="form-label" htmlFor="cancellations-reason">
+              Reason
+            </label>
             <select
+              id="cancellations-reason"
               value={filters.reason}
               onChange={(e) => setFilters({ reason: e.target.value })}
               className="form-select"
@@ -422,8 +443,11 @@ export default function CancellationsTab() {
             </select>
           </div>
           <div>
-            <label className="form-label">Age Group</label>
+            <label className="form-label" htmlFor="cancellations-age-group">
+              Age Group
+            </label>
             <select
+              id="cancellations-age-group"
               value={filters.ageGroup}
               onChange={(e) => setFilters({ ageGroup: e.target.value })}
               className="form-select"
@@ -442,8 +466,14 @@ export default function CancellationsTab() {
       <div className="section-container">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700">Show:</label>
+            <label
+              className="text-sm font-medium text-gray-700"
+              htmlFor="cancellations-items-per-page"
+            >
+              Show:
+            </label>
             <select
+              id="cancellations-items-per-page"
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));
@@ -465,6 +495,7 @@ export default function CancellationsTab() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -472,6 +503,7 @@ export default function CancellationsTab() {
               First
             </button>
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -482,6 +514,7 @@ export default function CancellationsTab() {
               Page {currentPage} of {totalPages}
             </span>
             <button
+              type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -489,6 +522,7 @@ export default function CancellationsTab() {
               Next
             </button>
             <button
+              type="button"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
               className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
@@ -502,7 +536,8 @@ export default function CancellationsTab() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
               <button
-                onClick={clearSelection}
+                type="button"
+                onClick={() => clearSelection(selectionTab)}
                 className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
                 Clear Selection
@@ -518,7 +553,11 @@ export default function CancellationsTab() {
             All Cancellations ({sortedCancellations.length})
           </h3>
           {selectedIds.size > 0 && (
-            <button onClick={handleDeleteSelected} className="btn btn-primary text-sm">
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              className="btn btn-primary text-sm"
+            >
               <Trash2 className="w-4 h-4" />
               <span>Delete Selected ({selectedIds.size})</span>
             </button>
@@ -530,7 +569,9 @@ export default function CancellationsTab() {
             columns={columns}
             loading={loading}
             selectedIds={selectedIds}
-            onSelectId={toggleSelection}
+            onSelectId={(id) => toggleSelection(selectionTab, id)}
+            onSelectAll={(ids) => selectAll(selectionTab, ids)}
+            onClearSelection={(ids) => clearSelection(selectionTab, ids)}
             emptyMessage="No cancellations found matching your criteria"
           />
         </div>

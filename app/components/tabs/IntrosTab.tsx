@@ -5,10 +5,10 @@ import { useMemo, useRef, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import Table from '@/components/ui/Table';
 import { useIntros } from '@/hooks/useIntros';
-import { parseIntrosCSV } from '@/lib/csv';
+import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { useFilterStore } from '@/store/useFilterStore';
-import { useSelectionStore } from '@/store/useSelectionStore';
+import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Intro } from '@/types';
 import IntroForm from './forms/IntroForm';
@@ -19,9 +19,15 @@ export default function IntrosTab() {
   const { intros, loading, error, addIntro, editIntro, removeIntro, refresh } = useIntros();
   const { modals, openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
-  const { selectedIds, selectedIntro, setSelectedIntro, toggleSelection } = useSelectionStore();
+  const selectionTab: SelectionTabKey = 'intros';
+  const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
+  const toggleSelection = useSelectionStore((state) => state.toggleSelection);
+  const selectAll = useSelectionStore((state) => state.selectAll);
+  const clearSelection = useSelectionStore((state) => state.clearSelection);
+  const selectedIntro = useSelectionStore((state) => state.selectedIntro);
+  const setSelectedIntro = useSelectionStore((state) => state.setSelectedIntro);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
+  const [importPreviewData, setImportPreviewData] = useState<IntroCsvRecord[]>([]);
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -117,6 +123,40 @@ export default function IntrosTab() {
   const handleFollowUpClick = (intro: Intro) => {
     setSelectedIntro(intro);
     openModal('followUp');
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) {
+      alert('Please select intros to delete');
+      return;
+    }
+    if (selectedIds.size > 1000) {
+      alert('Maximum 1000 items at once. Please select fewer items.');
+      return;
+    }
+    if (!confirm(`Delete ${selectedIds.size} selected intros?`)) {
+      return;
+    }
+
+    try {
+      const idsToDelete = Array.from(selectedIds);
+      const batchSize = 50;
+
+      for (let i = 0; i < idsToDelete.length; i += batchSize) {
+        const batch = idsToDelete.slice(i, i + batchSize);
+        const { error } = await supabase.from('intros').delete().in('id', batch);
+        if (error) {
+          throw error;
+        }
+      }
+
+      await refresh();
+      clearSelection(selectionTab);
+      alert(`Deleted ${idsToDelete.length} intros`);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error deleting intros');
+    }
   };
 
   // Table columns
@@ -395,12 +435,41 @@ export default function IntrosTab() {
 
       {/* Table */}
       <div className="section-container">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+          <h3 className="text-lg font-semibold">All Intros ({filteredIntros.length})</h3>
+          {selectedIds.size > 0 && (
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              className="flex items-center space-x-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Selected ({selectedIds.size})</span>
+            </button>
+          )}
+        </div>
+        {selectedIds.size > 0 && (
+          <div className="mb-4 pb-4 border-b">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
+              <button
+                type="button"
+                onClick={() => clearSelection(selectionTab)}
+                className="text-sm text-red-600 hover:text-red-700 font-medium"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        )}
         <Table
           data={filteredIntros}
           columns={columns}
           loading={loading}
           selectedIds={selectedIds}
-          onSelectId={toggleSelection}
+          onSelectId={(id) => toggleSelection(selectionTab, id)}
+          onSelectAll={(ids) => selectAll(selectionTab, ids)}
+          onClearSelection={(ids) => clearSelection(selectionTab, ids)}
           emptyMessage="No intros found matching your criteria"
         />
       </div>
@@ -423,7 +492,12 @@ export default function IntrosTab() {
       >
         <IntroForm
           intro={selectedIntro}
-          onSubmit={(data) => editIntro(selectedIntro!.id, data)}
+          onSubmit={(data) => {
+            if (!selectedIntro) {
+              return;
+            }
+            editIntro(selectedIntro.id, data);
+          }}
           loading={loading}
           onCancel={() => {
             closeModal('editIntro');
@@ -468,12 +542,12 @@ export default function IntrosTab() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {importPreviewData.slice(0, 50).map((row, idx) => (
-                  <tr key={idx}>
+                {importPreviewData.slice(0, 50).map((row) => (
+                  <tr key={`${row.name}-${row.month}-${row.class ?? ''}`}>
                     <td className="px-4 py-2 text-sm">{row.name}</td>
                     <td className="px-4 py-2 text-sm">{row.month}</td>
-                    <td className="px-4 py-2 text-sm">{row.class}</td>
-                    <td className="px-4 py-2 text-sm">{row.staff}</td>
+                    <td className="px-4 py-2 text-sm">{row.class ?? '-'}</td>
+                    <td className="px-4 py-2 text-sm">{row.staff ?? '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -486,6 +560,7 @@ export default function IntrosTab() {
           )}
           <div className="flex justify-end space-x-3">
             <button
+              type="button"
               onClick={() => {
                 closeModal('importPreview');
                 setImportPreviewData([]);
@@ -495,6 +570,7 @@ export default function IntrosTab() {
               Cancel
             </button>
             <button
+              type="button"
               onClick={confirmCSVImport}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
             >
