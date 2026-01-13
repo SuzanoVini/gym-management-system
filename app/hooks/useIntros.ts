@@ -9,6 +9,9 @@ export const useIntros = () => {
   const [intros, setIntros] = useState<Intro[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const stripUndefined = <T extends object>(data: T): T => {
+    return Object.fromEntries(Object.entries(data).filter(([, value]) => value !== undefined)) as T;
+  };
 
   const loadIntros = useCallback(async () => {
     try {
@@ -30,14 +33,15 @@ export const useIntros = () => {
       // Validate data before sending to database
       const validation = validate(introSchema, intro);
 
-      if (!validation.success) {
+      if (!validation.success || !validation.data) {
         const errorMessage = validation.errors?.join('\n') || 'Validation failed';
         errorHandler.notify(errorMessage, 'error');
         throw new Error(errorMessage);
       }
 
       try {
-        await createIntro(validation.data!);
+        const sanitized = stripUndefined(validation.data) as IntroFormData;
+        await createIntro(sanitized);
         await loadIntros();
         errorHandler.notify('Intro added successfully', 'success');
       } catch (err) {
