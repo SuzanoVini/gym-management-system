@@ -394,6 +394,79 @@ export interface ImportResult {
 }
 
 // ============================================================================
+// Payroll Types
+// ============================================================================
+
+/**
+ * Payroll period record - defines pay cycles (1st-15th, 16th-31st)
+ */
+export interface PayrollPeriod extends BaseRecord {
+  period_label: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  is_closed: boolean;
+}
+
+/**
+ * Staff member record - represents an employee or contractor
+ */
+export interface StaffMember extends BaseRecord {
+  employee_id: string;
+  full_name: string;
+  job_title: string;
+  is_active: boolean;
+}
+
+/**
+ * Staff hours record - tracks staff work time for a payroll period
+ */
+export interface StaffHours extends BaseRecord {
+  period_id: string;
+  staff_id: string;
+  regular_hours: number;
+  overtime_hours: number;
+  vacation_hours: number;
+  mat_cleaning_count: number;
+  total_hours: number;
+  notes?: string;
+}
+
+/**
+ * Time entry record - individual time entries for staff hours
+ */
+export interface TimeEntry {
+  id: string;
+  staff_hours_id: string;
+  entry_date: string;
+  hours: number;
+  entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning';
+  notes?: string;
+  is_after_school_program: boolean;
+  created_at: string;
+}
+
+/**
+ * Form data for creating/updating a payroll period
+ */
+export type PayrollPeriodFormData = Omit<PayrollPeriod, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Form data for creating/updating a staff member
+ */
+export type StaffMemberFormData = Omit<StaffMember, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Form data for creating/updating staff hours
+ */
+export type StaffHoursFormData = Omit<StaffHours, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Form data for creating/updating a time entry
+ */
+export type TimeEntryFormData = Omit<TimeEntry, 'id' | 'created_at'>;
+
+// ============================================================================
 // Type Guards
 // ============================================================================
 
