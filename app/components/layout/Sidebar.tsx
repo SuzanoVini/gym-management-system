@@ -1,6 +1,7 @@
 'use client';
 
-import { BarChart3, Clock, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
+import { BarChart3, Clock, DollarSign, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import ProfileSection from './ProfileSection';
 
@@ -11,6 +12,7 @@ const tabs = [
   { id: 'signups', label: 'Sign-ups', icon: UserCheck },
   { id: 'cancellations', label: 'Cancellations', icon: UserX },
   { id: 'holds', label: 'Holds', icon: Clock },
+  { id: 'payroll', label: 'Payroll', icon: DollarSign, route: '/payroll' },
 ];
 
 interface SidebarProps {
@@ -20,9 +22,18 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebarStore();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const handleTabClick = (tabId: string) => {
-    setActiveTab(tabId);
+  const handleTabClick = (tabId: string, route?: string) => {
+    if (route) {
+      // Navigate to route
+      router.push(route);
+    } else {
+      // Switch tab in current page
+      setActiveTab(tabId);
+    }
+
     // Auto-close sidebar on mobile after selecting a tab
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
       closeSidebar();
@@ -46,13 +57,14 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           <div className="py-6 px-2 space-y-1.5 flex-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
+              // Check if this is a route-based tab or a state-based tab
+              const isActive = tab.route ? pathname?.startsWith(tab.route) : activeTab === tab.id;
 
               return (
                 <button
                   type="button"
                   key={tab.id}
-                  onClick={() => handleTabClick(tab.id)}
+                  onClick={() => handleTabClick(tab.id, tab.route)}
                   className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
                     isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
                   } ${isActive ? 'is-active' : ''}`}

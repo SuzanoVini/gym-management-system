@@ -272,6 +272,7 @@ export function transformToHoursRecords(
   data: ParsedData[],
   columnMapping: Record<string, string>
 ): Partial<HoursCsvRow>[] {
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: CSV transformation logic requires extensive mapping
   return data.map((row) => {
     const transformed: Partial<HoursCsvRow> = {};
 
@@ -453,6 +454,7 @@ export async function importStaffCSV(file: File): Promise<ImportResult> {
  * @param periodId - Payroll period ID to associate hours with
  * @returns Import result with success status, count, and errors
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Import validation and transformation requires complex logic
 export async function importHoursCSV(file: File, periodId: string): Promise<ImportResult> {
   try {
     // Validate period ID
