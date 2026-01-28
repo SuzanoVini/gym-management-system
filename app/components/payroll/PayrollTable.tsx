@@ -4,6 +4,7 @@ import { Edit2, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Table from '@/components/ui/Table';
 import type { StaffHours, StaffMember } from '@/types';
+import EditableHoursCell from './EditableHoursCell';
 
 interface PayrollTableProps {
   hours: StaffHours[];
@@ -11,6 +12,11 @@ interface PayrollTableProps {
   loading?: boolean;
   onEdit: (hours: StaffHours) => void;
   onDelete: (id: string) => void;
+  onUpdateHours?: (
+    staffHoursId: string,
+    field: 'regular_hours' | 'overtime_hours' | 'vacation_hours',
+    value: number
+  ) => Promise<void>;
   selectedIds?: Set<string>;
   onSelectId?: (id: string) => void;
   onSelectAll?: (ids: string[]) => void;
@@ -28,6 +34,7 @@ export default function PayrollTable({
   loading = false,
   onEdit,
   onDelete,
+  onUpdateHours,
   selectedIds,
   onSelectId,
   onSelectAll,
@@ -103,19 +110,46 @@ export default function PayrollTable({
       key: 'regular_hours' as keyof PayrollRow,
       label: 'Regular',
       sortable: true,
-      render: (value: unknown) => <div className="text-right">{(value as number).toFixed(2)}</div>,
+      render: (value: unknown, row: PayrollRow) =>
+        onUpdateHours ? (
+          <EditableHoursCell
+            value={value as number}
+            onSave={(newValue) => onUpdateHours(row.id, 'regular_hours', newValue)}
+            disabled={loading}
+          />
+        ) : (
+          <div className="text-right">{(value as number).toFixed(2)}</div>
+        ),
     },
     {
       key: 'overtime_hours' as keyof PayrollRow,
       label: 'OT',
       sortable: true,
-      render: (value: unknown) => <div className="text-right">{(value as number).toFixed(2)}</div>,
+      render: (value: unknown, row: PayrollRow) =>
+        onUpdateHours ? (
+          <EditableHoursCell
+            value={value as number}
+            onSave={(newValue) => onUpdateHours(row.id, 'overtime_hours', newValue)}
+            disabled={loading}
+          />
+        ) : (
+          <div className="text-right">{(value as number).toFixed(2)}</div>
+        ),
     },
     {
       key: 'vacation_hours' as keyof PayrollRow,
       label: 'Vacation',
       sortable: true,
-      render: (value: unknown) => <div className="text-right">{(value as number).toFixed(2)}</div>,
+      render: (value: unknown, row: PayrollRow) =>
+        onUpdateHours ? (
+          <EditableHoursCell
+            value={value as number}
+            onSave={(newValue) => onUpdateHours(row.id, 'vacation_hours', newValue)}
+            disabled={loading}
+          />
+        ) : (
+          <div className="text-right">{(value as number).toFixed(2)}</div>
+        ),
     },
     {
       key: 'mat_cleaning_count' as keyof PayrollRow,

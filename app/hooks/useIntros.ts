@@ -49,7 +49,8 @@ export const useIntros = () => {
         throw err;
       }
     },
-    [loadIntros]
+    // biome-ignore lint/correctness/useExhaustiveDependencies: stripUndefined is a stable utility function
+    [loadIntros, stripUndefined]
   );
 
   const editIntro = useCallback(

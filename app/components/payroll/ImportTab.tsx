@@ -1,10 +1,13 @@
 'use client';
 
-import { AlertCircle, CheckCircle, FileText, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle, FileText, Upload, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
+import type { StaffMember } from '@/types';
 
 interface ImportTabProps {
   onImport: (file: File, type: 'staff' | 'hours') => Promise<void>;
+  onQuickImport?: (staffId: string, textData: string) => Promise<void>;
+  staff?: StaffMember[];
   loading?: boolean;
 }
 
@@ -15,13 +18,25 @@ interface ImportPreview {
   headers: string[];
 }
 
-export default function ImportTab({ onImport, loading = false }: ImportTabProps) {
+export default function ImportTab({
+  onImport,
+  onQuickImport,
+  staff = [],
+  loading = false,
+}: ImportTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileType, setFileType] = useState<'staff' | 'hours'>('hours');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Quick text import state
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [quickImportText, setQuickImportText] = useState<string>('');
+  const [quickImportLoading, setQuickImportLoading] = useState(false);
+  const [quickImportError, setQuickImportError] = useState<string | null>(null);
+  const [quickImportSuccess, setQuickImportSuccess] = useState<string | null>(null);
 
   const handleFileSelect = (file: File) => {
     if (!file.name.endsWith('.csv')) {
@@ -107,9 +122,148 @@ export default function ImportTab({ onImport, loading = false }: ImportTabProps)
     }
   };
 
+  const handleQuickImport = async () => {
+    if (!onQuickImport) {
+      setQuickImportError('Quick import is not available');
+      return;
+    }
+
+    if (!selectedStaffId) {
+      setQuickImportError('Please select a staff member');
+      return;
+    }
+
+    if (!quickImportText.trim()) {
+      setQuickImportError('Please enter import data');
+      return;
+    }
+
+    setQuickImportLoading(true);
+    setQuickImportError(null);
+    setQuickImportSuccess(null);
+
+    try {
+      await onQuickImport(selectedStaffId, quickImportText);
+      setQuickImportSuccess('Hours imported successfully');
+      setQuickImportText('');
+      setSelectedStaffId('');
+    } catch (err) {
+      setQuickImportError(err instanceof Error ? err.message : 'Import failed');
+    } finally {
+      setQuickImportLoading(false);
+    }
+  };
+
+  // Filter only active staff
+  const activeStaff = staff.filter((s) => s.is_active);
+
   return (
     <div className="space-y-6">
-      <div className="section-container">
+      {/* Quick Text Import Section */}
+      {onQuickImport && (
+        <div className="payroll-card">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-5 h-5 text-yellow-600" />
+            <h3 className="text-lg font-semibold">Quick Text Import</h3>
+          </div>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Import hours quickly using simple text format. Each line represents one entry.
+          </p>
+
+          {/* Staff Selector */}
+          <div className="mb-4">
+            <label htmlFor="staffSelect" className="form-label">
+              Select Staff Member
+            </label>
+            <select
+              id="staffSelect"
+              value={selectedStaffId}
+              onChange={(e) => setSelectedStaffId(e.target.value)}
+              className="form-input w-full"
+              disabled={quickImportLoading}
+            >
+              <option value="">Choose a staff member...</option>
+              {activeStaff.map((staffMember) => (
+                <option key={staffMember.id} value={staffMember.id}>
+                  {staffMember.full_name} ({staffMember.employee_id})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Text Input */}
+          <div className="mb-4">
+            <label htmlFor="quickImport" className="form-label">
+              Hours Data
+            </label>
+            <textarea
+              id="quickImport"
+              value={quickImportText}
+              onChange={(e) => setQuickImportText(e.target.value)}
+              className="form-input w-full font-mono text-sm"
+              rows={8}
+              placeholder="3 7am mat clean&#10;5 7am mat clean&#10;6 11am 1.5&#10;8 7pm mat clean&#10;13 10am 1.5&#10;15 6pm"
+              disabled={quickImportLoading}
+            />
+          </div>
+
+          {/* Format Guide */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs font-semibold text-blue-900 mb-2">Format Guide:</p>
+            <div className="space-y-1 text-xs text-blue-800">
+              <p>
+                <code className="bg-blue-100 px-1 py-0.5 rounded">Day Time [mat clean] [1.5]</code>
+              </p>
+              <ul className="list-disc list-inside ml-2 space-y-1 mt-2">
+                <li>
+                  <strong>mat clean</strong> - Adds 15 minutes (0.25 hours) to regular hours
+                </li>
+                <li>
+                  <strong>1.5</strong> - Marks entry as 1 overtime hour
+                </li>
+                <li>Default is 1 regular hour per entry</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {quickImportError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-red-800">Import Error</p>
+                <p className="text-sm text-red-700 mt-1">{quickImportError}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {quickImportSuccess && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-800">Import Successful</p>
+                <p className="text-sm text-green-700 mt-1">{quickImportSuccess}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Import Button */}
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleQuickImport}
+              disabled={quickImportLoading || !selectedStaffId || !quickImportText.trim()}
+              className="btn btn-primary"
+            >
+              {quickImportLoading ? 'Importing...' : 'Import Hours'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="payroll-card">
         <h3 className="text-lg font-semibold mb-4">Import CSV Data</h3>
 
         {/* File Type Selector */}
@@ -251,7 +405,7 @@ export default function ImportTab({ onImport, loading = false }: ImportTabProps)
       </div>
 
       {/* Instructions */}
-      <div className="section-container">
+      <div className="payroll-card">
         <h4 className="font-semibold text-gray-900 mb-3">CSV Format Requirements</h4>
         <div className="space-y-3 text-sm text-gray-600">
           <div>

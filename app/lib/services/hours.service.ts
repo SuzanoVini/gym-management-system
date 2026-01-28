@@ -278,3 +278,48 @@ export const addMatCleaningBonus = async (
 
   return data;
 };
+
+/**
+ * Update specific hour fields for staff hours (for inline editing)
+ */
+export const updateStaffHoursField = async (
+  staffHoursId: string,
+  field: 'regular_hours' | 'overtime_hours' | 'vacation_hours',
+  value: number
+): Promise<StaffHours> => {
+  // Get current staff hours to recalculate total
+  const { data: currentHours, error: fetchError } = await supabase
+    .from('staff_hours')
+    .select('*')
+    .eq('id', staffHoursId)
+    .single();
+
+  if (fetchError) {
+    throw fetchError;
+  }
+
+  // Update the specific field
+  const updates: Partial<StaffHours> = { [field]: value };
+
+  // Recalculate total hours
+  const matCleaningHours = currentHours.mat_cleaning_count * MAT_CLEANING_BONUS;
+  const newRegular = field === 'regular_hours' ? value : currentHours.regular_hours;
+  const newOvertime = field === 'overtime_hours' ? value : currentHours.overtime_hours;
+  const newVacation = field === 'vacation_hours' ? value : currentHours.vacation_hours;
+
+  updates.total_hours = newRegular + newOvertime + newVacation + matCleaningHours;
+
+  // Update the database
+  const { data, error } = await supabase
+    .from('staff_hours')
+    .update(updates)
+    .eq('id', staffHoursId)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};

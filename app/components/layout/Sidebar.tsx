@@ -20,16 +20,82 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
 }
 
+interface TabItemProps {
+  tab: {
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    route?: string;
+  };
+  isActive: boolean;
+  isOpen: boolean;
+  onTabClick: (tabId: string, route?: string) => void;
+  onMobileClose: () => void;
+}
+
+function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
+  const Icon = tab.icon;
+  return (
+    <a
+      href={tab.route}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
+        isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
+      } ${isActive ? 'is-active' : ''}`}
+      title={isOpen ? undefined : tab.label}
+      aria-label={tab.label}
+      onClick={() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          onMobileClose();
+        }
+      }}
+    >
+      <Icon
+        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`}
+      />
+      {isOpen && <span className="whitespace-nowrap truncate font-medium">{tab.label}</span>}
+    </a>
+  );
+}
+
+function TabButton({ tab, isActive, isOpen, onTabClick }: TabItemProps) {
+  const Icon = tab.icon;
+  return (
+    <button
+      type="button"
+      onClick={() => onTabClick(tab.id, tab.route)}
+      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
+        isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
+      } ${isActive ? 'is-active' : ''}`}
+      title={isOpen ? undefined : tab.label}
+      aria-label={tab.label}
+    >
+      <Icon
+        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`}
+      />
+      {isOpen && <span className="whitespace-nowrap truncate font-medium">{tab.label}</span>}
+    </button>
+  );
+}
+
+function TabItem(props: TabItemProps) {
+  if (props.tab.id === 'payroll' && props.tab.route) {
+    return <PayrollLink {...props} />;
+  }
+  return <TabButton {...props} />;
+}
+
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebarStore();
   const router = useRouter();
   const pathname = usePathname();
 
   const handleTabClick = (tabId: string, route?: string) => {
-    if (route) {
-      // Navigate to route
+    if (route && tabId !== 'payroll') {
+      // Navigate to route (except payroll which opens in new tab)
       router.push(route);
-    } else {
+    } else if (tabId !== 'payroll') {
       // Switch tab in current page
       setActiveTab(tabId);
     }
@@ -56,28 +122,18 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         <nav className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent flex flex-col">
           <div className="py-6 px-2 space-y-1.5 flex-1">
             {tabs.map((tab) => {
-              const Icon = tab.icon;
               // Check if this is a route-based tab or a state-based tab
               const isActive = tab.route ? pathname?.startsWith(tab.route) : activeTab === tab.id;
 
               return (
-                <button
-                  type="button"
+                <TabItem
                   key={tab.id}
-                  onClick={() => handleTabClick(tab.id, tab.route)}
-                  className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
-                    isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
-                  } ${isActive ? 'is-active' : ''}`}
-                  title={isOpen ? undefined : tab.label}
-                  aria-label={tab.label}
-                >
-                  <Icon
-                    className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`}
-                  />
-                  {isOpen && (
-                    <span className="whitespace-nowrap truncate font-medium">{tab.label}</span>
-                  )}
-                </button>
+                  tab={tab}
+                  isActive={isActive}
+                  isOpen={isOpen}
+                  onTabClick={handleTabClick}
+                  onMobileClose={closeSidebar}
+                />
               );
             })}
           </div>

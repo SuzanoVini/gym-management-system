@@ -5,7 +5,7 @@ export class AppError extends Error {
     message: string,
     public code: string,
     public userMessage?: string,
-    public context?: Record<string, any>
+    public context?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'AppError';
@@ -101,7 +101,7 @@ export const errorHandler = {
    * @param context - Context for error logging
    * @returns Wrapped function with error handling
    */
-  wrap: <T extends (...args: any[]) => Promise<any>>(fn: T, context?: string): T => {
+  wrap: <T extends (...args: unknown[]) => Promise<unknown>>(fn: T, context?: string): T => {
     return (async (...args: Parameters<T>) => {
       try {
         return await fn(...args);

@@ -1,5 +1,8 @@
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
 @tailwind base;
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
 @tailwind components;
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
 @tailwind utilities;
 
 @layer components {
@@ -538,12 +541,12 @@ label {
     0 4px 8px -2px rgba(0, 0, 0, 0.06);
 }
 
-.summary-card:hover .summary-card-icon {
-  transform: scale(1.1);
-}
-
 .summary-card-icon {
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-card:hover .summary-card-icon {
+  transform: scale(1.1);
 }
 
 /* Insight Card Animations */
@@ -590,8 +593,8 @@ label {
   .summary-card,
   .summary-card-icon,
   .insight-card {
-    transition: none !important;
-    animation: none !important;
+    transition: none;
+    animation: none;
   }
 }
 
@@ -645,5 +648,198 @@ body.modal-open {
 
   h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* ===========================
+   Payroll System Styles
+   Matching Old Gracie Barra Payroll Design
+   =========================== */
+
+/* Payroll Page - Blue gradient background */
+.payroll-page {
+  min-height: 100vh;
+  background: #1e3a8a;
+  color: #333;
+}
+
+/* Payroll Container */
+.payroll-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Payroll Header - White text on blue */
+.payroll-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Payroll Card - White with rounded corners and shadow */
+.payroll-card {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 2px solid #f1f5f9;
+}
+
+/* Current Period Indicator - Red background with white text */
+.payroll-current-period {
+  background: #dc143c;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: white;
+  border: 2px solid #b91c5c;
+}
+
+/* Payroll Tabs */
+.payroll-tabs {
+  display: flex;
+  border-bottom: 2px solid #eee;
+  margin-bottom: 20px;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.payroll-tab {
+  padding: 12px 24px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+
+.payroll-tab:hover:not(.active) {
+  color: #333;
+}
+
+.payroll-tab.active {
+  color: #dc143c;
+  border-bottom-color: #dc143c;
+}
+
+/* Summary Cards - Red background with white text and blue border */
+.payroll-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.payroll-summary-card {
+  background: #dc143c;
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  border: 2px solid #1e3a8a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.payroll-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.payroll-summary-card h3 {
+  font-size: 2rem;
+  margin-bottom: 5px;
+  color: white;
+}
+
+.payroll-summary-card p {
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+/* Override button styles for payroll - Use Gracie Barra colors */
+.payroll-page .btn-primary {
+  background: #dc143c;
+  color: white;
+  border: 2px solid #dc143c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payroll-page .btn-primary:hover:not(:disabled) {
+  background: #b91c5c;
+  border-color: #b91c5c;
+  box-shadow: 0 8px 25px rgba(220, 20, 60, 0.3);
+}
+
+.payroll-page .btn-secondary {
+  background: #1e3a8a;
+  color: white;
+  border: 2px solid #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payroll-page .btn-secondary:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+.payroll-page .btn-secondary-blue {
+  background: #1e3a8a;
+  color: white;
+  border: 2px solid #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payroll-page .btn-secondary-blue:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+/* Payroll form inputs - Red focus border */
+.payroll-page input:focus,
+.payroll-page select:focus,
+.payroll-page textarea:focus {
+  border-color: #dc143c;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
+}
+
+/* Payroll responsive adjustments */
+@media (max-width: 768px) {
+  .payroll-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .payroll-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-tabs {
+    gap: 0;
+  }
+
+  .payroll-tab {
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }

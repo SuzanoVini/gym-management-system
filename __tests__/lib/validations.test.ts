@@ -5,7 +5,7 @@ describe('Validation', () => {
     it('should validate valid intro data', () => {
       const validData = {
         month: 'Jan',
-        date: 15,
+        date: '2025-01-15',
         name: 'John Doe',
         class: 'GB1',
         staff: 'Staff 1',
@@ -46,7 +46,6 @@ describe('Validation', () => {
     it('should handle missing required fields', () => {
       const incompleteData = {
         month: 'Jan',
-        date: 15,
       };
 
       const result = validate(introSchema, incompleteData);
@@ -60,7 +59,7 @@ describe('Validation', () => {
     it('should validate email format', () => {
       const dataWithInvalidEmail = {
         month: 'Jan',
-        date: 15,
+        date: '2025-01-15',
         name: 'John Doe',
         class: 'GB1',
         staff: 'Staff 1',
@@ -73,10 +72,10 @@ describe('Validation', () => {
       expect(result.errors).toContain('email: Invalid email address');
     });
 
-    it('should validate date range', () => {
+    it('should validate date format', () => {
       const dataWithInvalidDate = {
         month: 'Jan',
-        date: 32,
+        date: '15-01-2025',
         name: 'John Doe',
         class: 'GB1',
         staff: 'Staff 1',
@@ -85,7 +84,7 @@ describe('Validation', () => {
       const result = validate(introSchema, dataWithInvalidDate);
 
       expect(result.success).toBe(false);
-      expect(result.errors).toContain('date: Date must be between 1 and 31');
+      expect(result.errors).toContain('date: Date must be in YYYY-MM-DD format');
     });
   });
 });

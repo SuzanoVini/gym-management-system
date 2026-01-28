@@ -1,5 +1,6 @@
 'use client';
 import { LogOut, Menu } from 'lucide-react';
+import Image from 'next/image';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { useAuth } from '../providers/AuthProvider';
 
@@ -33,7 +34,14 @@ export default function Header({ onLogoClick }: HeaderProps) {
             className="app-logo-wrap flex items-center min-w-0 bg-transparent"
             aria-label="Go to overview"
           >
-            <img src="/brand/gb-logo-title.png" alt="Gracie Barra Kitsilano" className="app-logo" />
+            <Image
+              src="/brand/gb-logo-title.png"
+              alt="Gracie Barra Kitsilano"
+              className="app-logo"
+              width={220}
+              height={48}
+              priority
+            />
           </button>
         </div>
         <button

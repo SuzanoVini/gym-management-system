@@ -13,7 +13,13 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import {
+  type ComponentProps,
+  type ComponentType,
+  type ReactElement,
+  useEffect,
+  useState,
+} from 'react';
 import {
   Bar,
   BarChart,
@@ -51,6 +57,18 @@ const OverviewIcons = {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const insightStyles: Record<
+  'red' | 'orange' | 'yellow' | 'green' | 'blue',
+  { card: string; icon: string }
+> = {
+  red: { card: 'bg-red-50 border-red-500', icon: 'text-red-600' },
+  orange: { card: 'bg-orange-50 border-orange-500', icon: 'text-orange-600' },
+  yellow: { card: 'bg-yellow-50 border-yellow-500', icon: 'text-yellow-600' },
+  green: { card: 'bg-green-50 border-green-500', icon: 'text-green-600' },
+  blue: { card: 'bg-blue-50 border-blue-500', icon: 'text-blue-600' },
+};
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Overview combines multiple analytics blocks.
 export default function OverviewTab() {
   const [dateRange, setDateRange] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -72,8 +90,16 @@ export default function OverviewTab() {
   };
 
   // Pie chart active shape renderer
-  const renderActiveShape = (props: any) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+  const renderActiveShape = (props: unknown) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props as {
+      cx: number;
+      cy: number;
+      innerRadius: number;
+      outerRadius: number;
+      startAngle: number;
+      endAngle: number;
+      fill: string;
+    };
     return (
       <g>
         <Sector
@@ -91,6 +117,13 @@ export default function OverviewTab() {
       </g>
     );
   };
+
+  const PieWithActive = Pie as unknown as ComponentType<
+    ComponentProps<typeof Pie> & {
+      activeIndex?: number;
+      activeShape?: (props: unknown) => ReactElement;
+    }
+  >;
 
   // Click outside handler to reset pie chart active states
   useEffect(() => {
@@ -163,11 +196,11 @@ export default function OverviewTab() {
   ];
 
   // Top Classes by Sign-ups (matches actual signups to intro classes by name)
-  const classSignups = signups.reduce((acc: any, signup) => {
+  const classSignups = signups.reduce<Record<string, number>>((acc, signup) => {
     const matchingIntro = intros.find(
       (intro) => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim()
     );
-    if (matchingIntro && matchingIntro.class) {
+    if (matchingIntro?.class) {
       acc[matchingIntro.class] = (acc[matchingIntro.class] || 0) + 1;
     }
     return acc;
@@ -175,11 +208,11 @@ export default function OverviewTab() {
 
   const topClasses = Object.entries(classSignups)
     .map(([name, count]) => ({ name, count }))
-    .sort((a: any, b: any) => b.count - a.count)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   // Membership Type Breakdown
-  const membershipData = signups.reduce((acc: any, signup) => {
+  const membershipData = signups.reduce<Record<string, number>>((acc, signup) => {
     acc[signup.membership] = (acc[signup.membership] || 0) + 1;
     return acc;
   }, {});
@@ -187,8 +220,11 @@ export default function OverviewTab() {
   const membershipChart = Object.entries(membershipData).map(([name, value]) => ({ name, value }));
 
   // Cancellation Reasons (case-insensitive)
-  const cancellationReasons = cancellations.reduce((acc: any, cancel) => {
-    const normalizedReason = cancel.reason.toLowerCase();
+  const cancellationReasons = cancellations.reduce<Record<string, number>>((acc, cancel) => {
+    const normalizedReason = cancel.reason?.toLowerCase();
+    if (!normalizedReason) {
+      return acc;
+    }
     acc[normalizedReason] = (acc[normalizedReason] || 0) + 1;
     return acc;
   }, {});
@@ -199,11 +235,13 @@ export default function OverviewTab() {
 
   const reasonsChart = Object.entries(cancellationReasons)
     .map(([name, value]) => ({ name: capitalizeWords(name), value }))
-    .sort((a: any, b: any) => b.value - a.value)
+    .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
   // Staff Performance with ABSOLUTE NUMBERS + PERCENTAGES
-  const staffStats = intros.reduce((acc: any, intro) => {
+  const staffStats = intros.reduce<
+    Record<string, { total: number; attended: number; signedUp: number }>
+  >((acc, intro) => {
     if (!intro.staff) {
       return acc;
     }
@@ -216,11 +254,12 @@ export default function OverviewTab() {
       };
     }
 
-    acc[intro.staff].total++;
+    const staffEntry = acc[intro.staff];
+    staffEntry.total++;
     if (intro.attended === 'Yes') {
-      acc[intro.staff].attended++;
+      staffEntry.attended++;
       if (intro.signed_up === 'Yes') {
-        acc[intro.staff].signedUp++;
+        staffEntry.signedUp++;
       }
     }
 
@@ -228,7 +267,7 @@ export default function OverviewTab() {
   }, {});
 
   const staffPerformance = Object.entries(staffStats)
-    .map(([name, stats]: [string, any]) => ({
+    .map(([name, stats]) => ({
       name,
       totalIntros: stats.total,
       attended: stats.attended,
@@ -240,7 +279,12 @@ export default function OverviewTab() {
     .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
 
   // ENHANCED: Smart Business Insights - Focus on Retention, Conversion, and Business Health
-  const insights: any[] = [];
+  const insights: Array<{
+    icon: keyof typeof OverviewIcons;
+    title: string;
+    message: string;
+    color: 'red' | 'orange' | 'yellow' | 'green' | 'blue';
+  }> = [];
 
   // 1. Conversion Rate Analysis
   if (parseFloat(conversionRate) < 30 && attendedIntros > 10) {
@@ -279,15 +323,18 @@ export default function OverviewTab() {
   }
 
   // 3. Cancellation Reason Analysis
-  const cancellationReasonsForInsights = cancellations.reduce((acc: any, cancel) => {
-    if (cancel.reason) {
-      acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  const cancellationReasonsForInsights = cancellations.reduce<Record<string, number>>(
+    (acc, cancel) => {
+      if (cancel.reason) {
+        acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
 
   const topCancellationReason = Object.entries(cancellationReasonsForInsights).sort(
-    (a: any, b: any) => b[1] - a[1]
+    (a, b) => b[1] - a[1]
   )[0];
 
   if (topCancellationReason && (topCancellationReason[1] as number) > 3) {
@@ -336,14 +383,14 @@ export default function OverviewTab() {
   }
 
   // 5. Seasonal Hold Patterns
-  const holdsByMonth = holds.reduce((acc: any, hold) => {
+  const holdsByMonth = holds.reduce<Record<string, number>>((acc, hold) => {
     if (hold.month) {
       acc[hold.month] = (acc[hold.month] || 0) + 1;
     }
     return acc;
   }, {});
 
-  const peakHoldMonth = Object.entries(holdsByMonth).sort((a: any, b: any) => b[1] - a[1])[0];
+  const peakHoldMonth = Object.entries(holdsByMonth).sort((a, b) => b[1] - a[1])[0];
 
   if (peakHoldMonth && (peakHoldMonth[1] as number) > 5) {
     insights.push({
@@ -446,6 +493,7 @@ export default function OverviewTab() {
             Date Range Filter
           </h2>
           <button
+            type="button"
             onClick={handleExportAllData}
             className="btn btn-primary bg-green-600 hover:bg-green-700"
           >
@@ -462,10 +510,11 @@ export default function OverviewTab() {
             { value: '6months', label: 'Last 6 Months' },
             { value: 'year', label: 'Last Year' },
             { value: 'ytd', label: 'Year to Date' },
-            { value: 'custom', label: '📅 Custom Range' },
+            { value: 'custom', label: 'Custom Range' },
           ].map((option) => (
             <button
               key={option.value}
+              type="button"
               onClick={() => setDateRange(option.value)}
               className={`btn ${
                 dateRange === option.value
@@ -484,8 +533,11 @@ export default function OverviewTab() {
             <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
             <div className="flex flex-wrap gap-4 items-end">
               <div className="flex-1 min-w-[200px]">
-                <label className="form-label">Start Date</label>
+                <label className="form-label" htmlFor="overview-start-date">
+                  Start Date
+                </label>
                 <input
+                  id="overview-start-date"
                   type="date"
                   value={tempStartDate}
                   onChange={(e) => setTempStartDate(e.target.value)}
@@ -493,15 +545,18 @@ export default function OverviewTab() {
                 />
               </div>
               <div className="flex-1 min-w-[200px]">
-                <label className="form-label">End Date</label>
+                <label className="form-label" htmlFor="overview-end-date">
+                  End Date
+                </label>
                 <input
+                  id="overview-end-date"
                   type="date"
                   value={tempEndDate}
                   onChange={(e) => setTempEndDate(e.target.value)}
                   className="form-input"
                 />
               </div>
-              <button onClick={handleApplyCustomDates} className="btn btn-primary">
+              <button type="button" onClick={handleApplyCustomDates} className="btn btn-primary">
                 Apply Filter
               </button>
             </div>
@@ -591,41 +646,16 @@ export default function OverviewTab() {
             Smart Insights & Recommendations
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {insights.map((insight, index) => {
+            {insights.map((insight) => {
               const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
+              const style = insightStyles[insight.color];
               return (
                 <div
-                  key={index}
-                  className={`insight-card p-4 rounded-lg border-l-4 ${
-                    insight.color === 'red'
-                      ? 'bg-red-50 border-red-500'
-                      : insight.color === 'orange'
-                        ? 'bg-orange-50 border-orange-500'
-                        : insight.color === 'yellow'
-                          ? 'bg-yellow-50 border-yellow-500'
-                          : insight.color === 'green'
-                            ? 'bg-green-50 border-green-500'
-                            : insight.color === 'blue'
-                              ? 'bg-blue-50 border-blue-500'
-                              : 'bg-purple-50 border-purple-500'
-                  }`}
+                  key={`${insight.title}-${insight.color}`}
+                  className={`insight-card p-4 rounded-lg border-l-4 ${style.card}`}
                 >
                   <div className="flex items-start">
-                    <Icon
-                      className={`w-5 h-5 mr-3 mt-0.5 ${
-                        insight.color === 'red'
-                          ? 'text-red-600'
-                          : insight.color === 'orange'
-                            ? 'text-orange-600'
-                            : insight.color === 'yellow'
-                              ? 'text-yellow-600'
-                              : insight.color === 'green'
-                                ? 'text-green-600'
-                                : insight.color === 'blue'
-                                  ? 'text-blue-600'
-                                  : 'text-purple-600'
-                      }`}
-                    />
+                    <Icon className={`w-5 h-5 mr-3 mt-0.5 ${style.icon}`} />
                     <div>
                       <h3 className="font-semibold text-sm">{insight.title}</h3>
                       <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
@@ -735,7 +765,7 @@ export default function OverviewTab() {
           <h2 className="text-xl font-bold mb-4">Membership Types</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
+              <PieWithActive
                 data={membershipChart}
                 dataKey="value"
                 nameKey="name"
@@ -743,18 +773,18 @@ export default function OverviewTab() {
                 cy="50%"
                 outerRadius={80}
                 label
-                {...({ activeIndex: activeMembershipIndex ?? undefined } as any)}
-                {...({ activeShape: renderActiveShape } as any)}
+                activeShape={renderActiveShape}
+                {...(activeMembershipIndex !== null ? { activeIndex: activeMembershipIndex } : {})}
                 onMouseEnter={(_, index) => setActiveMembershipIndex(index)}
                 onMouseLeave={() => setActiveMembershipIndex(null)}
                 onClick={(_, index) => {
                   setActiveMembershipIndex(index);
                 }}
               >
-                {membershipChart.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {membershipChart.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                 ))}
-              </Pie>
+              </PieWithActive>
               <Tooltip />
               <Legend />
             </PieChart>
@@ -766,7 +796,7 @@ export default function OverviewTab() {
           <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
+              <PieWithActive
                 data={reasonsChart}
                 dataKey="value"
                 nameKey="name"
@@ -774,18 +804,18 @@ export default function OverviewTab() {
                 cy="50%"
                 outerRadius={80}
                 label
-                {...({ activeIndex: activeReasonIndex ?? undefined } as any)}
-                {...({ activeShape: renderActiveShape } as any)}
+                activeShape={renderActiveShape}
+                {...(activeReasonIndex !== null ? { activeIndex: activeReasonIndex } : {})}
                 onMouseEnter={(_, index) => setActiveReasonIndex(index)}
                 onMouseLeave={() => setActiveReasonIndex(null)}
                 onClick={(_, index) => {
                   setActiveReasonIndex(index);
                 }}
               >
-                {reasonsChart.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {reasonsChart.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                 ))}
-              </Pie>
+              </PieWithActive>
               <Tooltip />
               <Legend />
             </PieChart>

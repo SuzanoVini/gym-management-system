@@ -47,7 +47,10 @@ describe('ProfilePage', () => {
   const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
   // Helper to setup Supabase mocks
-  const setupSupabaseMocks = (profileData = mockProfile, profileError = null) => {
+  const setupSupabaseMocks = (
+    profileData: typeof mockProfile | null = mockProfile,
+    profileError: { message: string; code: string } | null = null
+  ) => {
     const mockSingle = jest.fn().mockResolvedValue({
       data: profileData,
       error: profileError,

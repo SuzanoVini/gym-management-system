@@ -9,7 +9,7 @@ export const fetchSettings = async (key: string) => {
     console.error(`Error fetching settings for ${key}:`, error);
 
     // Fallback defaults if database fails
-    const defaults: { [key: string]: any[] } = {
+    const defaults: Record<string, string[]> = {
       class_types: [
         'GB1',
         'GB 1/2',
@@ -68,7 +68,7 @@ export const fetchSettings = async (key: string) => {
   return data?.value || [];
 };
 
-export const updateSettings = async (key: string, value: any[]) => {
+export const updateSettings = async (key: string, value: unknown[]) => {
   const { error } = await supabase
     .from('settings')
     .update({ value, updated_at: new Date().toISOString() })

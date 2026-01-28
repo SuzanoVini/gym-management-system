@@ -4,6 +4,7 @@ import { errorHandler } from '@/lib/errorHandler';
 import {
   closePeriod,
   createPeriod,
+  findOrCreateCurrentPeriod,
   getAllPeriods,
   getCurrentPeriod,
   setCurrentPeriod,
@@ -51,9 +52,21 @@ export const usePayrollPeriod = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Get current period and all periods
       const [current, allPeriods] = await Promise.all([getCurrentPeriod(), getAllPeriods()]);
-      setCurrentPeriodState(current);
-      setPeriods(allPeriods);
+
+      // If no current period exists, find or create one based on today's date
+      if (current) {
+        setCurrentPeriodState(current);
+        setPeriods(allPeriods);
+      } else {
+        const autoSelectedPeriod = await findOrCreateCurrentPeriod();
+        setCurrentPeriodState(autoSelectedPeriod);
+        // Reload all periods to include the newly created one
+        const updatedPeriods = await getAllPeriods();
+        setPeriods(updatedPeriods);
+      }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load period data');
       setError(error);

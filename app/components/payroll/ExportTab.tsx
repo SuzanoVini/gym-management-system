@@ -33,7 +33,7 @@ export default function ExportTab({
 
   return (
     <div className="space-y-6">
-      <div className="section-container">
+      <div className="payroll-card">
         <h3 className="text-lg font-semibold mb-4">Export Payroll Data</h3>
 
         {/* Period Selector */}
@@ -126,7 +126,7 @@ export default function ExportTab({
       </div>
 
       {/* Export Information */}
-      <div className="section-container">
+      <div className="payroll-card">
         <h4 className="font-semibold text-gray-900 mb-3">Export Details</h4>
         <div className="space-y-3 text-sm text-gray-600">
           <div className="flex items-start space-x-2">
@@ -155,7 +155,7 @@ export default function ExportTab({
       </div>
 
       {/* Tips */}
-      <div className="section-container bg-gray-50">
+      <div className="payroll-card bg-gray-50">
         <h4 className="font-semibold text-gray-900 mb-3">Tips</h4>
         <div className="space-y-2 text-sm text-gray-600">
           <p>

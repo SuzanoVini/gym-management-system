@@ -1,13 +1,17 @@
 // app/lib/supabase/utils.ts
 // Export data to CSV (helper function)
-export const exportToCSV = (data: any[], filename: string) => {
+export const exportToCSV = <T extends object>(data: T[], filename: string) => {
   if (data.length === 0) {
     alert('No data to export');
     return;
   }
 
   // Get headers from first object
-  const headers = Object.keys(data[0]);
+  const firstRow = data[0];
+  if (!firstRow) {
+    return;
+  }
+  const headers = Object.keys(firstRow as Record<string, unknown>);
 
   // Create CSV content
   const csvContent = [
@@ -15,7 +19,7 @@ export const exportToCSV = (data: any[], filename: string) => {
     ...data.map((row) =>
       headers
         .map((header) => {
-          const cell = row[header];
+          const cell = (row as Record<string, unknown>)[header];
           // Handle cells with commas or quotes
           const cellString = String(cell ?? '');
           if (cellString.includes(',') || cellString.includes('"') || cellString.includes('\n')) {

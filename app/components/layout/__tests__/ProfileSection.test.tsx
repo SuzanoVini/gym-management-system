@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProfileSection from '@/components/layout/ProfileSection';
 import { useAuth } from '@/components/providers/AuthProvider';
+import type { UserProfile } from '@/lib/supabase/profiles';
 import { fetchUserProfile } from '@/lib/supabase/profiles';
 import { useSidebarStore } from '@/store/useSidebarStore';
 
@@ -19,7 +20,7 @@ describe('ProfileSection', () => {
     created_at: '2024-01-01T00:00:00.000Z',
   };
 
-  const mockProfile = {
+  const mockProfile: UserProfile = {
     id: mockUser.id,
     full_name: 'Test User',
     avatar_url: 'https://example.com/avatar.jpg',
@@ -139,7 +140,7 @@ describe('ProfileSection', () => {
     it('should display fallback name when profile has no full_name', async () => {
       mockFetchUserProfile.mockResolvedValue({
         ...mockProfile,
-        full_name: null,
+        full_name: '',
       });
 
       mockUseSidebarStore.mockReturnValue({

@@ -50,6 +50,7 @@ export const useHolds = () => {
         throw err;
       }
     },
+    // biome-ignore lint/correctness/useExhaustiveDependencies: stripUndefined is a stable utility function
     [loadHolds, stripUndefined]
   );
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Hook for debouncing values
 export function useDebounce<T>(value: T, delay: number): T {
@@ -20,14 +20,24 @@ export function useDebounce<T>(value: T, delay: number): T {
 }
 
 // Hook for throttling functions
-export function useThrottle<T extends (...args: any[]) => any>(func: T, delay: number): T {
-  const [lastRun, setLastRun] = useState(Date.now());
+export function useThrottle<T extends (...args: unknown[]) => void>(func: T, delay: number): T {
+  const lastRun = useRef(0);
+  const funcRef = useRef(func);
+  const delayRef = useRef(delay);
+
+  useEffect(() => {
+    funcRef.current = func;
+  }, [func]);
+
+  useEffect(() => {
+    delayRef.current = delay;
+  }, [delay]);
 
   return useCallback(
-    ((...args: any[]) => {
-      if (Date.now() - lastRun >= delay) {
-        func(...args);
-        setLastRun(Date.now());
+    ((...args: Parameters<T>) => {
+      if (Date.now() - lastRun.current >= delayRef.current) {
+        funcRef.current(...args);
+        lastRun.current = Date.now();
       }
     }) as T,
     []
@@ -128,6 +138,7 @@ export function useSort<T>(data: T[], sortKey: keyof T | null, direction: 'asc' 
       return data;
     }
 
+    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Sorting needs explicit null handling.
     return [...data].sort((a, b) => {
       const aValue = a[sortKey];
       const bValue = b[sortKey];
@@ -153,7 +164,7 @@ export function useSort<T>(data: T[], sortKey: keyof T | null, direction: 'asc' 
 }
 
 // Hook for async operations with loading state
-export function useAsyncOperation<T, P extends any[]>(asyncFn: (...args: P) => Promise<T>) {
+export function useAsyncOperation<T, P extends unknown[]>(asyncFn: (...args: P) => Promise<T>) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<T | null>(null);

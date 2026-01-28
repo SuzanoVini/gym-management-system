@@ -9,6 +9,7 @@ import {
   deleteTimeEntry,
   getHoursForPeriod,
   getTimeEntries,
+  updateStaffHoursField,
   updateTimeEntry,
 } from '@/lib/services/hours.service';
 import type { StaffHours, StaffHoursFormData, TimeEntry, TimeEntryFormData } from '@/types';
@@ -179,6 +180,24 @@ export const useStaffHours = (periodId: string | null) => {
     [loadTimeEntries]
   );
 
+  const updateHoursField = useCallback(
+    async (
+      staffHoursId: string,
+      field: 'regular_hours' | 'overtime_hours' | 'vacation_hours',
+      value: number
+    ) => {
+      try {
+        await updateStaffHoursField(staffHoursId, field, value);
+        await loadHours();
+        errorHandler.notify('Hours updated successfully', 'success');
+      } catch (err) {
+        errorHandler.handle(err, 'updateHoursField');
+        throw err;
+      }
+    },
+    [loadHours]
+  );
+
   useEffect(() => {
     loadHours();
   }, [loadHours]);
@@ -198,5 +217,6 @@ export const useStaffHours = (periodId: string | null) => {
     addMatCleaning,
     recalculateHours,
     selectStaffHours,
+    updateHoursField,
   };
 };
