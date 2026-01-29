@@ -84,7 +84,8 @@ export const useInsights = ({
         };
       }
 
-      const staffEntry = acc[intro.staff];
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const staffEntry = acc[intro.staff]!;
       staffEntry.total++;
       if (intro.attended === 'Yes') {
         staffEntry.attended++;
@@ -188,7 +189,8 @@ This gap represents ~${missedSignups} missed signups this period.`,
         };
       }
 
-      const classEntry = acc[intro.class];
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const classEntry = acc[intro.class]!;
       classEntry.intros++;
       if (intro.attended === 'Yes') {
         classEntry.attended++;

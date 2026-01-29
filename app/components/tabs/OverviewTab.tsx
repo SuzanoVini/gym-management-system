@@ -254,7 +254,8 @@ export default function OverviewTab() {
       };
     }
 
-    const staffEntry = acc[intro.staff];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const staffEntry = acc[intro.staff]!;
     staffEntry.total++;
     if (intro.attended === 'Yes') {
       staffEntry.attended++;
