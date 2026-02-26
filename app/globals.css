@@ -1,5 +1,8 @@
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
 @tailwind base;
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
 @tailwind components;
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
 @tailwind utilities;
 
 @layer components {
@@ -30,20 +33,33 @@
     animation: slideIn 0.3s ease-out;
   }
 
-  /* Custom Card Styles */
+  /* Custom Card Styles - Matching good example with subtle shadows */
   .card {
     background-color: white;
     border-radius: 0.5rem;
-    box-shadow:
-      0 1px 3px 0 rgba(0, 0, 0, 0.1),
-      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
+    padding: 1.5rem;
   }
 
   .card:hover {
-    box-shadow:
-      0 10px 15px -3px rgba(0, 0, 0, 0.1),
-      0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Section Container - for grouping content */
+  .section-container {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Subtle background variation for nested sections */
+  .section-nested {
+    background-color: #fafbfc;
+    border-radius: 0.375rem;
+    padding: 1rem;
   }
 
   /* Stat Cards with Border Accent */
@@ -160,11 +176,20 @@ button.app-logo-wrap:active:not(:disabled) {
   min-height: 100vh;
   padding-top: var(--header-height);
   margin-left: var(--sidebar-width-collapsed);
+  padding-left: 2rem; /* 32px spacing from sidebar */
+  padding-right: 2rem; /* 32px spacing on right edge */
   transition: margin-left 0.3s ease;
 }
 
 .app-shell[data-sidebar="expanded"] .app-main {
   margin-left: var(--sidebar-width-expanded);
+}
+
+@media (min-width: 1024px) {
+  .app-main {
+    padding-left: 3rem; /* 48px on larger screens */
+    padding-right: 3rem;
+  }
 }
 
 .sidebar-item {
@@ -242,7 +267,7 @@ h3 {
   font-size: 1.5rem;
 }
 
-/* Buttons */
+/* Buttons - Base Styles */
 button {
   cursor: pointer;
   user-select: none;
@@ -266,6 +291,106 @@ button:hover:not(:disabled) {
 
 button:active:not(:disabled) {
   transform: translateY(0);
+}
+
+/* Button Component Classes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-primary:active:not(:disabled) {
+  background-color: #991b1b;
+}
+
+.btn-secondary {
+  background-color: white;
+  color: #4b5563;
+  border: 2px solid #4b5563;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.btn-secondary:active:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.btn-secondary-blue {
+  background-color: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+}
+
+.btn-secondary-blue:hover:not(:disabled) {
+  background-color: #eff6ff;
+}
+
+.btn-secondary-blue:active:not(:disabled) {
+  background-color: #dbeafe;
+}
+
+.btn-tertiary {
+  background-color: transparent;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+.btn-tertiary:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn-tertiary:active:not(:disabled) {
+  background-color: #f3f4f6;
+}
+
+.btn-icon {
+  padding: 0.5rem;
+  color: #6b7280;
+  background-color: transparent;
+  border: none;
+}
+
+.btn-icon:hover:not(:disabled) {
+  color: #374151;
+  background-color: #f3f4f6;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Tables */
@@ -329,6 +454,150 @@ label {
   color: var(--gb-dark-gray);
 }
 
+/* Form Component Classes - Match button height */
+.form-input,
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #111827;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-input:disabled,
+.form-select:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.form-select {
+  cursor: pointer;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.375rem;
+}
+
+/* Chart Animations */
+.recharts-pie-sector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.recharts-bar-rectangle {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.recharts-bar-rectangle:hover {
+  filter: brightness(1.1);
+  opacity: 0.9;
+}
+
+.recharts-dot {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.recharts-line {
+  transition: stroke-width 0.2s ease;
+}
+
+/* Summary Card Enhancements */
+.summary-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 16px -2px rgba(0, 0, 0, 0.1),
+    0 4px 8px -2px rgba(0, 0, 0, 0.06);
+}
+
+.summary-card-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-card:hover .summary-card-icon {
+  transform: scale(1.1);
+}
+
+/* Insight Card Animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.insight-card {
+  animation: slideInUp 0.5s ease-out backwards;
+}
+
+.insight-card:nth-child(1) {
+  animation-delay: 0ms;
+}
+.insight-card:nth-child(2) {
+  animation-delay: 100ms;
+}
+.insight-card:nth-child(3) {
+  animation-delay: 200ms;
+}
+.insight-card:nth-child(4) {
+  animation-delay: 300ms;
+}
+.insight-card:nth-child(5) {
+  animation-delay: 400ms;
+}
+.insight-card:nth-child(6) {
+  animation-delay: 500ms;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .recharts-pie-sector,
+  .recharts-bar-rectangle,
+  .recharts-dot,
+  .recharts-line,
+  .summary-card,
+  .summary-card-icon,
+  .insight-card {
+    transition: none;
+    animation: none;
+  }
+}
+
 /* Animations are now defined in tailwind.config.js */
 /* @keyframes slideIn { ... } */
 /* @keyframes fadeIn { ... } */
@@ -379,5 +648,198 @@ body.modal-open {
 
   h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* ===========================
+   Payroll System Styles
+   Matching Old Gracie Barra Payroll Design
+   =========================== */
+
+/* Payroll Page - Blue gradient background */
+.payroll-page {
+  min-height: 100vh;
+  background: #1e3a8a;
+  color: #333;
+}
+
+/* Payroll Container */
+.payroll-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Payroll Header - White text on blue */
+.payroll-header {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* Payroll Card - White with rounded corners and shadow */
+.payroll-card {
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 2px solid #f1f5f9;
+}
+
+/* Current Period Indicator - Red background with white text */
+.payroll-current-period {
+  background: #dc143c;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 600;
+  color: white;
+  border: 2px solid #b91c5c;
+}
+
+/* Payroll Tabs */
+.payroll-tabs {
+  display: flex;
+  border-bottom: 2px solid #eee;
+  margin-bottom: 20px;
+  gap: 0;
+  overflow-x: auto;
+}
+
+.payroll-tab {
+  padding: 12px 24px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+}
+
+.payroll-tab:hover:not(.active) {
+  color: #333;
+}
+
+.payroll-tab.active {
+  color: #dc143c;
+  border-bottom-color: #dc143c;
+}
+
+/* Summary Cards - Red background with white text and blue border */
+.payroll-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.payroll-summary-card {
+  background: #dc143c;
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  border: 2px solid #1e3a8a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.payroll-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.payroll-summary-card h3 {
+  font-size: 2rem;
+  margin-bottom: 5px;
+  color: white;
+}
+
+.payroll-summary-card p {
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+/* Override button styles for payroll - Use Gracie Barra colors */
+.payroll-page .btn-primary {
+  background: #dc143c;
+  color: white;
+  border: 2px solid #dc143c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payroll-page .btn-primary:hover:not(:disabled) {
+  background: #b91c5c;
+  border-color: #b91c5c;
+  box-shadow: 0 8px 25px rgba(220, 20, 60, 0.3);
+}
+
+.payroll-page .btn-secondary {
+  background: #1e3a8a;
+  color: white;
+  border: 2px solid #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payroll-page .btn-secondary:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+.payroll-page .btn-secondary-blue {
+  background: #1e3a8a;
+  color: white;
+  border: 2px solid #1e3a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.payroll-page .btn-secondary-blue:hover:not(:disabled) {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+/* Payroll form inputs - Red focus border */
+.payroll-page input:focus,
+.payroll-page select:focus,
+.payroll-page textarea:focus {
+  border-color: #dc143c;
+  box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
+}
+
+/* Payroll responsive adjustments */
+@media (max-width: 768px) {
+  .payroll-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .payroll-summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .payroll-tabs {
+    gap: 0;
+  }
+
+  .payroll-tab {
+    padding: 10px 16px;
+    font-size: 13px;
   }
 }

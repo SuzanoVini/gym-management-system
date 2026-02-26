@@ -13,7 +13,13 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import {
+  type ComponentProps,
+  type ComponentType,
+  type ReactElement,
+  useEffect,
+  useState,
+} from 'react';
 import {
   Bar,
   BarChart,
@@ -26,6 +32,7 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Sector,
   Tooltip,
   XAxis,
   YAxis,
@@ -50,12 +57,26 @@ const OverviewIcons = {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const insightStyles: Record<
+  'red' | 'orange' | 'yellow' | 'green' | 'blue',
+  { card: string; icon: string }
+> = {
+  red: { card: 'bg-red-50 border-red-500', icon: 'text-red-600' },
+  orange: { card: 'bg-orange-50 border-orange-500', icon: 'text-orange-600' },
+  yellow: { card: 'bg-yellow-50 border-yellow-500', icon: 'text-yellow-600' },
+  green: { card: 'bg-green-50 border-green-500', icon: 'text-green-600' },
+  blue: { card: 'bg-blue-50 border-blue-500', icon: 'text-blue-600' },
+};
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Overview combines multiple analytics blocks.
 export default function OverviewTab() {
   const [dateRange, setDateRange] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
+  const [activeMembershipIndex, setActiveMembershipIndex] = useState<number | null>(null);
+  const [activeReasonIndex, setActiveReasonIndex] = useState<number | null>(null);
 
   const { filteredData, loading, error, refresh } = useAnalyticsData({
     dateRange,
@@ -67,6 +88,55 @@ export default function OverviewTab() {
     setCustomStartDate(tempStartDate);
     setCustomEndDate(tempEndDate);
   };
+
+  // Pie chart active shape renderer
+  const renderActiveShape = (props: unknown) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props as {
+      cx: number;
+      cy: number;
+      innerRadius: number;
+      outerRadius: number;
+      startAngle: number;
+      endAngle: number;
+      fill: string;
+    };
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius * 1.08}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+          style={{
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
+          }}
+        />
+      </g>
+    );
+  };
+
+  const PieWithActive = Pie as unknown as ComponentType<
+    ComponentProps<typeof Pie> & {
+      activeIndex?: number;
+      activeShape?: (props: unknown) => ReactElement;
+    }
+  >;
+
+  // Click outside handler to reset pie chart active states
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.recharts-pie')) {
+        setActiveMembershipIndex(null);
+        setActiveReasonIndex(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const { intros, signups, cancellations, holds } = filteredData;
 
@@ -126,11 +196,11 @@ export default function OverviewTab() {
   ];
 
   // Top Classes by Sign-ups (matches actual signups to intro classes by name)
-  const classSignups = signups.reduce((acc: any, signup) => {
+  const classSignups = signups.reduce<Record<string, number>>((acc, signup) => {
     const matchingIntro = intros.find(
       (intro) => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim()
     );
-    if (matchingIntro && matchingIntro.class) {
+    if (matchingIntro?.class) {
       acc[matchingIntro.class] = (acc[matchingIntro.class] || 0) + 1;
     }
     return acc;
@@ -138,11 +208,11 @@ export default function OverviewTab() {
 
   const topClasses = Object.entries(classSignups)
     .map(([name, count]) => ({ name, count }))
-    .sort((a: any, b: any) => b.count - a.count)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   // Membership Type Breakdown
-  const membershipData = signups.reduce((acc: any, signup) => {
+  const membershipData = signups.reduce<Record<string, number>>((acc, signup) => {
     acc[signup.membership] = (acc[signup.membership] || 0) + 1;
     return acc;
   }, {});
@@ -150,8 +220,11 @@ export default function OverviewTab() {
   const membershipChart = Object.entries(membershipData).map(([name, value]) => ({ name, value }));
 
   // Cancellation Reasons (case-insensitive)
-  const cancellationReasons = cancellations.reduce((acc: any, cancel) => {
-    const normalizedReason = cancel.reason.toLowerCase();
+  const cancellationReasons = cancellations.reduce<Record<string, number>>((acc, cancel) => {
+    const normalizedReason = cancel.reason?.toLowerCase();
+    if (!normalizedReason) {
+      return acc;
+    }
     acc[normalizedReason] = (acc[normalizedReason] || 0) + 1;
     return acc;
   }, {});
@@ -162,11 +235,13 @@ export default function OverviewTab() {
 
   const reasonsChart = Object.entries(cancellationReasons)
     .map(([name, value]) => ({ name: capitalizeWords(name), value }))
-    .sort((a: any, b: any) => b.value - a.value)
+    .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
   // Staff Performance with ABSOLUTE NUMBERS + PERCENTAGES
-  const staffStats = intros.reduce((acc: any, intro) => {
+  const staffStats = intros.reduce<
+    Record<string, { total: number; attended: number; signedUp: number }>
+  >((acc, intro) => {
     if (!intro.staff) {
       return acc;
     }
@@ -179,11 +254,14 @@ export default function OverviewTab() {
       };
     }
 
-    acc[intro.staff].total++;
-    if (intro.attended === 'Yes') {
-      acc[intro.staff].attended++;
-      if (intro.signed_up === 'Yes') {
-        acc[intro.staff].signedUp++;
+    const staffEntry = acc[intro.staff];
+    if (staffEntry) {
+      staffEntry.total++;
+      if (intro.attended === 'Yes') {
+        staffEntry.attended++;
+        if (intro.signed_up === 'Yes') {
+          staffEntry.signedUp++;
+        }
       }
     }
 
@@ -191,7 +269,7 @@ export default function OverviewTab() {
   }, {});
 
   const staffPerformance = Object.entries(staffStats)
-    .map(([name, stats]: [string, any]) => ({
+    .map(([name, stats]) => ({
       name,
       totalIntros: stats.total,
       attended: stats.attended,
@@ -203,7 +281,12 @@ export default function OverviewTab() {
     .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
 
   // ENHANCED: Smart Business Insights - Focus on Retention, Conversion, and Business Health
-  const insights: any[] = [];
+  const insights: Array<{
+    icon: keyof typeof OverviewIcons;
+    title: string;
+    message: string;
+    color: 'red' | 'orange' | 'yellow' | 'green' | 'blue';
+  }> = [];
 
   // 1. Conversion Rate Analysis
   if (parseFloat(conversionRate) < 30 && attendedIntros > 10) {
@@ -242,15 +325,18 @@ export default function OverviewTab() {
   }
 
   // 3. Cancellation Reason Analysis
-  const cancellationReasonsForInsights = cancellations.reduce((acc: any, cancel) => {
-    if (cancel.reason) {
-      acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
-    }
-    return acc;
-  }, {});
+  const cancellationReasonsForInsights = cancellations.reduce<Record<string, number>>(
+    (acc, cancel) => {
+      if (cancel.reason) {
+        acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
+      }
+      return acc;
+    },
+    {}
+  );
 
   const topCancellationReason = Object.entries(cancellationReasonsForInsights).sort(
-    (a: any, b: any) => b[1] - a[1]
+    (a, b) => b[1] - a[1]
   )[0];
 
   if (topCancellationReason && (topCancellationReason[1] as number) > 3) {
@@ -299,14 +385,14 @@ export default function OverviewTab() {
   }
 
   // 5. Seasonal Hold Patterns
-  const holdsByMonth = holds.reduce((acc: any, hold) => {
+  const holdsByMonth = holds.reduce<Record<string, number>>((acc, hold) => {
     if (hold.month) {
       acc[hold.month] = (acc[hold.month] || 0) + 1;
     }
     return acc;
   }, {});
 
-  const peakHoldMonth = Object.entries(holdsByMonth).sort((a: any, b: any) => b[1] - a[1])[0];
+  const peakHoldMonth = Object.entries(holdsByMonth).sort((a, b) => b[1] - a[1])[0];
 
   if (peakHoldMonth && (peakHoldMonth[1] as number) > 5) {
     insights.push({
@@ -392,11 +478,7 @@ export default function OverviewTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-        >
+        <button type="button" onClick={refresh} className="btn btn-primary">
           Retry
         </button>
       </div>
@@ -404,369 +486,411 @@ export default function OverviewTab() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-      <div className="space-y-6">
-        {/* ENHANCED: Date Range Filter */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center">
-              <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
-              Date Range Filter
-            </h2>
-            <button
-              onClick={handleExportAllData}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-            >
-              <OverviewIcons.Download className="w-4 h-4" />
-              Export All Data
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2 items-center">
-            {[
-              { value: 'all', label: 'All Time' },
-              { value: '1month', label: 'Last Month' },
-              { value: '3months', label: 'Last 3 Months' },
-              { value: '6months', label: 'Last 6 Months' },
-              { value: 'year', label: 'Last Year' },
-              { value: 'ytd', label: 'Year to Date' },
-              { value: 'custom', label: '📅 Custom Range' },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setDateRange(option.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  dateRange === option.value
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Custom Date Range Inputs */}
-          {dateRange === 'custom' && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-red-200">
-              <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={tempStartDate}
-                    onChange={(e) => setTempStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    value={tempEndDate}
-                    onChange={(e) => setTempEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                  />
-                </div>
-                <button
-                  onClick={handleApplyCustomDates}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                >
-                  Apply Filter
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Intros</p>
-                <p className="text-3xl font-bold mt-1">{totalIntros}</p>
-              </div>
-              <OverviewIcons.Users className="w-8 h-8 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Sign-ups</p>
-                <p className="text-3xl font-bold mt-1">{totalSignups}</p>
-              </div>
-              <OverviewIcons.UserPlus className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Cancellations</p>
-                <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
-              </div>
-              <OverviewIcons.UserMinus className="w-8 h-8 text-red-600" />
-            </div>
-          </div>
-
-          <div
-            className={`bg-white rounded-lg shadow-sm p-6 border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}
+    <div className="space-y-6">
+      {/* Date Range Filter Section */}
+      <div className="section-container">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold flex items-center">
+            <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
+            Date Range Filter
+          </h2>
+          <button
+            type="button"
+            onClick={handleExportAllData}
+            className="btn btn-primary bg-green-600 hover:bg-green-700"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Net Growth</p>
-                <p
-                  className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {netGrowth >= 0 ? '+' : ''}
-                  {netGrowth}
-                </p>
-              </div>
-              {netGrowth >= 0 ? (
-                <OverviewIcons.TrendingUp className="w-8 h-8 text-green-600" />
-              ) : (
-                <OverviewIcons.TrendingDown className="w-8 h-8 text-red-600" />
-              )}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Conversion Rate</p>
-                <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
-              </div>
-              <OverviewIcons.Target className="w-8 h-8 text-purple-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Holds</p>
-                <p className="text-3xl font-bold mt-1">{activeHolds}</p>
-              </div>
-              <OverviewIcons.Clock className="w-8 h-8 text-yellow-600" />
-            </div>
-          </div>
+            <OverviewIcons.Download className="w-4 h-4" />
+            Export All Data
+          </button>
         </div>
 
-        {/* Smart Insights */}
-        {insights.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
-              Smart Insights & Recommendations
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {insights.map((insight, index) => {
-                const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
-                return (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg border-l-4 ${
-                      insight.color === 'red'
-                        ? 'bg-red-50 border-red-500'
-                        : insight.color === 'orange'
-                          ? 'bg-orange-50 border-orange-500'
-                          : insight.color === 'yellow'
-                            ? 'bg-yellow-50 border-yellow-500'
-                            : insight.color === 'green'
-                              ? 'bg-green-50 border-green-500'
-                              : insight.color === 'blue'
-                                ? 'bg-blue-50 border-blue-500'
-                                : 'bg-purple-50 border-purple-500'
-                    }`}
-                  >
-                    <div className="flex items-start">
-                      <Icon
-                        className={`w-5 h-5 mr-3 mt-0.5 ${
-                          insight.color === 'red'
-                            ? 'text-red-600'
-                            : insight.color === 'orange'
-                              ? 'text-orange-600'
-                              : insight.color === 'yellow'
-                                ? 'text-yellow-600'
-                                : insight.color === 'green'
-                                  ? 'text-green-600'
-                                  : insight.color === 'blue'
-                                    ? 'text-blue-600'
-                                    : 'text-purple-600'
-                        }`}
-                      />
-                      <div>
-                        <h3 className="font-semibold text-sm">{insight.title}</h3>
-                        <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="flex flex-wrap gap-2 items-center">
+          {[
+            { value: 'all', label: 'All Time' },
+            { value: '1month', label: 'Last Month' },
+            { value: '3months', label: 'Last 3 Months' },
+            { value: '6months', label: 'Last 6 Months' },
+            { value: 'year', label: 'Last Year' },
+            { value: 'ytd', label: 'Year to Date' },
+            { value: 'custom', label: 'Custom Range' },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setDateRange(option.value)}
+              className={`btn ${
+                dateRange === option.value
+                  ? 'btn-primary'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Custom Date Range Inputs */}
+        {dateRange === 'custom' && (
+          <div className="mt-4 section-nested border border-gray-200">
+            <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
+            <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="form-label" htmlFor="overview-start-date">
+                  Start Date
+                </label>
+                <input
+                  id="overview-start-date"
+                  type="date"
+                  value={tempStartDate}
+                  onChange={(e) => setTempStartDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="form-label" htmlFor="overview-end-date">
+                  End Date
+                </label>
+                <input
+                  id="overview-end-date"
+                  type="date"
+                  value={tempEndDate}
+                  onChange={(e) => setTempEndDate(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <button type="button" onClick={handleApplyCustomDates} className="btn btn-primary">
+                Apply Filter
+              </button>
             </div>
           </div>
         )}
+      </div>
 
-        {/* Monthly Trends */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div className="section-container summary-card border-l-4 border-blue-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Intros</p>
+              <p className="text-3xl font-bold mt-1">{totalIntros}</p>
+            </div>
+            <OverviewIcons.Users className="summary-card-icon w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-green-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Sign-ups</p>
+              <p className="text-3xl font-bold mt-1">{totalSignups}</p>
+            </div>
+            <OverviewIcons.UserPlus className="summary-card-icon w-8 h-8 text-green-600" />
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-red-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Cancellations</p>
+              <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
+            </div>
+            <OverviewIcons.UserMinus className="summary-card-icon w-8 h-8 text-red-600" />
+          </div>
+        </div>
+
+        <div
+          className={`section-container summary-card border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Net Growth</p>
+              <p
+                className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
+                {netGrowth >= 0 ? '+' : ''}
+                {netGrowth}
+              </p>
+            </div>
+            {netGrowth >= 0 ? (
+              <OverviewIcons.TrendingUp className="summary-card-icon w-8 h-8 text-green-600" />
+            ) : (
+              <OverviewIcons.TrendingDown className="summary-card-icon w-8 h-8 text-red-600" />
+            )}
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-purple-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Conversion Rate</p>
+              <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
+            </div>
+            <OverviewIcons.Target className="summary-card-icon w-8 h-8 text-purple-600" />
+          </div>
+        </div>
+
+        <div className="section-container summary-card border-l-4 border-yellow-600">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Active Holds</p>
+              <p className="text-3xl font-bold mt-1">{activeHolds}</p>
+            </div>
+            <OverviewIcons.Clock className="summary-card-icon w-8 h-8 text-yellow-600" />
+          </div>
+        </div>
+      </div>
+
+      {/* Smart Insights */}
+      {insights.length > 0 && (
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4 flex items-center">
+            <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
+            Smart Insights & Recommendations
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {insights.map((insight) => {
+              const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
+              const style = insightStyles[insight.color];
+              return (
+                <div
+                  key={`${insight.title}-${insight.color}`}
+                  className={`insight-card p-4 rounded-lg border-l-4 ${style.card}`}
+                >
+                  <div className="flex items-start">
+                    <Icon className={`w-5 h-5 mr-3 mt-0.5 ${style.icon}`} />
+                    <div>
+                      <h3 className="font-semibold text-sm">{insight.title}</h3>
+                      <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Trends */}
+      <div className="section-container">
+        <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="Intros"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-in-out"
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="Sign-ups"
+              stroke="#10b981"
+              strokeWidth={2}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-in-out"
+              animationBegin={200}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="Cancellations"
+              stroke="#ef4444"
+              strokeWidth={2}
+              isAnimationActive={true}
+              animationDuration={1000}
+              animationEasing="ease-in-out"
+              animationBegin={400}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Conversion Funnel */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyData}>
+            <BarChart data={funnelData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
+              <XAxis type="number" />
+              <YAxis dataKey="stage" type="category" width={100} />
               <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="Intros" stroke="#3b82f6" strokeWidth={2} />
-              <Line type="monotone" dataKey="Sign-ups" stroke="#10b981" strokeWidth={2} />
-              <Line type="monotone" dataKey="Cancellations" stroke="#ef4444" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Conversion Funnel */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={funnelData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="stage" type="category" width={100} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#3b82f6">
-                  <LabelList dataKey="countLabel" position="right" />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Top Classes */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topClasses}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#10b981" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Membership Breakdown */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4">Membership Types</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={membershipChart}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
-                >
-                  {membershipChart.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Cancellation Reasons */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={reasonsChart}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label
-                >
-                  {reasonsChart.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Staff Performance with Absolute Numbers + Percentages */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rates)</h2>
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={staffPerformance}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip
-                formatter={(_value, _name, props) => {
-                  const data = props.payload;
-                  return [`${data.label}`, 'Conversion'];
-                }}
-              />
-              <Bar dataKey="conversionRate" fill="#8b5cf6">
-                <LabelList
-                  dataKey="label"
-                  position="top"
-                  style={{ fontSize: '12px', fill: '#6b7280' }}
-                />
+              <Bar
+                dataKey="count"
+                fill="#3b82f6"
+                isAnimationActive={true}
+                animationDuration={600}
+                animationEasing="ease-out"
+              >
+                <LabelList dataKey="countLabel" position="right" />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+        </div>
 
-          {/* Staff Performance Table */}
-          <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Staff
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Total Intros
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Attended
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Signed Up
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Conversion Rate
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {staffPerformance.map((staff) => (
-                  <tr key={staff.name}>
-                    <td className="px-4 py-2 font-medium">{staff.name}</td>
-                    <td className="px-4 py-2">{staff.totalIntros}</td>
-                    <td className="px-4 py-2">{staff.attended}</td>
-                    <td className="px-4 py-2">{staff.signedUp}</td>
-                    <td className="px-4 py-2">
-                      <span className="font-semibold text-purple-600">{staff.label}</span>
-                    </td>
-                  </tr>
+        {/* Top Classes */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={topClasses}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+              <YAxis />
+              <Tooltip />
+              <Bar
+                dataKey="count"
+                fill="#10b981"
+                isAnimationActive={true}
+                animationDuration={600}
+                animationEasing="ease-out"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Membership Breakdown */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Membership Types</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <PieWithActive
+                data={membershipChart}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label
+                activeShape={renderActiveShape}
+                {...(activeMembershipIndex !== null ? { activeIndex: activeMembershipIndex } : {})}
+                onMouseEnter={(_, index) => setActiveMembershipIndex(index)}
+                onMouseLeave={() => setActiveMembershipIndex(null)}
+                onClick={(_, index) => {
+                  setActiveMembershipIndex(index);
+                }}
+              >
+                {membershipChart.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </PieWithActive>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Cancellation Reasons */}
+        <div className="section-container">
+          <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <PieWithActive
+                data={reasonsChart}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label
+                activeShape={renderActiveShape}
+                {...(activeReasonIndex !== null ? { activeIndex: activeReasonIndex } : {})}
+                onMouseEnter={(_, index) => setActiveReasonIndex(index)}
+                onMouseLeave={() => setActiveReasonIndex(null)}
+                onClick={(_, index) => {
+                  setActiveReasonIndex(index);
+                }}
+              >
+                {reasonsChart.map((entry, index) => (
+                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </PieWithActive>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Staff Performance with Absolute Numbers + Percentages */}
+      <div className="section-container">
+        <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rates)</h2>
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart data={staffPerformance}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
+            <Tooltip
+              formatter={(_value, _name, props) => {
+                const data = props.payload;
+                return [`${data.label}`, 'Conversion'];
+              }}
+            />
+            <Bar
+              dataKey="conversionRate"
+              fill="#8b5cf6"
+              isAnimationActive={true}
+              animationDuration={600}
+              animationEasing="ease-out"
+            >
+              <LabelList
+                dataKey="label"
+                position="top"
+                style={{ fontSize: '12px', fill: '#6b7280' }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+
+        {/* Staff Performance Table */}
+        <div className="mt-6 overflow-x-auto section-nested">
+          <table className="min-w-full">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Staff
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Total Intros
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Attended
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Signed Up
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                  Conversion Rate
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {staffPerformance.map((staff) => (
+                <tr key={staff.name}>
+                  <td className="px-4 py-2 font-medium">{staff.name}</td>
+                  <td className="px-4 py-2">{staff.totalIntros}</td>
+                  <td className="px-4 py-2">{staff.attended}</td>
+                  <td className="px-4 py-2">{staff.signedUp}</td>
+                  <td className="px-4 py-2">
+                    <span className="font-semibold text-purple-600">{staff.label}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 
@@ -92,11 +92,7 @@ export default function InsightsTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-        >
+        <button type="button" onClick={refresh} className="btn btn-primary">
           Retry
         </button>
       </div>
@@ -118,10 +114,7 @@ export default function InsightsTab() {
                 Actionable recommendations based on your actual data
               </p>
             </div>
-            <button
-              onClick={refresh}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-            >
+            <button type="button" onClick={refresh} className="btn btn-primary">
               <RefreshCw className="w-4 h-4" />
               Refresh
             </button>
@@ -134,14 +127,15 @@ export default function InsightsTab() {
               { value: '3months', label: 'Last 3 Months' },
               { value: '6months', label: 'Last 6 Months' },
               { value: 'all', label: 'All Time' },
-              { value: 'custom', label: '📅 Custom Range' },
+              { value: 'custom', label: 'Custom Range' },
             ].map((option) => (
               <button
                 key={option.value}
+                type="button"
                 onClick={() => setDateRange(option.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`btn ${
                   dateRange === option.value
-                    ? 'bg-red-600 text-white'
+                    ? 'btn-primary'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -156,27 +150,30 @@ export default function InsightsTab() {
               <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <label className="form-label" htmlFor="insights-start-date">
+                    Start Date
+                  </label>
                   <input
+                    id="insights-start-date"
                     type="date"
                     value={tempStartDate}
                     onChange={(e) => setTempStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="form-input"
                   />
                 </div>
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <label className="form-label" htmlFor="insights-end-date">
+                    End Date
+                  </label>
                   <input
+                    id="insights-end-date"
                     type="date"
                     value={tempEndDate}
                     onChange={(e) => setTempEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="form-input"
                   />
                 </div>
-                <button
-                  onClick={handleApplyCustomDates}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium"
-                >
+                <button type="button" onClick={handleApplyCustomDates} className="btn btn-primary">
                   Apply Filter
                 </button>
               </div>
@@ -311,7 +308,10 @@ export default function InsightsTab() {
                     </div>
                     <ul className="space-y-2">
                       {insight.actions.map((action, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                        <li
+                          key={`${insight.id}-${action}`}
+                          className="flex items-start gap-2 text-sm text-gray-700"
+                        >
                           <span className="text-red-600 font-bold mt-0.5">{idx + 1}.</span>
                           <span>{action}</span>
                         </li>

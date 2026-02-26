@@ -32,8 +32,8 @@ export default function Home() {
         {/* Main Content Container */}
         <div className="app-main">
           {/* Main Content Area */}
-          <main className="p-4 sm:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto">
+          <main className="py-6 sm:py-8">
+            <div className="max-w-full">
               <div className="animate-fadeIn">
                 {activeTab === 'overview' && <OverviewTab />}
                 {activeTab === 'insights' && <InsightsTab />}

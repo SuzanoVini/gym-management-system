@@ -1,7 +1,8 @@
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { useSignups } from '@/hooks/useSignups';
+import type { SignupCsvRecord } from '@/lib/csv';
 import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -15,7 +16,7 @@ const SignupModalIcons = {
 };
 
 interface SignupModalsProps {
-  importPreviewData: any[];
+  importPreviewData: SignupCsvRecord[];
   confirmCSVImport: () => Promise<void>;
 }
 
@@ -28,18 +29,18 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
   const [newMembershipType, setNewMembershipType] = useState('');
   const [editingMembershipIndex, setEditingMembershipIndex] = useState<number | null>(null);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     const types = await fetchSettings('membership_types');
     if (types) {
       setMembershipTypes(types);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (modals.settings) {
       loadSettings();
     }
-  }, [modals.settings]);
+  }, [modals.settings, loadSettings]);
 
   const handleAddMembershipType = async () => {
     if (newMembershipType.trim() && !membershipTypes.includes(newMembershipType.trim())) {
@@ -102,7 +103,12 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
       >
         <SignupForm
           signup={selectedSignup}
-          onSubmit={(data) => editSignup(selectedSignup!.id, data)}
+          onSubmit={(data) => {
+            if (!selectedSignup) {
+              return;
+            }
+            editSignup(selectedSignup.id, data);
+          }}
           onCancel={() => {
             closeModal('editSignup');
             setSelectedSignup(null);
@@ -130,7 +136,7 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
             </thead>
             <tbody className="divide-y">
               {importPreviewData.map((row, idx) => (
-                <tr key={idx}>
+                <tr key={`${row.name}-${row.month}-${row.membership}`}>
                   <td className="px-4 py-2">{idx + 1}</td>
                   <td className="px-4 py-2">{row.month}</td>
                   <td className="px-4 py-2">{row.name}</td>
@@ -144,12 +150,14 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
         </div>
         <div className="flex justify-end space-x-3">
           <button
+            type="button"
             onClick={() => closeModal('importPreview')}
             className="px-4 py-2 border rounded hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={confirmCSVImport}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
@@ -165,11 +173,15 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
       >
         <div>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              className="block text-sm font-medium text-gray-700 mb-2"
+              htmlFor="signup-new-membership"
+            >
               Add New Membership Type
             </label>
             <div className="flex gap-2">
               <input
+                id="signup-new-membership"
                 type="text"
                 value={newMembershipType}
                 onChange={(e) => setNewMembershipType(e.target.value)}
@@ -178,6 +190,7 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
               <button
+                type="button"
                 onClick={handleAddMembershipType}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
@@ -191,7 +204,7 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
             </h4>
             {membershipTypes.map((type, index) => (
               <div
-                key={index}
+                key={type}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 {editingMembershipIndex === index ? (
@@ -211,12 +224,14 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
                 )}
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setEditingMembershipIndex(index)}
                     className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                   >
                     <SignupModalIcons.Edit2 className="w-4 h-4" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDeleteMembershipType(index)}
                     className="p-1 text-red-600 hover:bg-red-50 rounded"
                   >
@@ -229,6 +244,7 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
         </div>
         <div className="mt-6 flex justify-end">
           <button
+            type="button"
             onClick={() => closeModal('settings')}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >

@@ -50,12 +50,15 @@ export function CancellationForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-sm font-medium mb-1">Month *</label>
+        <label className="form-label" htmlFor="cancellation-month">
+          Month *
+        </label>
         <select
+          id="cancellation-month"
           name="month"
           value={formData.month}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-select"
         >
           <option value="">Select month</option>
           {MONTHS.map((m) => (
@@ -66,32 +69,41 @@ export function CancellationForm({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Name *</label>
+        <label className="form-label" htmlFor="cancellation-name">
+          Name *
+        </label>
         <input
+          id="cancellation-name"
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Date</label>
+        <label className="form-label" htmlFor="cancellation-date">
+          Date
+        </label>
         <input
+          id="cancellation-date"
           type="date"
           name="date"
           value={formData.date}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Reason</label>
+        <label className="form-label" htmlFor="cancellation-reason">
+          Reason
+        </label>
         <select
+          id="cancellation-reason"
           name="reason"
           value={formData.reason}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-select"
         >
           <option value="">Select reason</option>
           {cancellationReasons.map((reason) => (
@@ -102,12 +114,15 @@ export function CancellationForm({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Age Group</label>
+        <label className="form-label" htmlFor="cancellation-age-group">
+          Age Group
+        </label>
         <select
+          id="cancellation-age-group"
           name="age_group"
           value={formData.age_group}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-select"
         >
           <option value="">Select age group</option>
           {AGE_GROUPS.map((age) => (
@@ -118,27 +133,26 @@ export function CancellationForm({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Notes</label>
+        <label className="form-label" htmlFor="cancellation-notes">
+          Notes
+        </label>
         <textarea
+          id="cancellation-notes"
           name="notes"
           value={formData.notes}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
           rows={3}
         />
       </div>
       <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border rounded hover:bg-gray-50"
-        >
+        <button type="button" onClick={onCancel} className="btn btn-tertiary">
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading || !formData.name || !formData.month}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+          className="btn btn-primary"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>

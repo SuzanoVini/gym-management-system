@@ -46,6 +46,11 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
     xl: 'max-w-4xl',
   };
 
+  const modalRoot = document.getElementById('modal-root');
+  if (!modalRoot) {
+    return null;
+  }
+
   return createPortal(
     <FocusTrap>
       <div className="modal-backdrop">
@@ -73,6 +78,6 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
         </div>
       </div>
     </FocusTrap>,
-    document.getElementById('modal-root')!
+    modalRoot
   );
 }

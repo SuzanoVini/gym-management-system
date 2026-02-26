@@ -10,7 +10,13 @@ interface UseInsightsProps {
   holds: Hold[];
 }
 
-export const useInsights = ({ intros, signups, cancellations, holds }: UseInsightsProps) => {
+export const useInsights = ({
+  intros,
+  signups,
+  cancellations,
+  holds: _holds,
+}: UseInsightsProps) => {
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Insight generation aggregates many business rules.
   const insights = useMemo(() => {
     const generatedInsights: Insight[] = [];
 
@@ -32,7 +38,7 @@ export const useInsights = ({ intros, signups, cancellations, holds }: UseInsigh
     });
 
     if (warmLeads.length > 0) {
-      const byStaff = warmLeads.reduce((acc: any, intro) => {
+      const byStaff = warmLeads.reduce<Record<string, number>>((acc, intro) => {
         acc[intro.staff] = (acc[intro.staff] || 0) + 1;
         return acc;
       }, {});
@@ -63,27 +69,35 @@ export const useInsights = ({ intros, signups, cancellations, holds }: UseInsigh
     }
 
     // 2. HIGH: Staff Performance Anomaly
-    const staffStats = activeIntros.reduce((acc: any, intro) => {
+    const staffStats = activeIntros.reduce<
+      Record<string, { total: number; attended: number; signedUp: number }>
+    >((acc, intro) => {
       if (!intro.staff) {
         return acc;
       }
 
       if (!acc[intro.staff]) {
-        acc[intro.staff] = { total: 0, attended: 0, signedUp: 0 };
+        acc[intro.staff] = {
+          total: 0,
+          attended: 0,
+          signedUp: 0,
+        };
       }
 
-      acc[intro.staff].total++;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const staffEntry = acc[intro.staff]!;
+      staffEntry.total++;
       if (intro.attended === 'Yes') {
-        acc[intro.staff].attended++;
+        staffEntry.attended++;
         if (intro.signed_up === 'Yes') {
-          acc[intro.staff].signedUp++;
+          staffEntry.signedUp++;
         }
       }
 
       return acc;
     }, {});
 
-    const staffPerformance = Object.entries(staffStats).map(([name, stats]: [string, any]) => ({
+    const staffPerformance = Object.entries(staffStats).map(([name, stats]) => ({
       name,
       attended: stats.attended,
       signedUp: stats.signedUp,
@@ -160,20 +174,28 @@ This gap represents ~${missedSignups} missed signups this period.`,
     });
 
     // 3. HIGH: Class-Specific Conversion
-    const classStats = activeIntros.reduce((acc: any, intro) => {
+    const classStats = activeIntros.reduce<
+      Record<string, { intros: number; attended: number; signups: number }>
+    >((acc, intro) => {
       if (!intro.class) {
         return acc;
       }
 
       if (!acc[intro.class]) {
-        acc[intro.class] = { intros: 0, attended: 0, signups: 0 };
+        acc[intro.class] = {
+          intros: 0,
+          attended: 0,
+          signups: 0,
+        };
       }
 
-      acc[intro.class].intros++;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const classEntry = acc[intro.class]!;
+      classEntry.intros++;
       if (intro.attended === 'Yes') {
-        acc[intro.class].attended++;
+        classEntry.attended++;
         if (intro.signed_up === 'Yes') {
-          acc[intro.class].signups++;
+          classEntry.signups++;
         }
       }
 
@@ -181,7 +203,7 @@ This gap represents ~${missedSignups} missed signups this period.`,
     }, {});
 
     const classPerformance = Object.entries(classStats)
-      .map(([name, stats]: [string, any]) => ({
+      .map(([name, stats]) => ({
         name,
         attended: stats.attended,
         signups: stats.signups,
@@ -253,7 +275,7 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
     }
 
     // 5. HIGH: Cancellation Reason Analysis
-    const cancellationReasons = cancellations.reduce((acc: any, cancel) => {
+    const cancellationReasons = cancellations.reduce<Record<string, number>>((acc, cancel) => {
       if (cancel.reason) {
         acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
       }
@@ -261,7 +283,7 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
     }, {});
 
     const topCancellationReason = Object.entries(cancellationReasons).sort(
-      (a: any, b: any) => b[1] - a[1]
+      (a, b) => b[1] - a[1]
     )[0];
 
     if (topCancellationReason && (topCancellationReason[1] as number) >= 5) {
@@ -466,7 +488,7 @@ You're above industry average. Time to scale.`,
     // Sort by priority
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     return generatedInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  }, [intros, signups, cancellations, holds]);
+  }, [intros, signups, cancellations]);
 
   return { insights };
 };

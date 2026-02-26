@@ -56,12 +56,15 @@ export function SignupForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-sm font-medium mb-1">Month *</label>
+        <label className="form-label" htmlFor="signup-month">
+          Month *
+        </label>
         <select
+          id="signup-month"
           name="month"
           value={formData.month}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-select"
         >
           <option value="">Select month</option>
           {MONTHS.map((m) => (
@@ -72,22 +75,28 @@ export function SignupForm({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Name *</label>
+        <label className="form-label" htmlFor="signup-name">
+          Name *
+        </label>
         <input
+          id="signup-name"
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Membership Type *</label>
+        <label className="form-label" htmlFor="signup-membership">
+          Membership Type *
+        </label>
         <select
+          id="signup-membership"
           name="membership"
           value={formData.membership}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-select"
         >
           <option value="">Select type</option>
           {membershipTypes.map((type) => (
@@ -98,23 +107,29 @@ export function SignupForm({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Sign Up Date</label>
+        <label className="form-label" htmlFor="signup-membership-date">
+          Sign Up Date
+        </label>
         <input
+          id="signup-membership-date"
           type="date"
           name="membership_date"
           value={formData.membership_date}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">First Payment Date</label>
+        <label className="form-label" htmlFor="signup-first-payment-date">
+          First Payment Date
+        </label>
         <input
+          id="signup-first-payment-date"
           type="date"
           name="first_payment_date"
           value={formData.first_payment_date}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
         />
       </div>
       <div>
@@ -130,27 +145,26 @@ export function SignupForm({
         </label>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Notes</label>
+        <label className="form-label" htmlFor="signup-notes">
+          Notes
+        </label>
         <textarea
+          id="signup-notes"
           name="notes"
           value={formData.notes}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="form-input"
           rows={3}
         />
       </div>
       <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border rounded hover:bg-gray-50"
-        >
+        <button type="button" onClick={onCancel} className="btn btn-tertiary">
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading || !formData.name || !formData.month || !formData.membership}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+          className="btn btn-primary"
         >
           {loading ? 'Saving...' : 'Save'}
         </button>

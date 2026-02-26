@@ -1,9 +1,9 @@
-import Papa from 'papaparse';
+import Papa, { type ParseResult } from 'papaparse';
 
 // Helper function to parse dates from CSV
-const parseDate = (dateStr: string): string | null => {
+const parseDate = (dateStr: string): string | undefined => {
   if (!dateStr || dateStr.trim() === '') {
-    return null;
+    return undefined;
   }
 
   try {
@@ -19,84 +19,257 @@ const parseDate = (dateStr: string): string | null => {
       return `${year}-${month}-${day}`;
     }
 
-    return null;
+    return undefined;
   } catch (error) {
     console.error('Error parsing date:', dateStr, error);
-    return null;
+    return undefined;
   }
 };
 
-export const parseCSV = (file: File, onComplete: (data: any[]) => void) => {
+// Common filter function for all parsers
+export type CsvRow = Record<string, unknown>;
+
+const filterRow = (row: unknown): boolean => {
+  if (!row || typeof row !== 'object') {
+    return false;
+  }
+  const record = row as CsvRow;
+  const name = String(record.NAME || record.name || record.Name || '').trim();
+  if (!name) {
+    return false;
+  }
+  const lowerName = name.toLowerCase();
+  if (lowerName === 'total' || lowerName === 'avg' || lowerName === 'average') {
+    return false;
+  }
+  return true;
+};
+
+// Parser for Intros table
+export type IntroCsvRecord = {
+  month: string;
+  date: string | undefined;
+  time: string | null;
+  class: string | null;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  staff: string | null;
+  attended: 'Yes' | 'No' | '';
+  signed_up: 'Yes' | 'No' | '';
+  status: 'Active';
+};
+
+export const parseIntrosCSV = (file: File, onComplete: (data: IntroCsvRecord[]) => void) => {
   Papa.parse(file, {
     header: true,
-    dynamicTyping: false, // Keep as strings to parse dates manually
+    dynamicTyping: false,
     skipEmptyLines: true,
     delimitersToGuess: [',', '\t', '|', ';'],
     transformHeader: (header: string) => header.trim(),
-    complete: (results: any) => {
+    complete: (results: ParseResult<CsvRow>) => {
       try {
-        const parsedData = results.data
-          .filter((row: any) => {
-            if (!row || typeof row !== 'object') {
-              return false;
-            }
-            const name = String(row.NAME || row.name || row.Name || '').trim();
-            if (!name) {
-              return false;
-            }
-            const lowerName = name.toLowerCase();
-            if (lowerName === 'total' || lowerName === 'avg' || lowerName === 'average') {
-              return false;
-            }
-            return true;
-          })
-          .map((row: any) => {
-            // Parse membership_date (could be "DATE", "MEMBERSHIP DATE", "SIGN UP DATE", etc.)
-            const membershipDateRaw = String(
-              row.DATE ||
-                row['MEMBERSHIP DATE'] ||
-                row['SIGN UP DATE'] ||
-                row['Sign Up Date'] ||
-                row['Membership Date'] ||
-                row.membership_date ||
-                row.date ||
-                ''
-            ).trim();
-
-            // Parse first_payment_date
-            const firstPaymentDateRaw = String(
-              row['1ST PAYMENT DATE'] ||
-                row['DATE 1ST PAYMENT'] ||
-                row['First Payment Date'] ||
-                row.first_payment_date ||
-                ''
-            ).trim();
-
-            return {
-              month: String(row.MONTH || row.month || row.Month || '').trim(),
-              name: String(row.NAME || row.name || row.Name || '').trim(),
-              membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
-              membership_date: parseDate(membershipDateRaw),
-              first_payment_date: parseDate(firstPaymentDateRaw),
-              signup_package: String(
-                row['SIGN-UP PACKAGE?'] ||
-                  row['SIGNUP PACKAGE'] ||
-                  row.signup_package ||
-                  row['Signup Package'] ||
-                  ''
-              )
-                .toLowerCase()
-                .includes('yes'),
-              notes: String(row.NOTES || row.notes || row.Notes || '').trim(),
-            };
-          });
+        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: CSV mapping normalizes many fields.
+        const parsedData = results.data.filter(filterRow).map((row) => ({
+          month: String(row.MONTH || row.month || row.Month || '').trim(),
+          date: parseDate(String(row.DATE || row.date || row.Date || '').trim()),
+          time: String(row.TIME || row.time || row.Time || '').trim() || null,
+          class: String(row.CLASS || row.class || row.Class || '').trim() || null,
+          name: String(row.NAME || row.name || row.Name || '').trim(),
+          email: String(row.EMAIL || row.email || row.Email || '').trim() || null,
+          phone: String(row.PHONE || row.phone || row.Phone || '').trim() || null,
+          staff: String(row.STAFF || row.staff || row.Staff || '').trim() || null,
+          attended: (String(row.ATTENDED || row.attended || row.Attended || '').trim() || '') as
+            | 'Yes'
+            | 'No'
+            | '',
+          signed_up: (String(row['SIGNED UP'] || row.signed_up || row['Signed Up'] || '').trim() ||
+            '') as 'Yes' | 'No' | '',
+          status: 'Active' as const,
+        }));
         onComplete(parsedData);
       } catch (error) {
         console.error('Error processing CSV data:', error);
         alert('Error processing CSV file. Please check the file format.');
       }
     },
-    error: (error: any) => {
+    error: (error: unknown) => {
+      console.error('CSV parsing error:', error);
+      alert('Error parsing CSV file. Please check the file format.');
+    },
+  });
+};
+
+// Parser for Signups table (renamed from parseCSV)
+export type SignupCsvRecord = {
+  month: string;
+  name: string;
+  membership: string;
+  membership_date: string | undefined;
+  first_payment_date: string | undefined;
+  signup_package: boolean;
+  notes: string;
+};
+
+export const parseSignupsCSV = (file: File, onComplete: (data: SignupCsvRecord[]) => void) => {
+  Papa.parse(file, {
+    header: true,
+    dynamicTyping: false,
+    skipEmptyLines: true,
+    delimitersToGuess: [',', '\t', '|', ';'],
+    transformHeader: (header: string) => header.trim(),
+    complete: (results: ParseResult<CsvRow>) => {
+      try {
+        const parsedData = results.data.filter(filterRow).map((row) => {
+          const membershipDateRaw = String(
+            row.DATE ||
+              row['MEMBERSHIP DATE'] ||
+              row['SIGN UP DATE'] ||
+              row['Sign Up Date'] ||
+              row['Membership Date'] ||
+              row.membership_date ||
+              row.date ||
+              ''
+          ).trim();
+
+          const firstPaymentDateRaw = String(
+            row['1ST PAYMENT DATE'] ||
+              row['DATE 1ST PAYMENT'] ||
+              row['First Payment Date'] ||
+              row.first_payment_date ||
+              ''
+          ).trim();
+
+          return {
+            month: String(row.MONTH || row.month || row.Month || '').trim(),
+            name: String(row.NAME || row.name || row.Name || '').trim(),
+            membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
+            membership_date: parseDate(membershipDateRaw),
+            first_payment_date: parseDate(firstPaymentDateRaw),
+            signup_package: String(
+              row['SIGN-UP PACKAGE?'] ||
+                row['SIGNUP PACKAGE'] ||
+                row.signup_package ||
+                row['Signup Package'] ||
+                ''
+            )
+              .toLowerCase()
+              .includes('yes'),
+            notes: String(row.NOTES || row.notes || row.Notes || '').trim(),
+          };
+        });
+        onComplete(parsedData);
+      } catch (error) {
+        console.error('Error processing CSV data:', error);
+        alert('Error processing CSV file. Please check the file format.');
+      }
+    },
+    error: (error: unknown) => {
+      console.error('CSV parsing error:', error);
+      alert('Error parsing CSV file. Please check the file format.');
+    },
+  });
+};
+
+// Parser for Cancellations table
+export type CancellationCsvRecord = {
+  month: string;
+  name: string;
+  date: string | undefined;
+  reason: string | null;
+  age_group: string | null;
+  notes: string | null;
+};
+
+export const parseCancellationsCSV = (
+  file: File,
+  onComplete: (data: CancellationCsvRecord[]) => void
+) => {
+  Papa.parse(file, {
+    header: true,
+    dynamicTyping: false,
+    skipEmptyLines: true,
+    delimitersToGuess: [',', '\t', '|', ';'],
+    transformHeader: (header: string) => header.trim(),
+    complete: (results: ParseResult<CsvRow>) => {
+      try {
+        const parsedData = results.data.filter(filterRow).map((row) => {
+          const cancellationDateRaw = String(
+            row['CANCELLATION DATE'] ||
+              row['Cancellation Date'] ||
+              row.cancellation_date ||
+              row.DATE ||
+              row.date ||
+              ''
+          ).trim();
+
+          return {
+            month: String(row.MONTH || row.month || row.Month || '').trim(),
+            name: String(row.NAME || row.name || row.Name || '').trim(),
+            date: parseDate(cancellationDateRaw),
+            reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
+            age_group:
+              String(row['AGE CATEGORY'] || row.age_group || row['Age Group'] || '').trim() || null,
+            notes: String(row.NOTES || row.notes || row.Notes || '').trim() || null,
+          };
+        });
+        onComplete(parsedData);
+      } catch (error) {
+        console.error('Error processing CSV data:', error);
+        alert('Error processing CSV file. Please check the file format.');
+      }
+    },
+    error: (error: unknown) => {
+      console.error('CSV parsing error:', error);
+      alert('Error parsing CSV file. Please check the file format.');
+    },
+  });
+};
+
+// Parser for Holds table
+export type HoldCsvRecord = {
+  month: string;
+  name: string;
+  start: string | undefined;
+  end: string | undefined;
+  reason: string | null;
+  fee: string | null;
+};
+
+export const parseHoldsCSV = (file: File, onComplete: (data: HoldCsvRecord[]) => void) => {
+  Papa.parse(file, {
+    header: true,
+    dynamicTyping: false,
+    skipEmptyLines: true,
+    delimitersToGuess: [',', '\t', '|', ';'],
+    transformHeader: (header: string) => header.trim(),
+    complete: (results: ParseResult<CsvRow>) => {
+      try {
+        const parsedData = results.data.filter(filterRow).map((row) => {
+          const startDateRaw = String(
+            row['START DATE'] || row['Start Date'] || row.start_date || ''
+          ).trim();
+
+          const endDateRaw = String(
+            row['END DATE'] || row['End Date'] || row.end_date || ''
+          ).trim();
+
+          return {
+            month: String(row.MONTH || row.month || row.Month || '').trim(),
+            name: String(row.NAME || row.name || row.Name || '').trim(),
+            start: parseDate(startDateRaw),
+            end: parseDate(endDateRaw),
+            reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
+            fee: String(row.FEE || row.fee || row.Fee || '').trim() || null,
+          };
+        });
+        onComplete(parsedData);
+      } catch (error) {
+        console.error('Error processing CSV data:', error);
+        alert('Error processing CSV file. Please check the file format.');
+      }
+    },
+    error: (error: unknown) => {
       console.error('CSV parsing error:', error);
       alert('Error parsing CSV file. Please check the file format.');
     },

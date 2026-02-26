@@ -30,14 +30,14 @@ export const useSignups = () => {
       // Validate data before sending to database
       const validation = validate(signupSchema, signup);
 
-      if (!validation.success) {
+      if (!validation.success || !validation.data) {
         const errorMessage = validation.errors?.join('\n') || 'Validation failed';
         errorHandler.notify(errorMessage, 'error');
         throw new Error(errorMessage);
       }
 
       try {
-        await createSignup(validation.data!);
+        await createSignup(validation.data);
         await loadSignups();
         errorHandler.notify('Signup added successfully', 'success');
       } catch (err) {
