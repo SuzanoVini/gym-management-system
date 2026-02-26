@@ -254,13 +254,14 @@ export default function OverviewTab() {
       };
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const staffEntry = acc[intro.staff]!;
-    staffEntry.total++;
-    if (intro.attended === 'Yes') {
-      staffEntry.attended++;
-      if (intro.signed_up === 'Yes') {
-        staffEntry.signedUp++;
+    const staffEntry = acc[intro.staff];
+    if (staffEntry) {
+      staffEntry.total++;
+      if (intro.attended === 'Yes') {
+        staffEntry.attended++;
+        if (intro.signed_up === 'Yes') {
+          staffEntry.signedUp++;
+        }
       }
     }
 
