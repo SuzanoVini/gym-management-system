@@ -174,38 +174,105 @@ export default function PayrollPage() {
   };
 
   // Export handlers
-  const handleExport = async (periodId: string, _format: 'csv') => {
+  const handleExport = async (periodId: string, _format: 'csv', formatId?: string) => {
     try {
       const period = periods.find((p) => p.id === periodId);
       if (!period) {
         throw new Error('Period not found');
       }
 
+      // Get format configuration
+      let formatConfig = null;
+      if (formatId) {
+        const { getFormatById } = await import('@/lib/services/csv-format.service');
+        const result = await getFormatById(formatId);
+        if (result.error) {
+          throw result.error;
+        }
+        formatConfig = result.data;
+      }
+
       // Get hours for the selected period
-      const periodHours = hours.filter((h) => h.period_id === periodId);
+      let periodHours = hours.filter((h) => h.period_id === periodId);
 
-      // Create CSV content
-      const headers = [
-        'Staff Name',
-        'Payroll ID',
-        'Regular Hours',
-        'Overtime Hours',
-        'Vacation Hours',
-        'Mat Cleaning Count',
-        'Total Hours',
-      ];
+      // Apply staff ordering based on format configuration
+      if (formatConfig?.staff_order_config) {
+        const { type, direction } = formatConfig.staff_order_config;
 
-      const rows = periodHours.map((h) => {
-        const staffMember = staff.find((s) => s.id === h.staff_id);
-        return [
+        periodHours = [...periodHours].sort((a, b) => {
+          const staffA = staff.find((s) => s.id === a.staff_id);
+          const staffB = staff.find((s) => s.id === b.staff_id);
+
+          const compareValue =
+            type === 'name'
+              ? (staffA?.full_name || '').localeCompare(staffB?.full_name || '')
+              : (staffA?.employee_id || '').localeCompare(staffB?.employee_id || '');
+
+          return direction === 'asc' ? compareValue : -compareValue;
+        });
+      }
+
+      // Build CSV based on format configuration
+      let headers: string[];
+      let rowBuilder: (h: (typeof periodHours)[0], s: (typeof staff)[0] | undefined) => string[];
+
+      if (formatConfig?.column_config) {
+        // Use format configuration
+        const enabledColumns = formatConfig.column_config.filter((col) => col.enabled);
+        headers = enabledColumns.map((col) => col.label);
+
+        rowBuilder = (h, staffMember) => {
+          return enabledColumns.map((col) => {
+            switch (col.key) {
+              case 'staff_name':
+                return staffMember?.full_name || 'Unknown';
+              case 'employee_id':
+                return staffMember?.employee_id || '';
+              case 'regular_hours':
+                return h.regular_hours.toFixed(2);
+              case 'overtime_hours':
+                return h.overtime_hours.toFixed(2);
+              case 'vacation_hours':
+                return h.vacation_hours.toFixed(2);
+              case 'sick_hours':
+                return h.sick_hours.toFixed(2);
+              case 'mat_cleaning_count':
+                return h.mat_cleaning_count.toString();
+              case 'total_hours':
+                return h.total_hours.toFixed(2);
+              default:
+                return '';
+            }
+          });
+        };
+      } else {
+        // Default format
+        headers = [
+          'Staff Name',
+          'Payroll ID',
+          'Regular Hours',
+          'Overtime Hours',
+          'Vacation Hours',
+          'Sick Hours',
+          'Mat Cleaning Count',
+          'Total Hours',
+        ];
+
+        rowBuilder = (h, staffMember) => [
           staffMember?.full_name || 'Unknown',
           staffMember?.employee_id || '',
           h.regular_hours.toFixed(2),
           h.overtime_hours.toFixed(2),
           h.vacation_hours.toFixed(2),
+          h.sick_hours.toFixed(2),
           h.mat_cleaning_count.toString(),
           h.total_hours.toFixed(2),
         ];
+      }
+
+      const rows = periodHours.map((h) => {
+        const staffMember = staff.find((s) => s.id === h.staff_id);
+        return rowBuilder(h, staffMember);
       });
 
       const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
@@ -256,7 +323,9 @@ export default function PayrollPage() {
               <h1 className="text-4xl font-bold text-white m-0 drop-shadow-lg">
                 Gracie Barra Kitsilano
               </h1>
-              <p className="text-xl text-white/90 mt-1 mb-0">Staff Payroll Management System</p>
+              <p className="text-xl text-white mt-1 mb-0 drop-shadow-lg">
+                Staff Payroll Management System
+              </p>
             </div>
           </div>
 

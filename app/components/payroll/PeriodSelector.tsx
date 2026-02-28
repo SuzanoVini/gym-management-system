@@ -44,7 +44,7 @@ export default function PeriodSelector({
             value={currentPeriod?.id || ''}
             onChange={(e) => onSelectPeriod(e.target.value)}
             disabled={loading}
-            className="form-select pl-10 w-full"
+            className="form-select pl-12 w-full"
             aria-label="Select payroll period"
           >
             {periods.length === 0 ? (
