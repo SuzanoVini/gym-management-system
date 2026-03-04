@@ -34,23 +34,29 @@ const FIELD_MAPPING_PATTERNS: Record<
     confidence: 'exact',
   },
   employee_id: {
-    patterns: [/^(employee\s*id|payroll\s*id|emp\s*id|id|employee\s*number|staff\s*id)$/i],
+    patterns: [
+      /^(employee\s*payroll\s*id|employee\s*id|payroll\s*id|emp\s*id|id|employee\s*number|staff\s*id)$/i,
+    ],
     confidence: 'exact',
   },
   regular_hours: {
-    patterns: [/^(regular\s*hours?|reg\s*hours?|hours?|regular|standard\s*hours?)$/i],
+    patterns: [
+      /^(regular\s*hours?|reg\s*hours?|regular\s*pay|reg\s*pay|hours?|regular|standard\s*hours?)$/i,
+    ],
     confidence: 'exact',
   },
   overtime_hours: {
-    patterns: [/^(overtime\s*hours?|ot\s*hours?|overtime|ot)$/i],
+    patterns: [/^(overtime\s*hours?|ot\s*hours?|overtime\s*pay|ot\s*pay|overtime|ot)$/i],
     confidence: 'exact',
   },
   vacation_hours: {
-    patterns: [/^(vacation\s*hours?|vac\s*hours?|vacation|vac|pto\s*hours?|pto)$/i],
+    patterns: [
+      /^(vacation\s*hours?|vac\s*hours?|vacation\s*pay|vac\s*pay|vacation|vac|pto\s*hours?|pto)$/i,
+    ],
     confidence: 'exact',
   },
   sick_hours: {
-    patterns: [/^(sick\s*hours?|sick|sick\s*leave|sick\s*time)$/i],
+    patterns: [/^(sick\s*hours?|sick\s*pay|sick|sick\s*leave|sick\s*time)$/i],
     confidence: 'exact',
   },
   mat_cleaning_count: {
