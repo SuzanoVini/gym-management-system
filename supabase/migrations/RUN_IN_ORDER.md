@@ -40,6 +40,13 @@ This adds performance indexes to all tables.
 
 ---
 
+### 6️⃣ Sixth: Update Default CSV Format
+**File**: `20260304000000_update_default_csv_format.sql`
+
+This updates the default CSV format to match the accountant's exact template structure with all 12 required columns.
+
+---
+
 ## ✅ Verification
 
 After running all migrations, verify with:
@@ -66,9 +73,11 @@ WHERE table_name = 'staff_hours'
   AND column_name = 'sick_hours';
 -- Should return 1 row
 
--- Check csv_export_formats table is empty and ready
-SELECT COUNT(*) as format_count FROM csv_export_formats;
--- Should return 0 (empty table ready to use)
+-- Check csv_export_formats table has default format
+SELECT format_name, is_default,
+       jsonb_array_length(column_config) as column_count
+FROM csv_export_formats;
+-- Should return 1 row: 'Standard Payroll Format' with 12 columns
 ```
 
 ## 🚨 If You Get Errors
