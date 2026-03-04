@@ -40,10 +40,10 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
   }
 
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
+    sm: 'modal-sm',
+    md: 'modal-md',
+    lg: 'modal-lg',
+    xl: 'modal-xl',
   };
 
   const modalRoot = document.getElementById('modal-root');
@@ -56,25 +56,25 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md' }:
       <div className="modal-backdrop">
         <div
           ref={modalRef}
-          className={clsx('modal-content', 'w-full', sizeClasses[size])}
+          className={clsx('modal-content', sizeClasses[size])}
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
         >
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 id="modal-title" className="text-xl font-semibold text-gray-900">
+          <div className="modal-header">
+            <h2 id="modal-title" className="modal-header-title">
               {title}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="modal-close-btn"
               aria-label="Close modal"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="p-6">{children}</div>
+          <div className="modal-body">{children}</div>
         </div>
       </div>
     </FocusTrap>,

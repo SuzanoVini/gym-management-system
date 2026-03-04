@@ -220,20 +220,21 @@ export default function TemplateImportModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="modal-backdrop">
+      <div className="modal-content modal-xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Upload className="w-6 h-6 text-red-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Import CSV Template</h2>
-          </div>
+        <div className="modal-header">
+          <h2 className="modal-header-title">
+            <Upload className="modal-header-icon" />
+            Import CSV Template
+          </h2>
           <button
             type="button"
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="modal-close-btn"
+            aria-label="Close modal"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -272,7 +273,7 @@ export default function TemplateImportModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="modal-body">
           {/* Step 1: Upload */}
           {currentStep === 'upload' && (
             <div className="space-y-6">
@@ -624,7 +625,7 @@ export default function TemplateImportModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+        <div className="modal-footer justify-between">
           <button
             type="button"
             onClick={handleClose}
