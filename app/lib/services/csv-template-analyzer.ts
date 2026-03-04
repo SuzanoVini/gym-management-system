@@ -216,74 +216,94 @@ export function generateFormatConfig(
  */
 export function analyzeCSVTemplate(file: File): Promise<TemplateAnalysisResult> {
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
-      header: false, // Don't auto-detect header, we'll handle it manually
-      dynamicTyping: false,
-      skipEmptyLines: false, // Keep empty lines to maintain structure
-      preview: 7, // Parse first 7 rows (3 header rows + 1 actual header + 3 sample rows)
-      delimitersToGuess: [',', '\t', '|', ';'],
-      complete: (results: ParseResult<string[]>) => {
-        try {
-          const allRows = results.data || [];
+    // First, read the file as text to handle mixed line endings
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      if (!text) {
+        reject(new Error('Failed to read file'));
+        return;
+      }
 
-          // Check if we have enough rows for the expected structure
-          if (allRows.length < 4) {
-            reject(
-              new Error(
-                'CSV file does not have the expected structure. Expected: Row 1 (Title), Row 2 (Date), Row 3 (Blank), Row 4 (Headers)'
+      // Normalize line endings: Convert CR (Mac) and CRLF (Windows) to LF (Unix)
+      // This handles the accountant's CSV which may have CR-only line endings
+      const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+      Papa.parse(normalizedText, {
+        header: false,
+        dynamicTyping: false,
+        skipEmptyLines: false, // Keep empty lines to maintain structure
+        preview: 7, // Parse first 7 rows
+        delimitersToGuess: [',', '\t', '|', ';'],
+        complete: (results: ParseResult<string[]>) => {
+          try {
+            const allRows = results.data || [];
+
+            // Check if we have enough rows for the expected structure
+            if (allRows.length < 4) {
+              reject(
+                new Error(
+                  'CSV file does not have the expected structure. Expected: Row 1 (Title), Row 2 (Date), Row 3 (Blank), Row 4 (Headers)'
+                )
+              );
+              return;
+            }
+
+            // Extract the actual column headers from row 4 (index 3)
+            const headerRow = allRows[3];
+            if (!headerRow || headerRow.length === 0) {
+              reject(new Error('No column headers found on row 4'));
+              return;
+            }
+
+            // Trim whitespace from headers
+            const headers = headerRow.map((h) => (h || '').trim()).filter((h) => h !== '');
+
+            // Extract sample data rows (rows 5-7, indices 4-6)
+            const dataRows = allRows.slice(4, 7);
+
+            // Convert data rows to objects using headers
+            const sampleData = dataRows
+              .filter(
+                (row) => row && row.length > 0 && row.some((cell) => cell && cell.trim() !== '')
               )
-            );
-            return;
-          }
-
-          // Extract the actual column headers from row 4 (index 3)
-          const headerRow = allRows[3];
-          if (!headerRow || headerRow.length === 0) {
-            reject(new Error('No column headers found on row 4'));
-            return;
-          }
-
-          // Trim whitespace from headers
-          const headers = headerRow.map((h) => (h || '').trim()).filter((h) => h !== '');
-
-          // Extract sample data rows (rows 5-7, indices 4-6)
-          const dataRows = allRows.slice(4, 7);
-
-          // Convert data rows to objects using headers
-          const sampleData = dataRows
-            .filter(
-              (row) => row && row.length > 0 && row.some((cell) => cell && cell.trim() !== '')
-            )
-            .map((row) => {
-              const obj: Record<string, string> = {};
-              headers.forEach((header, index) => {
-                obj[header] = (row[index] || '').trim();
+              .map((row) => {
+                const obj: Record<string, string> = {};
+                headers.forEach((header, index) => {
+                  obj[header] = (row[index] || '').trim();
+                });
+                return obj;
               });
-              return obj;
-            });
 
-          const rowCount = sampleData.length;
+            const rowCount = sampleData.length;
 
-          // Perform automatic field mapping
-          const { mappings, unmappedColumns, missingFields } = mapFieldsToDatabase(headers);
+            // Perform automatic field mapping
+            const { mappings, unmappedColumns, missingFields } = mapFieldsToDatabase(headers);
 
-          const analysisResult: TemplateAnalysisResult = {
-            headers,
-            rowCount,
-            sampleData,
-            fieldMappings: mappings,
-            unmappedColumns,
-            missingFields,
-          };
+            const analysisResult: TemplateAnalysisResult = {
+              headers,
+              rowCount,
+              sampleData,
+              fieldMappings: mappings,
+              unmappedColumns,
+              missingFields,
+            };
 
-          resolve(analysisResult);
-        } catch (error) {
-          reject(new Error(`Failed to analyze CSV template: ${error}`));
-        }
-      },
-      error: (error: Error) => {
-        reject(new Error(`CSV parsing error: ${error.message}`));
-      },
-    });
+            resolve(analysisResult);
+          } catch (error) {
+            reject(new Error(`Failed to analyze CSV template: ${error}`));
+          }
+        },
+        error: (error: Error) => {
+          reject(new Error(`CSV parsing error: ${error.message}`));
+        },
+      });
+    };
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+
+    reader.readAsText(file);
   });
 }
