@@ -320,10 +320,16 @@ export default function PayrollPage() {
               priority
             />
             <div>
-              <h1 className="text-4xl font-bold text-white m-0 drop-shadow-lg">
+              <h1
+                className="text-4xl font-bold m-0"
+                style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
+              >
                 Gracie Barra Kitsilano
               </h1>
-              <p className="text-xl text-white mt-1 mb-0 drop-shadow-lg">
+              <p
+                className="text-xl mt-1 mb-0"
+                style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
+              >
                 Staff Payroll Management System
               </p>
             </div>

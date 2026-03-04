@@ -2,6 +2,7 @@
 
 import { ArrowDown, ArrowUp, Check, Plus, Save, Settings, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { errorHandler } from '@/lib/errorHandler';
 import {
   createFormat,
@@ -202,7 +203,12 @@ export default function FormatConfigurationModal({
     return null;
   }
 
-  return (
+  const modalRoot = document.getElementById('modal-root');
+  if (!modalRoot) {
+    return null;
+  }
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
@@ -453,6 +459,7 @@ export default function FormatConfigurationModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

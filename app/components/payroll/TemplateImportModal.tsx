@@ -2,6 +2,7 @@
 
 import { AlertCircle, AlertTriangle, CheckCircle2, FileUp, Save, Upload, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { errorHandler } from '@/lib/errorHandler';
 import { createFormat } from '@/lib/services/csv-format.service';
 import {
@@ -213,7 +214,12 @@ export default function TemplateImportModal({
   const unmappedCsvColumns =
     analysis?.headers.filter((header) => !fieldMappings.some((m) => m.csvColumn === header)) || [];
 
-  return (
+  const modalRoot = document.getElementById('modal-root');
+  if (!modalRoot) {
+    return null;
+  }
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
@@ -666,6 +672,7 @@ export default function TemplateImportModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    modalRoot
   );
 }

@@ -93,7 +93,7 @@ export default function ExportTab({
               id="period-select"
               value={selectedPeriodId}
               onChange={(e) => setSelectedPeriodId(e.target.value)}
-              className="form-select pl-12 w-full"
+              className="form-select pl-14 w-full"
               aria-label="Select period to export"
             >
               <option value="">Select a period</option>
