@@ -22,16 +22,13 @@ CREATE TABLE IF NOT EXISTS csv_export_formats (
 
 -- Indexes for csv_export_formats
 CREATE INDEX IF NOT EXISTS idx_csv_format_name ON csv_export_formats(format_name);
-CREATE INDEX IF NOT EXISTS idx_csv_format_default ON csv_export_formats(is_default) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_csv_format_default ON csv_export_formats(is_default);
 CREATE INDEX IF NOT EXISTS idx_csv_format_created_at ON csv_export_formats(created_at DESC);
-
--- Unique constraint: Only one format can be default at a time
-CREATE UNIQUE INDEX IF NOT EXISTS idx_only_one_default_format ON csv_export_formats(is_default) WHERE is_default = true;
 
 COMMENT ON TABLE csv_export_formats IS 'Stores CSV export format configurations including column order, headers, and staff ordering';
 COMMENT ON COLUMN csv_export_formats.column_config IS 'JSONB array defining column order, enabled state, and custom headers';
 COMMENT ON COLUMN csv_export_formats.staff_order_config IS 'JSONB object defining staff row ordering (by id, name, or custom)';
-COMMENT ON COLUMN csv_export_formats.is_default IS 'Only one format can be default at a time (enforced by unique index)';
+COMMENT ON COLUMN csv_export_formats.is_default IS 'Only one format can be default at a time (enforced by trigger function)';
 
 -- ==============================================
 -- FUNCTION: Ensure only one default format

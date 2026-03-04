@@ -45,37 +45,76 @@ CREATE TRIGGER enforce_single_default_format_trigger
 -- Drop and recreate view to avoid column rename issues
 DROP VIEW IF EXISTS staff_hours_summary CASCADE;
 
-CREATE VIEW staff_hours_summary AS
-SELECT
-  sm.id as staff_id,
-  sm.employee_id,
-  sm.full_name,
-  sm.job_title,
-  COALESCE(sh.regular_hours, 0) as regular_hours,
-  COALESCE(sh.overtime_hours, 0) as overtime_hours,
-  COALESCE(sh.vacation_hours, 0) as vacation_hours,
-  COALESCE(sh.sick_hours, 0) as sick_hours,
-  COALESCE(sh.regular_hours, 0) + COALESCE(sh.overtime_hours, 0) + COALESCE(sh.vacation_hours, 0) + COALESCE(sh.sick_hours, 0) as total_hours,
-  pp.id as period_id,
-  pp.period_label as period
-FROM staff_members sm
-LEFT JOIN payroll_periods pp ON pp.is_current = true
-LEFT JOIN staff_hours sh ON sm.id = sh.staff_id AND sh.period_id = pp.id
-WHERE sm.is_active = true
-ORDER BY sm.full_name, sm.job_title;
+-- Check if sick_hours column exists before creating view
+DO $$
+BEGIN
+  -- Only create view if sick_hours column exists
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_name = 'staff_hours'
+      AND column_name = 'sick_hours'
+  ) THEN
+    -- Create view with sick_hours
+    EXECUTE '
+      CREATE VIEW staff_hours_summary AS
+      SELECT
+        sm.id as staff_id,
+        sm.employee_id,
+        sm.full_name,
+        sm.job_title,
+        COALESCE(sh.regular_hours, 0) as regular_hours,
+        COALESCE(sh.overtime_hours, 0) as overtime_hours,
+        COALESCE(sh.vacation_hours, 0) as vacation_hours,
+        COALESCE(sh.sick_hours, 0) as sick_hours,
+        COALESCE(sh.regular_hours, 0) + COALESCE(sh.overtime_hours, 0) + COALESCE(sh.vacation_hours, 0) + COALESCE(sh.sick_hours, 0) as total_hours,
+        pp.id as period_id,
+        pp.period_label as period
+      FROM staff_members sm
+      LEFT JOIN payroll_periods pp ON pp.is_current = true
+      LEFT JOIN staff_hours sh ON sm.id = sh.staff_id AND sh.period_id = pp.id
+      WHERE sm.is_active = true
+      ORDER BY sm.full_name, sm.job_title
+    ';
+  ELSE
+    -- Create view without sick_hours
+    EXECUTE '
+      CREATE VIEW staff_hours_summary AS
+      SELECT
+        sm.id as staff_id,
+        sm.employee_id,
+        sm.full_name,
+        sm.job_title,
+        COALESCE(sh.regular_hours, 0) as regular_hours,
+        COALESCE(sh.overtime_hours, 0) as overtime_hours,
+        COALESCE(sh.vacation_hours, 0) as vacation_hours,
+        COALESCE(sh.regular_hours, 0) + COALESCE(sh.overtime_hours, 0) + COALESCE(sh.vacation_hours, 0) as total_hours,
+        pp.id as period_id,
+        pp.period_label as period
+      FROM staff_members sm
+      LEFT JOIN payroll_periods pp ON pp.is_current = true
+      LEFT JOIN staff_hours sh ON sm.id = sh.staff_id AND sh.period_id = pp.id
+      WHERE sm.is_active = true
+      ORDER BY sm.full_name, sm.job_title
+    ';
+  END IF;
+END $$;
 
-COMMENT ON VIEW staff_hours_summary IS 'Combines staff members with their hours for the current period (includes sick hours)';
+COMMENT ON VIEW staff_hours_summary IS 'Combines staff members with their hours for the current period';
 
 -- ==============================================
 -- 3. Verify indexes (recreate if needed)
 -- ==============================================
 
--- Drop and recreate problematic indexes
+-- Drop problematic partial indexes
 DROP INDEX IF EXISTS idx_csv_format_default;
-CREATE INDEX idx_csv_format_default ON csv_export_formats(is_default) WHERE is_default = true;
-
 DROP INDEX IF EXISTS idx_only_one_default_format;
-CREATE UNIQUE INDEX idx_only_one_default_format ON csv_export_formats(is_default) WHERE is_default = true;
+
+-- Create simple indexes without WHERE predicates
+CREATE INDEX IF NOT EXISTS idx_csv_format_default ON csv_export_formats(is_default);
+
+-- Note: The unique default constraint is enforced by the trigger, not the index
+-- If you need a unique constraint, use a CHECK constraint instead
 
 -- ==============================================
 -- 4. Ensure RLS policies exist

@@ -33,8 +33,8 @@ CREATE INDEX IF NOT EXISTS idx_intros_month_staff ON intros(month, staff);
 CREATE INDEX IF NOT EXISTS idx_intros_attended_signed_up ON intros(attended, signed_up);
 
 -- Composite index for active intros that need follow-up
-CREATE INDEX IF NOT EXISTS idx_intros_active_unsigned ON intros(status, attended, signed_up)
-  WHERE status = 'Active' AND attended = 'Yes' AND signed_up != 'Yes';
+-- Note: Removed WHERE clause to avoid immutability issues
+CREATE INDEX IF NOT EXISTS idx_intros_active_unsigned ON intros(status, attended, signed_up);
 
 -- ============================================================================
 -- SIGNUPS TABLE INDEXES
@@ -143,15 +143,10 @@ CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
 CREATE INDEX IF NOT EXISTS idx_csv_format_name ON csv_export_formats(format_name);
 
 -- Index for finding default format (frequent query)
-CREATE INDEX IF NOT EXISTS idx_csv_format_default ON csv_export_formats(is_default)
-  WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_csv_format_default ON csv_export_formats(is_default);
 
 -- Index for sorting by creation date
 CREATE INDEX IF NOT EXISTS idx_csv_format_created_at ON csv_export_formats(created_at DESC);
-
--- Unique constraint: Only one format can be default at a time
-CREATE UNIQUE INDEX IF NOT EXISTS idx_only_one_default_format
-  ON csv_export_formats(is_default) WHERE is_default = true;
 
 -- STAFF_HOURS TABLE
 -- Index for filtering by staff member
@@ -177,25 +172,21 @@ CREATE INDEX IF NOT EXISTS idx_time_entries_type ON time_entries(entry_type);
 CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(entry_date DESC);
 
 -- Index for after school program filtering
-CREATE INDEX IF NOT EXISTS idx_time_entries_asp ON time_entries(is_after_school_program)
-  WHERE is_after_school_program = true;
+CREATE INDEX IF NOT EXISTS idx_time_entries_asp ON time_entries(is_after_school_program);
 
 -- PAYROLL_PERIODS TABLE
 -- Index for finding current period
-CREATE INDEX IF NOT EXISTS idx_payroll_periods_current ON payroll_periods(is_current)
-  WHERE is_current = true;
+CREATE INDEX IF NOT EXISTS idx_payroll_periods_current ON payroll_periods(is_current);
 
 -- Index for finding closed periods
-CREATE INDEX IF NOT EXISTS idx_payroll_periods_closed ON payroll_periods(is_closed)
-  WHERE is_closed = true;
+CREATE INDEX IF NOT EXISTS idx_payroll_periods_closed ON payroll_periods(is_closed);
 
 -- Index for date range queries
 CREATE INDEX IF NOT EXISTS idx_payroll_periods_dates ON payroll_periods(start_date, end_date);
 
 -- STAFF_MEMBERS TABLE
 -- Index for active staff filtering
-CREATE INDEX IF NOT EXISTS idx_staff_members_active ON staff_members(is_active)
-  WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_staff_members_active ON staff_members(is_active);
 
 -- Index for employee ID lookups
 CREATE INDEX IF NOT EXISTS idx_staff_members_employee_id ON staff_members(employee_id);
