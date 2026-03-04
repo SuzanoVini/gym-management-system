@@ -183,7 +183,7 @@ export const useStaffHours = (periodId: string | null) => {
   const updateHoursField = useCallback(
     async (
       staffHoursId: string,
-      field: 'regular_hours' | 'overtime_hours' | 'vacation_hours',
+      field: 'regular_hours' | 'overtime_hours' | 'vacation_hours' | 'sick_hours',
       value: number
     ) => {
       try {

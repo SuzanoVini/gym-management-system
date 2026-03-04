@@ -174,41 +174,162 @@ export default function PayrollPage() {
   };
 
   // Export handlers
-  const handleExport = async (periodId: string, _format: 'csv') => {
+  const handleExport = async (periodId: string, _format: 'csv', formatId?: string) => {
     try {
       const period = periods.find((p) => p.id === periodId);
       if (!period) {
         throw new Error('Period not found');
       }
 
-      // Get hours for the selected period
-      const periodHours = hours.filter((h) => h.period_id === periodId);
+      // Get format configuration
+      let formatConfig = null;
+      if (formatId) {
+        const { getFormatById } = await import('@/lib/services/csv-format.service');
+        const result = await getFormatById(formatId);
+        if (result.error) {
+          throw result.error;
+        }
+        formatConfig = result.data;
+      }
 
-      // Create CSV content
-      const headers = [
-        'Staff Name',
-        'Payroll ID',
-        'Regular Hours',
-        'Overtime Hours',
-        'Vacation Hours',
-        'Mat Cleaning Count',
-        'Total Hours',
-      ];
+      // Get hours for the selected period
+      let periodHours = hours.filter((h) => h.period_id === periodId);
+
+      // Apply staff ordering based on format configuration
+      if (formatConfig?.staff_order_config) {
+        const { type, direction } = formatConfig.staff_order_config;
+
+        periodHours = [...periodHours].sort((a, b) => {
+          const staffA = staff.find((s) => s.id === a.staff_id);
+          const staffB = staff.find((s) => s.id === b.staff_id);
+
+          const compareValue =
+            type === 'name'
+              ? (staffA?.full_name || '').localeCompare(staffB?.full_name || '')
+              : (staffA?.employee_id || '').localeCompare(staffB?.employee_id || '');
+
+          return direction === 'asc' ? compareValue : -compareValue;
+        });
+      }
+
+      // Build CSV based on format configuration
+      let headers: string[];
+      let rowBuilder: (h: (typeof periodHours)[0], s: (typeof staff)[0] | undefined) => string[];
+
+      if (formatConfig?.column_config) {
+        // Use format configuration
+        const enabledColumns = formatConfig.column_config.filter((col) => col.enabled);
+        headers = enabledColumns.map((col) => col.label);
+
+        rowBuilder = (h, staffMember) => {
+          // Split full name into first and last name
+          const fullName = staffMember?.full_name || 'Unknown';
+          const nameParts = fullName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          return enabledColumns.map((col) => {
+            switch (col.key) {
+              case 'staff_name':
+                return fullName;
+              case 'employee_id':
+                return staffMember?.employee_id || '';
+              case 'first_name':
+                return firstName;
+              case 'last_name':
+                return lastName;
+              case 'job_id':
+                return ''; // Not stored in database, leave empty
+              case 'department_name':
+                return ''; // Not stored in database, leave empty
+              case 'overtime_hours':
+                return h.overtime_hours.toFixed(2);
+              case 'regular_hours':
+                return h.regular_hours.toFixed(2);
+              case 'sick_hours':
+                return h.sick_hours.toFixed(2);
+              case 'vacation_hours':
+                return h.vacation_hours.toFixed(2);
+              case 'external_id':
+                return ''; // Not stored in database, leave empty
+              case 'job_title':
+                return ''; // Not stored in database, leave empty
+              default:
+                return '';
+            }
+          });
+        };
+      } else {
+        // Default format matching accountant template
+        headers = [
+          'Employee name',
+          'Employee payroll ID',
+          'First name',
+          'Last name',
+          'job id',
+          'Department name',
+          'Overtime',
+          'Regular Pay',
+          'Sick Pay',
+          'Vacation Pay',
+          'External ID',
+          'Job Title',
+        ];
+
+        rowBuilder = (h, staffMember) => {
+          const fullName = staffMember?.full_name || 'Unknown';
+          const nameParts = fullName.split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+
+          return [
+            fullName,
+            staffMember?.employee_id || '',
+            firstName,
+            lastName,
+            '', // job id - not stored
+            '', // Department name - not stored
+            h.overtime_hours.toFixed(2),
+            h.regular_hours.toFixed(2),
+            h.sick_hours.toFixed(2),
+            h.vacation_hours.toFixed(2),
+            '', // External ID - not stored
+            '', // Job Title - not stored
+          ];
+        };
+      }
 
       const rows = periodHours.map((h) => {
         const staffMember = staff.find((s) => s.id === h.staff_id);
-        return [
-          staffMember?.full_name || 'Unknown',
-          staffMember?.employee_id || '',
-          h.regular_hours.toFixed(2),
-          h.overtime_hours.toFixed(2),
-          h.vacation_hours.toFixed(2),
-          h.mat_cleaning_count.toString(),
-          h.total_hours.toFixed(2),
-        ];
+        return rowBuilder(h, staffMember);
       });
 
-      const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
+      // Format dates for the header (mm/dd/yyyy)
+      const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+      };
+
+      const dateRange = `${formatDate(period.start_date)}-${formatDate(period.end_date)}`;
+
+      // Build CSV with exact accountant template structure:
+      // Row 1: "Summary Report - Kitsilano Brazilian Jiu Jitsu Inc."
+      // Row 2: Date range
+      // Row 3: Blank
+      // Row 4: Column headers
+      // Row 5+: Data rows
+      const csvLines = [
+        ['Summary Report - Kitsilano Brazilian Jiu Jitsu Inc.'],
+        [dateRange],
+        [], // Blank row
+        headers,
+        ...rows,
+      ];
+
+      const csvContent = csvLines.map((row) => row.join(',')).join('\n');
 
       // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -253,10 +374,18 @@ export default function PayrollPage() {
               priority
             />
             <div>
-              <h1 className="text-4xl font-bold text-white m-0 drop-shadow-lg">
+              <h1
+                className="text-4xl font-bold m-0"
+                style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
+              >
                 Gracie Barra Kitsilano
               </h1>
-              <p className="text-xl text-white/90 mt-1 mb-0">Staff Payroll Management System</p>
+              <p
+                className="text-xl mt-1 mb-0"
+                style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
+              >
+                Staff Payroll Management System
+              </p>
             </div>
           </div>
 

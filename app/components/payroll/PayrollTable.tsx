@@ -14,7 +14,7 @@ interface PayrollTableProps {
   onDelete: (id: string) => void;
   onUpdateHours?: (
     staffHoursId: string,
-    field: 'regular_hours' | 'overtime_hours' | 'vacation_hours',
+    field: 'regular_hours' | 'overtime_hours' | 'vacation_hours' | 'sick_hours',
     value: number
   ) => Promise<void>;
   selectedIds?: Set<string>;
@@ -145,6 +145,21 @@ export default function PayrollTable({
           <EditableHoursCell
             value={value as number}
             onSave={(newValue) => onUpdateHours(row.id, 'vacation_hours', newValue)}
+            disabled={loading}
+          />
+        ) : (
+          <div className="text-right">{(value as number).toFixed(2)}</div>
+        ),
+    },
+    {
+      key: 'sick_hours' as keyof PayrollRow,
+      label: 'Sick',
+      sortable: true,
+      render: (value: unknown, row: PayrollRow) =>
+        onUpdateHours ? (
+          <EditableHoursCell
+            value={value as number}
+            onSave={(newValue) => onUpdateHours(row.id, 'sick_hours', newValue)}
             disabled={loading}
           />
         ) : (

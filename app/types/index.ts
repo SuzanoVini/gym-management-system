@@ -427,6 +427,7 @@ export interface StaffHours extends BaseRecord {
   regular_hours: number;
   overtime_hours: number;
   vacation_hours: number;
+  sick_hours: number;
   mat_cleaning_count: number;
   total_hours: number;
   notes?: string;
@@ -440,7 +441,7 @@ export interface TimeEntry {
   staff_hours_id: string;
   entry_date: string;
   hours: number;
-  entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning';
+  entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
   notes?: string;
   is_after_school_program: boolean;
   created_at: string;
@@ -465,6 +466,66 @@ export type StaffHoursFormData = Omit<StaffHours, 'id' | 'created_at' | 'updated
  * Form data for creating/updating a time entry
  */
 export type TimeEntryFormData = Omit<TimeEntry, 'id' | 'created_at'>;
+
+/**
+ * CSV column configuration - defines a single column in CSV export
+ */
+export interface CSVColumnConfig {
+  key: string; // Field key (e.g., 'staff_name', 'employee_id')
+  label: string; // Column header label
+  enabled: boolean; // Whether to include this column in export
+}
+
+/**
+ * CSV staff order configuration - defines how to order staff rows
+ */
+export interface CSVStaffOrderConfig {
+  type: 'id' | 'name' | 'custom'; // Order by employee ID, name, or custom
+  direction: 'asc' | 'desc'; // Ascending or descending
+  customOrder?: string[]; // Array of staff IDs in custom order (if type is 'custom')
+}
+
+/**
+ * CSV export format - complete format configuration
+ */
+export interface CSVExportFormat extends BaseRecord {
+  format_name: string;
+  is_default: boolean;
+  column_config: CSVColumnConfig[];
+  staff_order_config: CSVStaffOrderConfig;
+}
+
+/**
+ * Form data for creating/updating a CSV export format
+ */
+export type CSVExportFormatFormData = Omit<CSVExportFormat, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Field mapping confidence level
+ */
+export type MappingConfidence = 'exact' | 'partial' | 'guess' | 'none';
+
+/**
+ * CSV template field mapping - maps a CSV column to a database field
+ */
+export interface FieldMapping {
+  csvColumn: string; // Original CSV column name
+  dbField: string; // Database field key (e.g., 'staff_name', 'regular_hours')
+  confidence: MappingConfidence; // How confident the automatic mapping is
+  suggested?: boolean; // Whether this was auto-suggested
+}
+
+/**
+ * CSV template analysis result
+ */
+export interface TemplateAnalysisResult {
+  headers: string[]; // Original CSV headers
+  rowCount: number; // Number of data rows (excluding header)
+  sampleData: Record<string, string>[]; // First 3 rows as sample
+  fieldMappings: FieldMapping[]; // Automatic field mappings
+  unmappedColumns: string[]; // CSV columns that couldn't be mapped
+  missingFields: string[]; // Required DB fields not found in CSV
+}
 
 // ============================================================================
 // Type Guards

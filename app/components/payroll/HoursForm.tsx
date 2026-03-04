@@ -7,7 +7,7 @@ import type { StaffMember, TimeEntryFormData } from '@/types';
 interface HoursFormData {
   entry_date: string;
   hours: number;
-  entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning';
+  entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
   notes: string;
   is_after_school_program: boolean;
 }
@@ -121,7 +121,7 @@ export default function HoursForm({
           type="select"
           value={formData.entry_type}
           onChange={(value) => updateField('entry_type', value as string)}
-          options={['regular', 'overtime', 'vacation']}
+          options={['regular', 'overtime', 'vacation', 'sick']}
           disabled={matCleaningChecked}
           required
         />

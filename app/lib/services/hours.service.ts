@@ -84,6 +84,7 @@ export const createOrUpdateHours = async (
     regular_hours: 0,
     overtime_hours: 0,
     vacation_hours: 0,
+    sick_hours: 0,
     mat_cleaning_count: 0,
     total_hours: 0,
     ...hoursData,
@@ -205,6 +206,7 @@ export const calculateTotalHours = async (staffHoursId: string): Promise<StaffHo
   let regularHours = 0;
   let overtimeHours = 0;
   let vacationHours = 0;
+  let sickHours = 0;
   let matCleaningCount = 0;
 
   for (const entry of entries) {
@@ -218,6 +220,9 @@ export const calculateTotalHours = async (staffHoursId: string): Promise<StaffHo
       case 'vacation':
         vacationHours += entry.hours;
         break;
+      case 'sick':
+        sickHours += entry.hours;
+        break;
       case 'mat_cleaning':
         matCleaningCount += 1;
         break;
@@ -226,7 +231,7 @@ export const calculateTotalHours = async (staffHoursId: string): Promise<StaffHo
 
   // Calculate total hours including mat cleaning bonus
   const matCleaningHours = matCleaningCount * MAT_CLEANING_BONUS;
-  const totalHours = regularHours + overtimeHours + vacationHours + matCleaningHours;
+  const totalHours = regularHours + overtimeHours + vacationHours + sickHours + matCleaningHours;
 
   // Update staff hours
   const { data, error } = await supabase
@@ -235,6 +240,7 @@ export const calculateTotalHours = async (staffHoursId: string): Promise<StaffHo
       regular_hours: regularHours,
       overtime_hours: overtimeHours,
       vacation_hours: vacationHours,
+      sick_hours: sickHours,
       mat_cleaning_count: matCleaningCount,
       total_hours: totalHours,
     })
@@ -284,7 +290,7 @@ export const addMatCleaningBonus = async (
  */
 export const updateStaffHoursField = async (
   staffHoursId: string,
-  field: 'regular_hours' | 'overtime_hours' | 'vacation_hours',
+  field: 'regular_hours' | 'overtime_hours' | 'vacation_hours' | 'sick_hours',
   value: number
 ): Promise<StaffHours> => {
   // Get current staff hours to recalculate total
@@ -306,8 +312,9 @@ export const updateStaffHoursField = async (
   const newRegular = field === 'regular_hours' ? value : currentHours.regular_hours;
   const newOvertime = field === 'overtime_hours' ? value : currentHours.overtime_hours;
   const newVacation = field === 'vacation_hours' ? value : currentHours.vacation_hours;
+  const newSick = field === 'sick_hours' ? value : currentHours.sick_hours;
 
-  updates.total_hours = newRegular + newOvertime + newVacation + matCleaningHours;
+  updates.total_hours = newRegular + newOvertime + newVacation + newSick + matCleaningHours;
 
   // Update the database
   const { data, error } = await supabase

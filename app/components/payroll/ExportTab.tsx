@@ -1,13 +1,17 @@
 'use client';
 
-import { Calendar, Download, FileDown } from 'lucide-react';
-import { useState } from 'react';
-import type { PayrollPeriod } from '@/types';
+import { Calendar, Download, FileDown, Settings, Upload } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { errorHandler } from '@/lib/errorHandler';
+import { getAllFormats } from '@/lib/services/csv-format.service';
+import type { CSVExportFormat, PayrollPeriod } from '@/types';
+import FormatConfigurationModal from './FormatConfigurationModal';
+import TemplateImportModal from './TemplateImportModal';
 
 interface ExportTabProps {
   periods: PayrollPeriod[];
   currentPeriod: PayrollPeriod | null;
-  onExport: (periodId: string, format: 'csv') => Promise<void>;
+  onExport: (periodId: string, format: 'csv', formatId?: string) => Promise<void>;
   loading?: boolean;
 }
 
@@ -19,6 +23,41 @@ export default function ExportTab({
 }: ExportTabProps) {
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>(currentPeriod?.id || '');
   const [exportFormat, setExportFormat] = useState<'csv'>('csv');
+  const [formats, setFormats] = useState<CSVExportFormat[]>([]);
+  const [selectedFormatId, setSelectedFormatId] = useState<string>('');
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [templateImportModalOpen, setTemplateImportModalOpen] = useState(false);
+  const [formatsLoading, setFormatsLoading] = useState(false);
+
+  const loadFormats = useCallback(async () => {
+    setFormatsLoading(true);
+    try {
+      const result = await getAllFormats();
+      if (result.error) {
+        throw result.error;
+      }
+
+      const formatsList = result.data || [];
+      setFormats(formatsList);
+
+      // Set default format if available
+      const defaultFormat = formatsList.find((f) => f.is_default);
+      if (defaultFormat?.id) {
+        setSelectedFormatId(defaultFormat.id);
+      } else if (formatsList.length > 0 && formatsList[0]?.id) {
+        setSelectedFormatId(formatsList[0].id);
+      }
+    } catch (err) {
+      errorHandler.handle(err, 'loadFormats');
+    } finally {
+      setFormatsLoading(false);
+    }
+  }, []);
+
+  // Load formats on mount
+  useEffect(() => {
+    loadFormats();
+  }, [loadFormats]);
 
   const handleExport = async () => {
     if (!selectedPeriodId) {
@@ -26,10 +65,15 @@ export default function ExportTab({
       return;
     }
 
-    await onExport(selectedPeriodId, exportFormat);
+    await onExport(selectedPeriodId, exportFormat, selectedFormatId);
+  };
+
+  const handleConfigureSaved = () => {
+    loadFormats();
   };
 
   const selectedPeriod = periods.find((p) => p.id === selectedPeriodId);
+  const selectedFormat = formats.find((f) => f.id === selectedFormatId);
 
   return (
     <div className="space-y-6">
@@ -49,7 +93,7 @@ export default function ExportTab({
               id="period-select"
               value={selectedPeriodId}
               onChange={(e) => setSelectedPeriodId(e.target.value)}
-              className="form-select pl-10 w-full"
+              className="form-select pl-14 w-full"
               aria-label="Select period to export"
             >
               <option value="">Select a period</option>
@@ -62,6 +106,56 @@ export default function ExportTab({
               ))}
             </select>
           </div>
+        </div>
+
+        {/* CSV Format Configuration */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <label htmlFor="format-select" className="form-label mb-0">
+              CSV Export Format
+            </label>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setTemplateImportModalOpen(true)}
+                className="btn btn-sm btn-secondary"
+                disabled={formatsLoading}
+              >
+                <Upload className="w-4 h-4" />
+                Import Template
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfigModalOpen(true)}
+                className="btn btn-sm btn-secondary"
+                disabled={formatsLoading}
+              >
+                <Settings className="w-4 h-4" />
+                Configure Formats
+              </button>
+            </div>
+          </div>
+          <select
+            id="format-select"
+            value={selectedFormatId}
+            onChange={(e) => setSelectedFormatId(e.target.value)}
+            className="form-select w-full"
+            disabled={formatsLoading || formats.length === 0}
+          >
+            {formats.length === 0 ? (
+              <option value="">No formats available</option>
+            ) : (
+              formats.map((format) => (
+                <option key={format.id} value={format.id}>
+                  {format.format_name}
+                  {format.is_default && ' (Default)'}
+                </option>
+              ))
+            )}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Select a format configuration or create a new one
+          </p>
         </div>
 
         {/* Format Selector */}
@@ -86,7 +180,7 @@ export default function ExportTab({
         </div>
 
         {/* Preview Card */}
-        {selectedPeriod && (
+        {selectedPeriod && selectedFormat && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-start space-x-3">
               <FileDown className="w-5 h-5 text-blue-600 mt-0.5" />
@@ -105,6 +199,26 @@ export default function ExportTab({
                     <span className="font-medium">Status:</span>{' '}
                     {selectedPeriod.is_closed ? 'Closed' : 'Open'}
                   </p>
+                  <p>
+                    <span className="font-medium">Format:</span> {selectedFormat.format_name}
+                  </p>
+                  <p>
+                    <span className="font-medium">Columns:</span>{' '}
+                    {selectedFormat.column_config.filter((c) => c.enabled).length} enabled
+                  </p>
+                  <p>
+                    <span className="font-medium">Staff Order:</span>{' '}
+                    {selectedFormat.staff_order_config.type === 'name'
+                      ? 'By Name'
+                      : selectedFormat.staff_order_config.type === 'id'
+                        ? 'By Employee ID'
+                        : 'Custom'}{' '}
+                    (
+                    {selectedFormat.staff_order_config.direction === 'asc'
+                      ? 'Ascending'
+                      : 'Descending'}
+                    )
+                  </p>
                 </div>
               </div>
             </div>
@@ -116,7 +230,7 @@ export default function ExportTab({
           <button
             type="button"
             onClick={handleExport}
-            disabled={!selectedPeriodId || loading}
+            disabled={!selectedPeriodId || !selectedFormatId || loading}
             className="btn btn-primary"
           >
             <Download className="w-4 h-4" />
@@ -135,10 +249,7 @@ export default function ExportTab({
           </div>
           <div className="flex items-start space-x-2">
             <span className="text-gray-400 mt-1">•</span>
-            <p>
-              CSV columns: Staff Name, Payroll ID, Regular Hours, Overtime Hours, Vacation Hours,
-              Mat Cleaning Count, Total Hours
-            </p>
+            <p>Columns and their order are determined by the selected format configuration</p>
           </div>
           <div className="flex items-start space-x-2">
             <span className="text-gray-400 mt-1">•</span>
@@ -169,8 +280,28 @@ export default function ExportTab({
           <p>
             <strong>Archive:</strong> Keep exported files organized by period for record-keeping
           </p>
+          <p>
+            <strong>Custom Formats:</strong> Create multiple format profiles for different payroll
+            systems or reporting needs
+          </p>
         </div>
       </div>
+
+      {/* Format Configuration Modal */}
+      <FormatConfigurationModal
+        isOpen={configModalOpen}
+        onClose={() => setConfigModalOpen(false)}
+        onSave={handleConfigureSaved}
+        currentFormatId={selectedFormatId}
+      />
+
+      {/* Template Import Modal */}
+      <TemplateImportModal
+        isOpen={templateImportModalOpen}
+        onClose={() => setTemplateImportModalOpen(false)}
+        onImportSuccess={handleConfigureSaved}
+        existingFormatNames={formats.map((f) => f.format_name)}
+      />
     </div>
   );
 }
