@@ -36,16 +36,20 @@ export default function FormatConfigurationModal({
   });
   const [loading, setLoading] = useState(false);
 
-  // Default column configuration
+  // Default column configuration matching accountant template
   const defaultColumns: CSVColumnConfig[] = [
-    { key: 'staff_name', label: 'Staff Name', enabled: true },
-    { key: 'employee_id', label: 'Payroll ID', enabled: true },
-    { key: 'regular_hours', label: 'Regular Hours', enabled: true },
-    { key: 'overtime_hours', label: 'Overtime Hours', enabled: true },
-    { key: 'vacation_hours', label: 'Vacation Hours', enabled: true },
-    { key: 'sick_hours', label: 'Sick Hours', enabled: true },
-    { key: 'mat_cleaning_count', label: 'Mat Cleaning Count', enabled: true },
-    { key: 'total_hours', label: 'Total Hours', enabled: true },
+    { key: 'staff_name', label: 'Employee name', enabled: true },
+    { key: 'employee_id', label: 'Employee payroll ID', enabled: true },
+    { key: 'first_name', label: 'First name', enabled: true },
+    { key: 'last_name', label: 'Last name', enabled: true },
+    { key: 'job_id', label: 'job id', enabled: true },
+    { key: 'department_name', label: 'Department name', enabled: true },
+    { key: 'overtime_hours', label: 'Overtime', enabled: true },
+    { key: 'regular_hours', label: 'Regular Pay', enabled: true },
+    { key: 'sick_hours', label: 'Sick Pay', enabled: true },
+    { key: 'vacation_hours', label: 'Vacation Pay', enabled: true },
+    { key: 'external_id', label: 'External ID', enabled: true },
+    { key: 'job_title', label: 'Job Title', enabled: true },
   ];
 
   const loadFormats = useCallback(async () => {

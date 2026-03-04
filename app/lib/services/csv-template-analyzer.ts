@@ -10,16 +10,21 @@ import type {
 
 /**
  * Available database fields for payroll CSV export
+ * MUST match accountant's template structure exactly
  */
 export const AVAILABLE_DB_FIELDS = [
-  { key: 'staff_name', label: 'Staff Name', required: true },
-  { key: 'employee_id', label: 'Payroll ID', required: true },
-  { key: 'regular_hours', label: 'Regular Hours', required: false },
-  { key: 'overtime_hours', label: 'Overtime Hours', required: false },
-  { key: 'vacation_hours', label: 'Vacation Hours', required: false },
-  { key: 'sick_hours', label: 'Sick Hours', required: false },
-  { key: 'mat_cleaning_count', label: 'Mat Cleaning Count', required: false },
-  { key: 'total_hours', label: 'Total Hours', required: false },
+  { key: 'staff_name', label: 'Employee name', required: true },
+  { key: 'employee_id', label: 'Employee payroll ID', required: true },
+  { key: 'first_name', label: 'First name', required: false },
+  { key: 'last_name', label: 'Last name', required: false },
+  { key: 'job_id', label: 'job id', required: false },
+  { key: 'department_name', label: 'Department name', required: false },
+  { key: 'overtime_hours', label: 'Overtime', required: false },
+  { key: 'regular_hours', label: 'Regular Pay', required: false },
+  { key: 'sick_hours', label: 'Sick Pay', required: false },
+  { key: 'vacation_hours', label: 'Vacation Pay', required: false },
+  { key: 'external_id', label: 'External ID', required: false },
+  { key: 'job_title', label: 'Job Title', required: false },
 ] as const;
 
 /**
@@ -59,12 +64,28 @@ const FIELD_MAPPING_PATTERNS: Record<
     patterns: [/^(sick\s*hours?|sick\s*pay|sick|sick\s*leave|sick\s*time)$/i],
     confidence: 'exact',
   },
-  mat_cleaning_count: {
-    patterns: [/^(mat\s*cleaning|mat\s*clean|mats|mat\s*count|cleaning\s*count)$/i],
+  first_name: {
+    patterns: [/^(first\s*name|firstname|fname|given\s*name)$/i],
     confidence: 'exact',
   },
-  total_hours: {
-    patterns: [/^(total\s*hours?|total|hours?\s*total|sum\s*hours?)$/i],
+  last_name: {
+    patterns: [/^(last\s*name|lastname|lname|surname|family\s*name)$/i],
+    confidence: 'exact',
+  },
+  job_id: {
+    patterns: [/^(job\s*id|jobid|job\s*number|position\s*id)$/i],
+    confidence: 'exact',
+  },
+  department_name: {
+    patterns: [/^(department\s*name|department|dept\s*name|dept)$/i],
+    confidence: 'exact',
+  },
+  external_id: {
+    patterns: [/^(external\s*id|externalid|ext\s*id)$/i],
+    confidence: 'exact',
+  },
+  job_title: {
+    patterns: [/^(job\s*title|jobtitle|title|position|role)$/i],
     confidence: 'exact',
   },
 };
@@ -196,20 +217,52 @@ export function generateFormatConfig(
 export function analyzeCSVTemplate(file: File): Promise<TemplateAnalysisResult> {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
-      header: true,
+      header: false, // Don't auto-detect header, we'll handle it manually
       dynamicTyping: false,
-      skipEmptyLines: true,
-      preview: 4, // Only parse first 4 rows (1 header + 3 sample rows)
+      skipEmptyLines: false, // Keep empty lines to maintain structure
+      preview: 7, // Parse first 7 rows (3 header rows + 1 actual header + 3 sample rows)
       delimitersToGuess: [',', '\t', '|', ';'],
-      transformHeader: (header: string) => header.trim(),
-      complete: (results: ParseResult<Record<string, string>>) => {
+      complete: (results: ParseResult<string[]>) => {
         try {
-          const headers = results.meta.fields || [];
-          const data = results.data || [];
-          const rowCount = data.length;
+          const allRows = results.data || [];
 
-          // Get sample data (first 3 rows)
-          const sampleData = data.slice(0, 3);
+          // Check if we have enough rows for the expected structure
+          if (allRows.length < 4) {
+            reject(
+              new Error(
+                'CSV file does not have the expected structure. Expected: Row 1 (Title), Row 2 (Date), Row 3 (Blank), Row 4 (Headers)'
+              )
+            );
+            return;
+          }
+
+          // Extract the actual column headers from row 4 (index 3)
+          const headerRow = allRows[3];
+          if (!headerRow || headerRow.length === 0) {
+            reject(new Error('No column headers found on row 4'));
+            return;
+          }
+
+          // Trim whitespace from headers
+          const headers = headerRow.map((h) => (h || '').trim()).filter((h) => h !== '');
+
+          // Extract sample data rows (rows 5-7, indices 4-6)
+          const dataRows = allRows.slice(4, 7);
+
+          // Convert data rows to objects using headers
+          const sampleData = dataRows
+            .filter(
+              (row) => row && row.length > 0 && row.some((cell) => cell && cell.trim() !== '')
+            )
+            .map((row) => {
+              const obj: Record<string, string> = {};
+              headers.forEach((header, index) => {
+                obj[header] = (row[index] || '').trim();
+              });
+              return obj;
+            });
+
+          const rowCount = sampleData.length;
 
           // Perform automatic field mapping
           const { mappings, unmappedColumns, missingFields } = mapFieldsToDatabase(headers);
