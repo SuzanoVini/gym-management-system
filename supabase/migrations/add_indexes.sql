@@ -91,8 +91,8 @@ CREATE INDEX IF NOT EXISTS idx_holds_end_date ON holds(end_date);
 CREATE INDEX IF NOT EXISTS idx_holds_created_at ON holds(created_at DESC);
 
 -- Composite index for finding active holds (end_date in future)
-CREATE INDEX IF NOT EXISTS idx_holds_active ON holds(end_date)
-  WHERE end_date > NOW();
+-- Note: Removed WHERE clause to avoid immutability issues with NOW()
+CREATE INDEX IF NOT EXISTS idx_holds_active ON holds(end_date);
 
 -- ============================================================================
 -- FOLLOW-UP NOTES TABLE INDEXES
