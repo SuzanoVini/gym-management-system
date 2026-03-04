@@ -40,7 +40,7 @@ function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
       href={tab.route}
       target="_blank"
       rel="noopener noreferrer"
-      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
+      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-250 group cursor-pointer ${
         isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
       } ${isActive ? 'is-active' : ''}`}
       title={isOpen ? undefined : tab.label}
@@ -52,9 +52,11 @@ function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
       }}
     >
       <Icon
-        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`}
+        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 group-hover:rotate-3'} transition-all duration-250`}
       />
-      {isOpen && <span className="whitespace-nowrap truncate font-medium">{tab.label}</span>}
+      {isOpen && (
+        <span className="whitespace-nowrap truncate font-medium tracking-wide">{tab.label}</span>
+      )}
     </a>
   );
 }
@@ -65,16 +67,18 @@ function TabButton({ tab, isActive, isOpen, onTabClick }: TabItemProps) {
     <button
       type="button"
       onClick={() => onTabClick(tab.id, tab.route)}
-      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
+      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-250 group cursor-pointer ${
         isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
       } ${isActive ? 'is-active' : ''}`}
       title={isOpen ? undefined : tab.label}
       aria-label={tab.label}
     >
       <Icon
-        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110'} transition-transform`}
+        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 group-hover:rotate-3'} transition-all duration-250`}
       />
-      {isOpen && <span className="whitespace-nowrap truncate font-medium">{tab.label}</span>}
+      {isOpen && (
+        <span className="whitespace-nowrap truncate font-medium tracking-wide">{tab.label}</span>
+      )}
     </button>
   );
 }

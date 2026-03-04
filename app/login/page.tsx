@@ -54,32 +54,40 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        {/* Clean card container matching good example */}
-        <div className="bg-white rounded-lg shadow-sm p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="max-w-md w-full relative z-10">
+        {/* Modern glassmorphism card */}
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-glass-lg p-8 border border-slate-200/50">
           <div className="text-center mb-8">
-            <Image
-              src="/brand/gb-logo-title.png"
-              alt="GB Kitsilano"
-              className="mx-auto h-32 w-auto max-w-[180px] object-contain"
-              width={180}
-              height={128}
-              priority
-            />
-            <p className="mt-4 text-center text-sm text-gray-600">
+            <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-xl inline-block mb-4 shadow-soft">
+              <Image
+                src="/brand/gb-logo-title.png"
+                alt="GB Kitsilano"
+                className="mx-auto h-28 w-auto max-w-[160px] object-contain"
+                width={160}
+                height={112}
+                priority
+              />
+            </div>
+            <p className="mt-4 text-center text-sm text-slate-600 font-medium">
               {isResetMode ? 'Reset Your Password' : 'Gym Management System'}
             </p>
           </div>
           <form className="space-y-6" onSubmit={isResetMode ? handlePasswordReset : handleLogin}>
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="rounded-lg bg-red-50 border border-red-200 p-4 animate-slideUp">
+                <p className="text-sm text-red-800 font-medium">{error}</p>
               </div>
             )}
             {success && (
-              <div className="rounded-md bg-green-50 p-4">
-                <p className="text-sm text-green-800">{success}</p>
+              <div className="rounded-lg bg-green-50 border border-green-200 p-4 animate-slideUp">
+                <p className="text-sm text-green-800 font-medium">{success}</p>
               </div>
             )}
             <div className="space-y-4">
@@ -128,7 +136,7 @@ export default function Login() {
                     setError('');
                     setSuccess('');
                   }}
-                  className="text-sm font-medium text-red-600 hover:text-red-500"
+                  className="text-sm font-medium text-red-600 hover:text-red-500 transition-colors cursor-pointer"
                 >
                   Forgot your password?
                 </button>
@@ -136,7 +144,11 @@ export default function Login() {
             )}
 
             <div>
-              <button type="submit" disabled={loading} className="btn btn-primary w-full">
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary w-full text-base cursor-pointer"
+              >
                 {loading
                   ? isResetMode
                     ? 'Sending...'
@@ -156,7 +168,7 @@ export default function Login() {
                     setError('');
                     setSuccess('');
                   }}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                 >
                   Back to Sign In
                 </button>
