@@ -14,7 +14,7 @@ interface HoursFormData {
 
 interface HoursFormProps {
   staff: StaffMember[];
-  onSubmit: (data: TimeEntryFormData) => void;
+  onSubmit: (staffId: string, data: TimeEntryFormData) => void;
   loading?: boolean;
   onCancel: () => void;
   staffHoursId?: string;
@@ -44,20 +44,19 @@ export default function HoursForm({
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [matCleaningChecked, setMatCleaningChecked] = useState(false);
 
-  // Auto-detect After School Program based on time (3-6 PM on weekdays)
+  // Determine if this is After School Program based on selected staff member's job title
   useEffect(() => {
-    const date = new Date(formData.entry_date);
-    const dayOfWeek = date.getDay();
-    const hour = date.getHours();
+    if (selectedStaffId) {
+      const selectedStaff = staff.find((s) => s.id === selectedStaffId);
+      const isAfterSchoolStaff =
+        selectedStaff?.job_title?.toLowerCase().includes('after school') || false;
 
-    // Check if it's a weekday (1-5) and between 3-6 PM
-    const isAfterSchoolTime = dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 15 && hour < 18;
-
-    setFormData((prev) => ({
-      ...prev,
-      is_after_school_program: isAfterSchoolTime,
-    }));
-  }, [formData.entry_date]);
+      setFormData((prev) => ({
+        ...prev,
+        is_after_school_program: isAfterSchoolStaff,
+      }));
+    }
+  }, [selectedStaffId, staff]);
 
   // Handle mat cleaning checkbox
   useEffect(() => {
@@ -78,15 +77,21 @@ export default function HoursForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedStaffId) {
+      alert('Please select a staff member');
+      return;
+    }
+
     const submitData: TimeEntryFormData = {
-      staff_hours_id: staffHoursId,
+      staff_hours_id: staffHoursId || '', // Will be set by the parent handler
       entry_date: formData.entry_date,
       hours: formData.hours,
       entry_type: formData.entry_type,
       is_after_school_program: formData.is_after_school_program,
       ...(formData.notes && { notes: formData.notes }),
     };
-    onSubmit(submitData);
+    onSubmit(selectedStaffId, submitData);
   };
 
   const updateField = (field: string, value: string | number | boolean) => {
@@ -96,15 +101,28 @@ export default function HoursForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          label="Staff Member"
-          name="staff_id"
-          type="select"
-          value={selectedStaffId}
-          onChange={(value) => setSelectedStaffId(value as string)}
-          options={staff.filter((s) => s.is_active).map((s) => s.id)}
-          required
-        />
+        <div className="mb-4">
+          <label htmlFor="staff_id" className="form-label">
+            Staff Member
+            <span className="text-red-500 ml-1">*</span>
+          </label>
+          <select
+            id="staff_id"
+            value={selectedStaffId}
+            onChange={(e) => setSelectedStaffId(e.target.value)}
+            className="form-select"
+            required
+          >
+            <option value="">Select Staff Member</option>
+            {staff
+              .filter((s) => s.is_active)
+              .map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name} ({s.employee_id})
+                </option>
+              ))}
+          </select>
+        </div>
 
         <FormField
           label="Date"
@@ -156,8 +174,8 @@ export default function HoursForm({
       {formData.is_after_school_program && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-sm text-blue-800">
-            <strong>After School Program Detected:</strong> This entry is during After School
-            Program hours (Mon-Fri, 3-6 PM)
+            <strong>After School Program:</strong> This staff member is in the After School Program
+            department. These hours will be tagged accordingly.
           </p>
         </div>
       )}

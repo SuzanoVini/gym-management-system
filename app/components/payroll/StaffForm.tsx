@@ -104,8 +104,8 @@ export default function StaffForm({ staff, onSubmit, loading = false, onCancel }
       {formData.job_title.toLowerCase().includes('after school') && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-sm text-blue-800">
-            <strong>Note:</strong> After School Program hours are typically Mon-Fri, 3-6 PM. Time
-            entries during these hours will be automatically tagged.
+            <strong>Note:</strong> Time entries for After School Program staff will be automatically
+            tagged based on their department assignment.
           </p>
         </div>
       )}

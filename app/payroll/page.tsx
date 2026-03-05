@@ -4,6 +4,7 @@ import { Calendar, Clock, FileDown, FileUp, Plus, Users } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import ExportTab from '@/components/payroll/ExportTab';
+import HoursForm from '@/components/payroll/HoursForm';
 import ImportTab from '@/components/payroll/ImportTab';
 import PayrollTable from '@/components/payroll/PayrollTable';
 import PeriodSelector from '@/components/payroll/PeriodSelector';
@@ -16,12 +17,14 @@ import { usePayrollStaff } from '@/hooks/usePayrollStaff';
 import { useStaffHours } from '@/hooks/useStaffHours';
 import { errorHandler } from '@/lib/errorHandler';
 import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
+import { addTimeEntry, createOrUpdateHours, getStaffHours } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
-import type { StaffMember, StaffMemberFormData } from '@/types';
+import type { StaffMember, StaffMemberFormData, TimeEntryFormData } from '@/types';
 
 export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState('import');
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -171,6 +174,44 @@ export default function PayrollPage() {
     // TODO: Implement actual database save using hooks
     // For now, just refresh to show the message
     await refreshHours();
+  };
+
+  // Hours management handlers
+  const handleAddHours = () => {
+    setHoursModalOpen(true);
+  };
+
+  const handleSubmitHours = async (staffId: string, data: TimeEntryFormData) => {
+    if (!currentPeriod) {
+      errorHandler.handle(new Error('Please select a payroll period first'), 'handleSubmitHours');
+      return;
+    }
+
+    try {
+      // Create or get staff_hours record for this period and staff member
+      const staffHours = await getStaffHours(currentPeriod.id, staffId);
+      let staffHoursId: string;
+
+      if (staffHours) {
+        staffHoursId = staffHours.id;
+      } else {
+        // Create new staff_hours record
+        const newStaffHours = await createOrUpdateHours(currentPeriod.id, staffId, {});
+        staffHoursId = newStaffHours.id;
+      }
+
+      // Add the time entry
+      await addTimeEntry(staffHoursId, {
+        ...data,
+        staff_hours_id: staffHoursId,
+      });
+
+      errorHandler.notify('Hours added successfully', 'success');
+      setHoursModalOpen(false);
+      await refreshHours();
+    } catch (err) {
+      errorHandler.handle(err, 'handleSubmitHours');
+    }
   };
 
   // Export handlers
@@ -511,6 +552,16 @@ export default function PayrollPage() {
 
                 {/* Payroll Table */}
                 <div className="payroll-card">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">Hours Summary</h2>
+                    {currentPeriod && (
+                      <button type="button" onClick={handleAddHours} className="btn btn-primary">
+                        <Plus className="w-4 h-4" />
+                        Add Hours
+                      </button>
+                    )}
+                  </div>
+
                   {currentPeriod ? (
                     <PayrollTable
                       hours={hours}
@@ -563,6 +614,21 @@ export default function PayrollPage() {
             setStaffModalOpen(false);
             setSelectedStaff(null);
           }}
+        />
+      </Modal>
+
+      {/* Hours Form Modal */}
+      <Modal
+        isOpen={hoursModalOpen}
+        onClose={() => setHoursModalOpen(false)}
+        title="Add Hours"
+        size="lg"
+      >
+        <HoursForm
+          staff={staff.filter((s) => s.is_active)}
+          onSubmit={handleSubmitHours}
+          loading={hoursLoading}
+          onCancel={() => setHoursModalOpen(false)}
         />
       </Modal>
     </ProtectedRoute>
