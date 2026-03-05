@@ -4,9 +4,9 @@ import { Calendar, Clock, FileDown, FileUp, Plus, Users } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import ExportTab from '@/components/payroll/ExportTab';
-import HoursForm from '@/components/payroll/HoursForm';
 import ImportTab from '@/components/payroll/ImportTab';
 import PayrollTable from '@/components/payroll/PayrollTable';
+import PeriodHoursForm from '@/components/payroll/PeriodHoursForm';
 import PeriodSelector from '@/components/payroll/PeriodSelector';
 import StaffForm from '@/components/payroll/StaffForm';
 import StaffTable from '@/components/payroll/StaffTable';
@@ -17,9 +17,9 @@ import { usePayrollStaff } from '@/hooks/usePayrollStaff';
 import { useStaffHours } from '@/hooks/useStaffHours';
 import { errorHandler } from '@/lib/errorHandler';
 import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
-import { addTimeEntry, createOrUpdateHours, getStaffHours } from '@/lib/services/hours.service';
+import { createOrUpdateHours } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
-import type { StaffMember, StaffMemberFormData, TimeEntryFormData } from '@/types';
+import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
 export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState('import');
@@ -181,32 +181,29 @@ export default function PayrollPage() {
     setHoursModalOpen(true);
   };
 
-  const handleSubmitHours = async (staffId: string, data: TimeEntryFormData) => {
+  const handleSubmitHours = async (staffId: string, data: Partial<StaffHoursFormData>) => {
     if (!currentPeriod) {
       errorHandler.handle(new Error('Please select a payroll period first'), 'handleSubmitHours');
       return;
     }
 
     try {
-      // Create or get staff_hours record for this period and staff member
-      const staffHours = await getStaffHours(currentPeriod.id, staffId);
-      let staffHoursId: string;
+      // Calculate total hours including mat cleaning bonus (0.25 hrs each)
+      const matCleaningHours = (data.mat_cleaning_count || 0) * 0.25;
+      const totalHours =
+        (data.regular_hours || 0) +
+        (data.overtime_hours || 0) +
+        (data.vacation_hours || 0) +
+        (data.sick_hours || 0) +
+        matCleaningHours;
 
-      if (staffHours) {
-        staffHoursId = staffHours.id;
-      } else {
-        // Create new staff_hours record
-        const newStaffHours = await createOrUpdateHours(currentPeriod.id, staffId, {});
-        staffHoursId = newStaffHours.id;
-      }
-
-      // Add the time entry
-      await addTimeEntry(staffHoursId, {
+      // Create or update staff hours for this period
+      await createOrUpdateHours(currentPeriod.id, staffId, {
         ...data,
-        staff_hours_id: staffHoursId,
+        total_hours: totalHours,
       });
 
-      errorHandler.notify('Hours added successfully', 'success');
+      errorHandler.notify('Hours saved successfully', 'success');
       setHoursModalOpen(false);
       await refreshHours();
     } catch (err) {
@@ -621,11 +618,11 @@ export default function PayrollPage() {
       <Modal
         isOpen={hoursModalOpen}
         onClose={() => setHoursModalOpen(false)}
-        title="Add Hours"
+        title="Add Hours for Period"
         size="lg"
       >
-        <HoursForm
-          staff={staff.filter((s) => s.is_active)}
+        <PeriodHoursForm
+          staff={staff}
           onSubmit={handleSubmitHours}
           loading={hoursLoading}
           onCancel={() => setHoursModalOpen(false)}
