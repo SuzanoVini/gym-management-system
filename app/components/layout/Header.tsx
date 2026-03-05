@@ -23,10 +23,10 @@ export default function Header({ onLogoClick }: HeaderProps) {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-2.5 text-slate-700 bg-white/40 hover:bg-white/60 backdrop-blur-sm rounded-lg transition-all duration-200 flex-shrink-0 active:scale-95 border border-slate-200/50 hover:border-slate-300/70 shadow-soft hover:shadow-soft-lg cursor-pointer"
+            className="p-2.5 text-slate-700 bg-white/50 hover:bg-white/70 backdrop-blur-md rounded-xl transition-all duration-300 flex-shrink-0 active:scale-95 shadow-soft hover:shadow-soft-lg cursor-pointer group"
             aria-label="Toggle sidebar"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
           </button>
           <button
             type="button"

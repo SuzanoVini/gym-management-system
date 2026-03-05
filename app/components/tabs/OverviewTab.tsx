@@ -504,7 +504,7 @@ export default function OverviewTab() {
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
           {[
             { value: 'all', label: 'All Time' },
             { value: '1month', label: 'Last Month' },

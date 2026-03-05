@@ -35,16 +35,16 @@ export default function PeriodSelector({
       )}
 
       {/* Period Selector Dropdown */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Calendar className="h-5 w-5 text-gray-400" aria-hidden="true" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+            <Calendar className="h-4 w-4 text-slate-500" aria-hidden="true" />
           </div>
           <select
             value={currentPeriod?.id || ''}
             onChange={(e) => onSelectPeriod(e.target.value)}
             disabled={loading}
-            className="form-select pl-14 w-full"
+            className="form-select pl-12 w-full"
             aria-label="Select payroll period"
           >
             {periods.length === 0 ? (

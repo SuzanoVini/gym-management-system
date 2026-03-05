@@ -84,13 +84,14 @@ export const useInsights = ({
         };
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const staffEntry = acc[intro.staff]!;
-      staffEntry.total++;
-      if (intro.attended === 'Yes') {
-        staffEntry.attended++;
-        if (intro.signed_up === 'Yes') {
-          staffEntry.signedUp++;
+      const staffEntry = acc[intro.staff];
+      if (staffEntry) {
+        staffEntry.total++;
+        if (intro.attended === 'Yes') {
+          staffEntry.attended++;
+          if (intro.signed_up === 'Yes') {
+            staffEntry.signedUp++;
+          }
         }
       }
 
@@ -189,13 +190,14 @@ This gap represents ~${missedSignups} missed signups this period.`,
         };
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const classEntry = acc[intro.class]!;
-      classEntry.intros++;
-      if (intro.attended === 'Yes') {
-        classEntry.attended++;
-        if (intro.signed_up === 'Yes') {
-          classEntry.signups++;
+      const classEntry = acc[intro.class];
+      if (classEntry) {
+        classEntry.intros++;
+        if (intro.attended === 'Yes') {
+          classEntry.attended++;
+          if (intro.signed_up === 'Yes') {
+            classEntry.signups++;
+          }
         }
       }
 
