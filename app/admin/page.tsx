@@ -508,10 +508,7 @@ export default function AdminPage() {
     <ProtectedRoute>
       <div className="app-shell" data-sidebar={isOpen ? 'expanded' : 'collapsed'}>
         <Header onLogoClick={() => router.push('/')} />
-        <Sidebar
-          activeTab="admin"
-          setActiveTab={/* no-op: admin page uses router navigation */ () => undefined}
-        />
+        <Sidebar activeTab="admin" setActiveTab={(tab) => router.push(`/?tab=${tab}`)} />
         <div className="app-main">
           <main className="py-6 sm:py-8">
             <div className="animate-fadeIn">

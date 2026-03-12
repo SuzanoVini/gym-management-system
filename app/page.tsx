@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import ProtectedRoute from './components/providers/ProtectedRoute';
@@ -12,8 +13,14 @@ import OverviewTab from './components/tabs/OverviewTab';
 import SignupsTab from './components/tabs/SignupsTab';
 import { useSidebarStore } from './store/useSidebarStore';
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState('overview');
+const VALID_TABS = ['overview', 'insights', 'intros', 'signups', 'cancellations', 'holds'];
+
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : 'overview'
+  );
   const { isOpen } = useSidebarStore();
 
   return (
@@ -56,5 +63,13 @@ export default function Home() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }
