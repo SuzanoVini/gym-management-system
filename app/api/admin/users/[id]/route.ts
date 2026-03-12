@@ -3,8 +3,9 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const supabase = createRouteHandlerClient({ cookies });
     const {
       data: { user },
@@ -13,7 +14,7 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (user.id === params.id) {
+    if (user.id === id) {
       return NextResponse.json(
         { error: 'Cannot delete your own account from here' },
         { status: 400 }
@@ -21,8 +22,8 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
     }
 
     const admin = createAdminClient();
-    await admin.from('user_profiles').delete().eq('id', params.id);
-    const { error } = await admin.auth.admin.deleteUser(params.id);
+    await admin.from('user_profiles').delete().eq('id', id);
+    const { error } = await admin.auth.admin.deleteUser(id);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -34,8 +35,9 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const supabase = createRouteHandlerClient({ cookies });
     const {
       data: { user },
@@ -55,7 +57,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(params.id, { password });
+    const { error } = await admin.auth.admin.updateUserById(id, { password });
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
