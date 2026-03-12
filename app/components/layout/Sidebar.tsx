@@ -1,6 +1,15 @@
 'use client';
 
-import { BarChart3, Clock, DollarSign, TrendingUp, UserCheck, Users, UserX } from 'lucide-react';
+import {
+  BarChart3,
+  Clock,
+  DollarSign,
+  ShieldCheck,
+  TrendingUp,
+  UserCheck,
+  Users,
+  UserX,
+} from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import ProfileSection from './ProfileSection';
@@ -13,6 +22,7 @@ const tabs = [
   { id: 'cancellations', label: 'Cancellations', icon: UserX },
   { id: 'holds', label: 'Holds', icon: Clock },
   { id: 'payroll', label: 'Payroll', icon: DollarSign, route: '/payroll' },
+  { id: 'admin', label: 'Users', icon: ShieldCheck, route: '/admin' },
 ];
 
 interface SidebarProps {
