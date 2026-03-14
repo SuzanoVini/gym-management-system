@@ -299,7 +299,7 @@ export function transformToHoursRecords(
           // Normalize MM/DD/YYYY → YYYY-MM-DD
           const mmddyyyy = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
           if (mmddyyyy) {
-            const [, m, d, y] = mmddyyyy;
+            const [, m, d, y] = mmddyyyy as [string, string, string, string];
             transformed.date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
           } else {
             transformed.date = rawDate;
