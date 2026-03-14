@@ -398,21 +398,8 @@ export async function importStaffCSV(file: File): Promise<ImportResult> {
       };
     }
 
-    // Detect and map columns
+    // Map columns
     const headers = Object.keys(parsedData[0] ?? {});
-    const csvType = detectCSVType(headers);
-
-    if (csvType !== 'staff') {
-      return {
-        success: false,
-        imported: 0,
-        errors: [
-          `Invalid CSV format. Expected staff CSV but detected: ${csvType}. ` +
-            'Staff CSV should contain columns like: Payroll ID, First Name, Last Name, Job Title',
-        ],
-      };
-    }
-
     const columnMapping = mapCSVColumns(headers);
 
     // Transform data
@@ -477,21 +464,8 @@ export async function importHoursCSV(file: File, periodId: string): Promise<Impo
       };
     }
 
-    // Detect and map columns
+    // Map columns
     const headers = Object.keys(parsedData[0] ?? {});
-    const csvType = detectCSVType(headers);
-
-    if (csvType !== 'hours') {
-      return {
-        success: false,
-        imported: 0,
-        errors: [
-          `Invalid CSV format. Expected hours CSV but detected: ${csvType}. ` +
-            'Hours CSV should contain columns like: Payroll ID, Date, Hours, Type',
-        ],
-      };
-    }
-
     const columnMapping = mapCSVColumns(headers);
 
     // Transform data
