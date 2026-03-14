@@ -172,7 +172,20 @@ export function mapCSVColumns(headers: string[]): Record<string, string> {
   const mapping: Record<string, string> = {};
 
   const columnMap: Record<string, string[]> = {
-    employee_id: ['payroll id', 'payroll_id', 'employee id', 'employee_id', 'emp_id', 'id'],
+    employee_id: [
+      'payroll id',
+      'payroll_id',
+      'employee id',
+      'employee_id',
+      'emp_id',
+      'id',
+      'user',
+      'actor',
+      'staff',
+      'staff member',
+      'staff_member',
+      'employee',
+    ],
     full_name: ['employee name', 'full name', 'full_name', 'name'],
     first_name: ['first name', 'first_name', 'firstname', 'fname'],
     last_name: ['last name', 'last_name', 'lastname', 'lname'],
@@ -183,8 +196,6 @@ export function mapCSVColumns(headers: string[]): Record<string, string> {
     hours: ['hours', 'total hours', 'total_hours', 'hours worked', 'hours_worked'],
     type: ['type', 'hours type', 'hours_type', 'entry_type', 'category'],
     notes: ['notes', 'note', 'comments', 'description'],
-    user: ['user', 'staff', 'staff member', 'staff_member', 'employee'],
-    actor: ['actor'],
   };
 
   for (const header of headers) {
@@ -283,9 +294,18 @@ export function transformToHoursRecords(
         case 'employee_id':
           transformed.employee_id = String(value ?? '').trim();
           break;
-        case 'date':
-          transformed.date = String(value ?? '').trim();
+        case 'date': {
+          const rawDate = String(value ?? '').trim();
+          // Normalize MM/DD/YYYY → YYYY-MM-DD
+          const mmddyyyy = rawDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (mmddyyyy) {
+            const [, m, d, y] = mmddyyyy;
+            transformed.date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          } else {
+            transformed.date = rawDate;
+          }
           break;
+        }
         case 'notes':
           transformed.notes = String(value ?? '').trim();
           break;
