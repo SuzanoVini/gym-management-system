@@ -8,13 +8,11 @@ test.describe('Overview Tab', () => {
   });
 
   test('renders without error', async ({ page }) => {
-    // The overview tab is the default — verify the main content area is present
     await expect(page.locator('main')).toBeVisible();
   });
 
-  test('shows at least one summary stat or card', async ({ page }) => {
-    // Overview renders stat cards/charts — look for any bg-white card or stat element
-    const cards = page.locator('main .bg-white');
-    await expect(cards.first()).toBeVisible();
+  test('Monthly Trends heading is visible', async ({ page }) => {
+    // OverviewTab renders an h2 "Monthly Trends" — stable semantic assertion
+    await expect(page.getByRole('heading', { name: /monthly trends/i })).toBeVisible();
   });
 });

@@ -11,6 +11,10 @@ test.describe('Cancellations Tab', () => {
     await expect(page.locator('main')).toBeVisible();
   });
 
+  test('Cancellations heading is visible', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: /cancellations/i })).toBeVisible();
+  });
+
   test('table or list area is present', async ({ page }) => {
     await expect(
       page.locator('main table, main [role="table"], main .overflow-x-auto')

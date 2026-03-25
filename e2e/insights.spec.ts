@@ -16,8 +16,10 @@ test.describe('Insights Tab', () => {
     await expect(page.getByRole('heading', { name: /smart business insights/i })).toBeVisible();
   });
 
-  test('shows either insights or empty state', async ({ page }) => {
-    // The priority summary cards are always rendered regardless of data (Critical/High/Medium)
+  test('priority summary cards are always visible', async ({ page }) => {
+    // All three priority cards (Critical/High/Medium) are rendered unconditionally
     await expect(page.getByText(/critical priority/i)).toBeVisible();
+    await expect(page.getByText(/high priority/i)).toBeVisible();
+    await expect(page.getByText(/medium priority/i)).toBeVisible();
   });
 });

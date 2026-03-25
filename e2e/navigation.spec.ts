@@ -8,34 +8,20 @@ test.describe('Navigation', () => {
 
   test('main dashboard loads after login', async ({ page }) => {
     await expect(page).toHaveURL('/');
-    await expect(page.locator('.app-shell')).toBeVisible();
+    // app-shell is a custom CSS class defined in globals.css — use data-sidebar attribute for robustness
+    await expect(page.locator('[data-sidebar]')).toBeVisible();
   });
 
   test('sidebar navigation is present', async ({ page }) => {
-    await expect(page.locator('aside.app-sidebar')).toBeVisible();
+    // <aside className="app-sidebar"> — use ARIA complementary role
+    await expect(page.getByRole('complementary')).toBeVisible();
   });
 
-  test('Overview tab is visible in sidebar', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /overview/i })).toBeVisible();
-  });
-
-  test('Insights tab is visible in sidebar', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /insights/i })).toBeVisible();
-  });
-
-  test('Intros tab is visible in sidebar', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /intros/i })).toBeVisible();
-  });
-
-  test('Sign-ups tab is visible in sidebar', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /sign.ups/i })).toBeVisible();
-  });
-
-  test('Cancellations tab is visible in sidebar', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /cancellations/i })).toBeVisible();
-  });
-
-  test('Holds tab is visible in sidebar', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /holds/i })).toBeVisible();
+  test('all main tab buttons are visible in sidebar', async ({ page }) => {
+    // Verify all 6 tab buttons are present in one test to avoid repeated logins
+    const tabs = ['Overview', 'Insights', 'Intros', 'Sign-ups', 'Cancellations', 'Holds'];
+    for (const tab of tabs) {
+      await expect(page.getByRole('button', { name: new RegExp(tab, 'i') })).toBeVisible();
+    }
   });
 });
