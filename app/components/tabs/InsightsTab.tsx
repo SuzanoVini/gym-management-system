@@ -10,6 +10,7 @@ import {
   DollarSign,
   RefreshCw,
   Target,
+  TrendingDown,
   TrendingUp,
   Users,
 } from 'lucide-react';
@@ -25,21 +26,14 @@ import type { Insight } from '@/types';
 
 const InsightIcons = {
   AlertCircle,
-
   AlertTriangle,
-
   Calendar,
-
   CheckCircle,
-
   Clock,
-
   DollarSign,
-
+  TrendingDown,
   TrendingUp,
-
   Users,
-
   Target,
 };
 
