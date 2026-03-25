@@ -57,3 +57,5 @@ Thumbs.db
 Pickup Route*/
 pickup-route*/
 *pickup*route*/
+# Brainstorm session files
+.superpowers/
