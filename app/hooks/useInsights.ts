@@ -71,180 +71,7 @@ export const useInsights = ({
       });
     }
 
-    // 2. HIGH: Staff Performance Anomaly
-    const staffStats = activeIntros.reduce<
-      Record<string, { total: number; attended: number; signedUp: number }>
-    >((acc, intro) => {
-      if (!intro.staff) {
-        return acc;
-      }
-
-      if (!acc[intro.staff]) {
-        acc[intro.staff] = {
-          total: 0,
-          attended: 0,
-          signedUp: 0,
-        };
-      }
-
-      const staffEntry = acc[intro.staff];
-      if (staffEntry) {
-        staffEntry.total++;
-        if (intro.attended === 'Yes') {
-          staffEntry.attended++;
-          if (intro.signed_up === 'Yes') {
-            staffEntry.signedUp++;
-          }
-        }
-      }
-
-      return acc;
-    }, {});
-
-    const staffPerformance = Object.entries(staffStats).map(([name, stats]) => ({
-      name,
-      attended: stats.attended,
-      signedUp: stats.signedUp,
-      conversionRate: stats.attended > 0 ? (stats.signedUp / stats.attended) * 100 : 0,
-    }));
-
-    const avgConversion =
-      staffPerformance.reduce((sum, s) => sum + s.conversionRate, 0) / staffPerformance.length;
-
-    staffPerformance.forEach((staff) => {
-      const variance = staff.conversionRate - avgConversion;
-
-      // Top Performer
-      if (variance > 15 && staff.attended >= 5) {
-        const additionalSignups = Math.round(
-          staffPerformance.reduce((sum, s) => {
-            if (s.name !== staff.name && s.conversionRate < staff.conversionRate) {
-              const gap = (staff.conversionRate - s.conversionRate) / 100;
-              return sum + s.attended * gap;
-            }
-            return sum;
-          }, 0)
-        );
-
-        generatedInsights.push({
-          id: `staff-outperformer-${staff.name}`,
-          title: `${staff.name} Converting ${variance.toFixed(0)}% Above Team Average`,
-          message: `${staff.name}: ${staff.conversionRate.toFixed(1)}% conversion (${staff.signedUp}/${staff.attended})
-Team average: ${avgConversion.toFixed(1)}%
-Gap: +${variance.toFixed(0)} percentage points
-
-If all staff matched ${staff.name}'s rate, you'd have ${additionalSignups} more signups this period.`,
-          icon: 'TrendingUp',
-          color: 'green',
-          priority: 'high',
-          impact: `$${(additionalSignups * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()} monthly revenue opportunity`,
-          actions: [
-            `Shadow ${staff.name}'s intro process`,
-            'Document best practices and techniques',
-            `Have ${staff.name} coach other staff members`,
-            'Record successful intro for training',
-          ],
-          category: 'conversion',
-        });
-      }
-
-      // Underperformer
-      if (variance < -15 && staff.attended >= 5) {
-        const missedSignups = Math.round(
-          ((avgConversion - staff.conversionRate) / 100) * staff.attended
-        );
-
-        generatedInsights.push({
-          id: `staff-underperformer-${staff.name}`,
-          title: `${staff.name}'s Conversion Needs Attention`,
-          message: `${staff.name}: ${staff.conversionRate.toFixed(1)}% conversion (${staff.signedUp}/${staff.attended})
-Team average: ${avgConversion.toFixed(1)}%
-Gap: ${variance.toFixed(0)} percentage points
-
-This gap represents ~${missedSignups} missed signups this period.`,
-          icon: 'TrendingDown',
-          color: 'orange',
-          priority: 'high',
-          impact: `$${(missedSignups * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()} lost revenue`,
-          actions: [
-            `Schedule 1-on-1 coaching session with ${staff.name}`,
-            'Review intro script and close techniques',
-            'Check if specific class types are the issue',
-            'Pair with top performer for mentoring',
-          ],
-          category: 'conversion',
-        });
-      }
-    });
-
-    // 3. HIGH: Class-Specific Conversion
-    const classStats = activeIntros.reduce<
-      Record<string, { intros: number; attended: number; signups: number }>
-    >((acc, intro) => {
-      if (!intro.class) {
-        return acc;
-      }
-
-      if (!acc[intro.class]) {
-        acc[intro.class] = {
-          intros: 0,
-          attended: 0,
-          signups: 0,
-        };
-      }
-
-      const classEntry = acc[intro.class];
-      if (classEntry) {
-        classEntry.intros++;
-        if (intro.attended === 'Yes') {
-          classEntry.attended++;
-          if (intro.signed_up === 'Yes') {
-            classEntry.signups++;
-          }
-        }
-      }
-
-      return acc;
-    }, {});
-
-    const classPerformance = Object.entries(classStats)
-      .map(([name, stats]) => ({
-        name,
-        attended: stats.attended,
-        signups: stats.signups,
-        conversionRate: stats.attended > 0 ? (stats.signups / stats.attended) * 100 : 0,
-      }))
-      .filter((c) => c.attended >= 3)
-      .sort((a, b) => b.conversionRate - a.conversionRate);
-
-    if (classPerformance.length >= 2) {
-      const topClass = classPerformance[0];
-      const bottomClass = classPerformance[classPerformance.length - 1];
-
-      if (topClass && bottomClass && topClass.conversionRate > bottomClass.conversionRate * 1.8) {
-        generatedInsights.push({
-          id: 'class-performance-gap',
-          title: `${topClass.name} Converting ${topClass.conversionRate.toFixed(0)}% - ${bottomClass.name} at ${bottomClass.conversionRate.toFixed(0)}%`,
-          message: `${topClass.name}: ${topClass.signups}/${topClass.attended} intros (${topClass.conversionRate.toFixed(1)}%)
-${bottomClass.name}: ${bottomClass.signups}/${bottomClass.attended} intros (${bottomClass.conversionRate.toFixed(1)}%)
-
-${bottomClass.name} needs investigation.`,
-          icon: 'AlertCircle',
-          color: 'yellow',
-          priority: 'high',
-          impact: 'Improving low-converting classes could add 3-5 signups/month',
-          actions: [
-            `Survey recent ${bottomClass.name} intros who didn't sign up`,
-            'Check if pricing concerns are specific to this class',
-            'Review class format and intro experience',
-            `Compare ${topClass.name} intro process to ${bottomClass.name}`,
-          ],
-          category: 'conversion',
-        });
-      }
-    }
-
-    // 4. CRITICAL: Seasonal Cancellation Pattern
+    // 2. CRITICAL: Seasonal Cancellation Pattern
     const travelCancels = cancellations.filter(
       (c) =>
         c.reason?.toLowerCase().includes('travel') ||
@@ -278,7 +105,7 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
       });
     }
 
-    // 5. HIGH: Cancellation Reason Analysis
+    // 3. HIGH: Cancellation Reason Analysis
     const cancellationReasons = cancellations.reduce<Record<string, number>>((acc, cancel) => {
       if (cancel.reason) {
         acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
@@ -349,7 +176,7 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
       });
     }
 
-    // 6. MEDIUM: Signup Package Rate
+    // 4. MEDIUM: Signup Package Rate
     const signupsWithPackage = signups.filter((s) => s.signup_package).length;
     const totalFilteredSignups = signups.length;
     const packageRate = totalFilteredSignups > 0 ? signupsWithPackage / totalFilteredSignups : 0;
@@ -382,7 +209,7 @@ Industry data: Members with signup packages have 40% better retention at 90 days
       });
     }
 
-    // 7. MEDIUM: Net Growth Analysis
+    // 5. MEDIUM: Net Growth Analysis
     const netGrowth = totalFilteredSignups - cancellations.length;
 
     if (netGrowth < 0) {
@@ -436,7 +263,7 @@ Now is the time to invest in scaling your success.`,
       });
     }
 
-    // 8. HIGH: Conversion Rate Analysis
+    // 6. HIGH: Conversion Rate Analysis
     const attendedIntros = activeIntros.filter((i) => i.attended === 'Yes').length;
     const signedUpFromIntros = activeIntros.filter(
       (i) => i.attended === 'Yes' && i.signed_up === 'Yes'
