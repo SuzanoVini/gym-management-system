@@ -3,6 +3,9 @@
 import { useMemo } from 'react';
 import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
 
+const MONTHLY_MEMBERSHIP_REVENUE = 180;
+const SIGNUP_PACKAGE_REVENUE = 200;
+
 interface UseInsightsProps {
   intros: Intro[];
   signups: Signup[];
@@ -27,12 +30,12 @@ export const useInsights = ({
 
     // 1. CRITICAL: Attended But Didn't Sign Up
     const warmLeads = activeIntros.filter((intro) => {
-      if (!intro.created_at) {
+      if (!intro.date) {
         return false;
       }
       const twoWeeksAgo = new Date();
       twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      const introDate = new Date(intro.created_at);
+      const introDate = new Date(intro.date);
 
       return intro.attended === 'Yes' && intro.signed_up !== 'Yes' && introDate >= twoWeeksAgo;
     });
@@ -48,7 +51,7 @@ export const useInsights = ({
         .join('\n');
 
       const potentialSignups = Math.round(warmLeads.length * 0.6);
-      const potentialRevenue = potentialSignups * 180;
+      const potentialRevenue = potentialSignups * MONTHLY_MEMBERSHIP_REVENUE;
 
       generatedInsights.push({
         id: 'warm-leads',
@@ -134,7 +137,7 @@ If all staff matched ${staff.name}'s rate, you'd have ${additionalSignups} more 
           icon: 'TrendingUp',
           color: 'green',
           priority: 'high',
-          impact: `$${(additionalSignups * 180).toLocaleString()} monthly revenue opportunity`,
+          impact: `$${(additionalSignups * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()} monthly revenue opportunity`,
           actions: [
             `Shadow ${staff.name}'s intro process`,
             'Document best practices and techniques',
@@ -162,7 +165,7 @@ This gap represents ~${missedSignups} missed signups this period.`,
           icon: 'TrendingDown',
           color: 'orange',
           priority: 'high',
-          impact: `$${(missedSignups * 180).toLocaleString()} lost revenue`,
+          impact: `$${(missedSignups * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()} lost revenue`,
           actions: [
             `Schedule 1-on-1 coaching session with ${staff.name}`,
             'Review intro script and close techniques',
@@ -242,7 +245,6 @@ ${bottomClass.name} needs investigation.`,
     }
 
     // 4. CRITICAL: Seasonal Cancellation Pattern
-    const currentMonth = new Date().toLocaleString('default', { month: 'short' });
     const travelCancels = cancellations.filter(
       (c) =>
         c.reason?.toLowerCase().includes('travel') ||
@@ -250,8 +252,8 @@ ${bottomClass.name} needs investigation.`,
         c.reason?.toLowerCase().includes('summer')
     );
 
-    if ((currentMonth === 'Jul' || currentMonth === 'Aug') && travelCancels.length > 5) {
-      const lostRevenue = travelCancels.length * 180;
+    if (travelCancels.length > 5) {
+      const lostRevenue = travelCancels.length * MONTHLY_MEMBERSHIP_REVENUE;
       const holdRecovery = Math.round(travelCancels.length * 0.6);
       const holdRevenue = holdRecovery * 29;
 
@@ -341,7 +343,7 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
         icon: 'UserMinus',
         color: 'orange',
         priority: 'high',
-        impact: `Reducing this by 50% = ${Math.round((count as number) / 2)} retained members = $${(Math.round((count as number) / 2) * 180).toLocaleString()}/month`,
+        impact: `Reducing this by 50% = ${Math.round((count as number) / 2)} retained members = $${(Math.round((count as number) / 2) * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()}/month`,
         actions: specificActions,
         category: 'retention',
       });
@@ -356,7 +358,7 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
       const targetRate = 0.8;
       const gap = targetRate - packageRate;
       const additionalPackages = Math.round(gap * totalFilteredSignups);
-      const revenue = additionalPackages * 200;
+      const revenue = additionalPackages * SIGNUP_PACKAGE_REVENUE;
 
       generatedInsights.push({
         id: 'signup-package-opportunity',
@@ -455,7 +457,7 @@ Gap to 40%: ${gapTo40} additional signups needed`,
         icon: 'AlertTriangle',
         color: 'red',
         priority: 'high',
-        impact: `Reaching 40% = $${(gapTo40 * 180).toLocaleString()} monthly revenue`,
+        impact: `Reaching 40% = $${(gapTo40 * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()} monthly revenue`,
         actions: [
           'Review intro class structure and sales process',
           'Check pricing against local competitors',
