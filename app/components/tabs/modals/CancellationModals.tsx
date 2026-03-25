@@ -1,7 +1,8 @@
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { useCancellations } from '@/hooks/useCancellations';
+import type { CancellationCsvRecord } from '@/lib/csv';
 import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -15,7 +16,7 @@ const CancellationModalIcons = {
 };
 
 interface CancellationModalsProps {
-  importPreviewData: any[];
+  importPreviewData: CancellationCsvRecord[];
   confirmCSVImport: () => Promise<void>;
 }
 
@@ -31,18 +32,18 @@ export function CancellationModals({
   const [newReason, setNewReason] = useState('');
   const [editingReasonIndex, setEditingReasonIndex] = useState<number | null>(null);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     const reasons = await fetchSettings('cancellation_reasons');
     if (reasons) {
       setCancellationReasons(reasons);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (modals.settings) {
       loadSettings();
     }
-  }, [modals.settings]);
+  }, [modals.settings, loadSettings]);
 
   const handleAddReason = async () => {
     if (newReason.trim() && !cancellationReasons.includes(newReason.trim())) {
@@ -105,7 +106,12 @@ export function CancellationModals({
       >
         <CancellationForm
           cancellation={selectedCancellation}
-          onSubmit={(data) => editCancellation(selectedCancellation!.id, data)}
+          onSubmit={(data) => {
+            if (!selectedCancellation) {
+              return;
+            }
+            editCancellation(selectedCancellation.id, data);
+          }}
           onCancel={() => {
             closeModal('editCancellation');
             setSelectedCancellation(null);
@@ -132,12 +138,12 @@ export function CancellationModals({
             </thead>
             <tbody className="divide-y">
               {importPreviewData.map((row, idx) => (
-                <tr key={idx}>
+                <tr key={`${row.name}-${row.month}-${row.date ?? ''}`}>
                   <td className="px-4 py-2">{idx + 1}</td>
                   <td className="px-4 py-2">{row.month}</td>
                   <td className="px-4 py-2">{row.name}</td>
                   <td className="px-4 py-2">{row.date || '-'}</td>
-                  <td className="px-4 py-2">{row.reason}</td>
+                  <td className="px-4 py-2">{row.reason ?? '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -145,12 +151,14 @@ export function CancellationModals({
         </div>
         <div className="flex justify-end space-x-3">
           <button
+            type="button"
             onClick={() => closeModal('importPreview')}
             className="px-4 py-2 border rounded hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={confirmCSVImport}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
@@ -166,9 +174,15 @@ export function CancellationModals({
       >
         <div>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Add New Reason</label>
+            <label
+              className="block text-sm font-medium text-gray-700 mb-2"
+              htmlFor="cancellation-new-reason"
+            >
+              Add New Reason
+            </label>
             <div className="flex gap-2">
               <input
+                id="cancellation-new-reason"
                 type="text"
                 value={newReason}
                 onChange={(e) => setNewReason(e.target.value)}
@@ -177,6 +191,7 @@ export function CancellationModals({
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
               <button
+                type="button"
                 onClick={handleAddReason}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
               >
@@ -190,7 +205,7 @@ export function CancellationModals({
             </h4>
             {cancellationReasons.map((reason, index) => (
               <div
-                key={index}
+                key={reason}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
               >
                 {editingReasonIndex === index ? (
@@ -210,12 +225,14 @@ export function CancellationModals({
                 )}
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setEditingReasonIndex(index)}
                     className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                   >
                     <CancellationModalIcons.Edit2 className="w-4 h-4" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleDeleteReason(index)}
                     className="p-1 text-red-600 hover:bg-red-50 rounded"
                   >
@@ -228,6 +245,7 @@ export function CancellationModals({
         </div>
         <div className="mt-6 flex justify-end">
           <button
+            type="button"
             onClick={() => closeModal('settings')}
             className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >

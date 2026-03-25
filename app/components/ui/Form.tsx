@@ -32,9 +32,9 @@ export function FormField({
   max,
 }: FormFieldProps) {
   const baseInputClasses = `
-    w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500
-    ${error ? 'border-red-300' : 'border-gray-300'}
-    ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
+    ${type === 'select' ? 'form-select' : 'form-input'}
+    ${error ? '!border-red-300' : ''}
+    ${disabled ? '!bg-gray-100 !cursor-not-allowed' : ''}
     ${className}
   `;
 
@@ -107,7 +107,7 @@ export function FormField({
 
   return (
     <div className="mb-4">
-      <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={name} className="form-label">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -135,11 +135,7 @@ export function Form({
   return (
     <form onSubmit={onSubmit} className={`space-y-4 ${className}`}>
       {children}
-      <button
-        type="submit"
-        disabled={loading || disabled}
-        className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
+      <button type="submit" disabled={loading || disabled} className="btn btn-primary w-full">
         {loading ? 'Saving...' : 'Save'}
       </button>
     </form>

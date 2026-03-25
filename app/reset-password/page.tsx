@@ -69,6 +69,8 @@ export default function ResetPassword() {
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                role="img"
+                aria-label="Password reset success"
               >
                 <path
                   strokeLinecap="round"

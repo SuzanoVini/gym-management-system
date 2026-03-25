@@ -4,10 +4,10 @@ import { Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Table from '@/components/ui/Table';
 import { useSignups } from '@/hooks/useSignups';
-import { parseCSV } from '@/lib/csv';
+import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { useFilterStore } from '@/store/useFilterStore';
-import { useSelectionStore } from '@/store/useSelectionStore';
+import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Signup } from '@/types';
 import { SignupModals } from './modals/SignupModals';
@@ -18,9 +18,14 @@ export default function SignupsTab() {
   const { signups, loading, error, removeSignup, refresh } = useSignups();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
-  const { selectedIds, toggleSelection, clearSelection, setSelectedSignup } = useSelectionStore();
+  const selectionTab: SelectionTabKey = 'signups';
+  const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
+  const toggleSelection = useSelectionStore((state) => state.toggleSelection);
+  const selectAll = useSelectionStore((state) => state.selectAll);
+  const clearSelection = useSelectionStore((state) => state.clearSelection);
+  const setSelectedSignup = useSelectionStore((state) => state.setSelectedSignup);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importPreviewData, setImportPreviewData] = useState<any[]>([]);
+  const [importPreviewData, setImportPreviewData] = useState<SignupCsvRecord[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -30,7 +35,7 @@ export default function SignupsTab() {
     if (!file) {
       return;
     }
-    parseCSV(file, (data) => {
+    parseSignupsCSV(file, (data) => {
       setImportPreviewData(data);
       openModal('importPreview');
     });
@@ -114,7 +119,7 @@ export default function SignupsTab() {
       }
 
       await refresh();
-      clearSelection();
+      clearSelection(selectionTab);
       setCurrentPage(1);
       alert(`✅ Deleted ${idsToDelete.length} sign-ups`);
     } catch (error) {
@@ -153,28 +158,21 @@ export default function SignupsTab() {
     return filtered;
   }, [signups, filters]);
 
+  const getSortTimestamp = (signup: Signup) => {
+    const dateValue = signup.membership_date ? new Date(signup.membership_date).getTime() : 0;
+    if (dateValue) {
+      return dateValue;
+    }
+    return signup.created_at ? new Date(signup.created_at).getTime() : 0;
+  };
+
   const sortedSignups = [...filteredAndSearchedSignups].sort((a, b) => {
-    // Sort by sign up date (membership_date)
-    const dateA = a.membership_date ? new Date(a.membership_date).getTime() : 0;
-    const dateB = b.membership_date ? new Date(b.membership_date).getTime() : 0;
-
-    // If both have dates, sort by date
-    if (dateA && dateB) {
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    const dateA = getSortTimestamp(a);
+    const dateB = getSortTimestamp(b);
+    if (dateA === dateB) {
+      return 0;
     }
-
-    // If only one has a date, put the one with date first
-    if (dateA && !dateB) {
-      return sortOrder === 'newest' ? -1 : 1;
-    }
-    if (!dateA && dateB) {
-      return sortOrder === 'newest' ? 1 : -1;
-    }
-
-    // If neither has a date, sort by created_at (when added to database)
-    const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return sortOrder === 'newest' ? createdB - createdA : createdA - createdB;
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   const totalPages = Math.ceil(sortedSignups.length / itemsPerPage);
@@ -274,18 +272,20 @@ export default function SignupsTab() {
       render: (_value: unknown, signup: Signup) => (
         <div className="flex space-x-2">
           <button
+            type="button"
             onClick={() => {
               setSelectedSignup(signup);
               openModal('editSignup');
             }}
-            className="text-blue-600 hover:text-blue-800"
+            className="btn-icon hover:text-blue-600"
             title="Edit"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => removeSignup(signup.id, signup.name)}
-            className="text-red-600 hover:text-red-800"
+            className="btn-icon hover:text-red-600"
             title="Delete"
           >
             <Trash2 className="w-4 h-4" />
@@ -298,11 +298,7 @@ export default function SignupsTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-        >
+        <button type="button" onClick={refresh} className="btn btn-primary">
           Retry
         </button>
       </div>
@@ -310,14 +306,15 @@ export default function SignupsTab() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="section-container">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Sign-ups</h2>
           <div className="flex space-x-3">
             <button
+              type="button"
               onClick={() => openModal('settings')}
-              className="flex items-center space-x-2 px-4 py-2 border-2 border-gray-600 text-gray-600 rounded font-medium hover:bg-gray-50"
+              className="btn btn-secondary"
             >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
@@ -330,208 +327,228 @@ export default function SignupsTab() {
               onChange={handleCSVImport}
             />
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center space-x-2 px-4 py-2 border-2 border-blue-600 text-blue-600 rounded font-medium hover:bg-blue-50"
+              className="btn btn-secondary-blue"
             >
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
             <button
+              type="button"
               onClick={() => openModal('addSignup')}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700"
+              className="btn btn-primary"
             >
               <Plus className="w-4 h-4" />
               <span>Add Sign-up</span>
             </button>
           </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-600">
-            <div className="text-sm text-gray-600">Total Sign-ups</div>
-            <div className="text-3xl font-bold mt-1">{metrics.total}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-600">
-            <div className="text-sm text-gray-600">Integrity</div>
-            <div className="text-3xl font-bold mt-1">{metrics.integrity}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-600">
-            <div className="text-sm text-gray-600">Legacy</div>
-            <div className="text-3xl font-bold mt-1">{metrics.legacy}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-yellow-600">
-            <div className="text-sm text-gray-600">Special</div>
-            <div className="text-3xl font-bold mt-1">{metrics.special}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-red-600">
-            <div className="text-sm text-gray-600">ASP</div>
-            <div className="text-3xl font-bold mt-1">{metrics.asp}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-indigo-600">
-            <div className="text-sm text-gray-600">With Package</div>
-            <div className="text-3xl font-bold mt-1">{metrics.withPackage}</div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="section-container border-l-4 border-blue-600">
+          <div className="text-sm text-gray-600">Total Sign-ups</div>
+          <div className="text-3xl font-bold mt-1">{metrics.total}</div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <input
-            type="text"
-            placeholder="Search by name, membership type, dates, or notes..."
-            value={filters.searchTerm}
-            onChange={(e) => setFilters({ searchTerm: e.target.value })}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-          />
+        <div className="section-container border-l-4 border-green-600">
+          <div className="text-sm text-gray-600">Integrity</div>
+          <div className="text-3xl font-bold mt-1">{metrics.integrity}</div>
         </div>
+        <div className="section-container border-l-4 border-purple-600">
+          <div className="text-sm text-gray-600">Legacy</div>
+          <div className="text-3xl font-bold mt-1">{metrics.legacy}</div>
+        </div>
+        <div className="section-container border-l-4 border-yellow-600">
+          <div className="text-sm text-gray-600">Special</div>
+          <div className="text-3xl font-bold mt-1">{metrics.special}</div>
+        </div>
+        <div className="section-container border-l-4 border-red-600">
+          <div className="text-sm text-gray-600">ASP</div>
+          <div className="text-3xl font-bold mt-1">{metrics.asp}</div>
+        </div>
+        <div className="section-container border-l-4 border-indigo-600">
+          <div className="text-sm text-gray-600">With Package</div>
+          <div className="text-3xl font-bold mt-1">{metrics.withPackage}</div>
+        </div>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-              <select
-                value={filters.month}
-                onChange={(e) => setFilters({ month: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All Months</option>
-                {MONTHS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Membership Type
-              </label>
-              <select
-                value={filters.membership}
-                onChange={(e) => setFilters({ membership: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              >
-                <option value="all">All Types</option>
-                {/* Membership types will be loaded in SignupModals */}
-                {/* {membershipTypes.map((type) => (
+      <div className="section-container mb-4">
+        <input
+          type="text"
+          placeholder="Search by name, membership type, dates, or notes..."
+          value={filters.searchTerm}
+          onChange={(e) => setFilters({ searchTerm: e.target.value })}
+          className="form-input"
+        />
+      </div>
+
+      <div className="section-container">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="form-label" htmlFor="signups-sort">
+              Sort By
+            </label>
+            <select
+              id="signups-sort"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+              className="form-select"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label" htmlFor="signups-month">
+              Month
+            </label>
+            <select
+              id="signups-month"
+              value={filters.month}
+              onChange={(e) => setFilters({ month: e.target.value })}
+              className="form-select"
+            >
+              <option value="all">All Months</option>
+              {MONTHS.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="form-label" htmlFor="signups-membership">
+              Membership Type
+            </label>
+            <select
+              id="signups-membership"
+              value={filters.membership}
+              onChange={(e) => setFilters({ membership: e.target.value })}
+              className="form-select"
+            >
+              <option value="all">All Types</option>
+              {/* Membership types will be loaded in SignupModals */}
+              {/* {membershipTypes.map((type) => (
                   <option key={type} value={type}>
                     {type}
                   </option>
                 ))} */}
-              </select>
-            </div>
+            </select>
           </div>
         </div>
+      </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-gray-700">Show:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-              >
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-                <option value={500}>500</option>
-                <option value={1000}>1000</option>
-              </select>
-              <span className="text-sm text-gray-600">per page</span>
-            </div>
-            <div className="text-sm text-gray-600">
-              Showing {startIndex + 1}-{Math.min(endIndex, sortedSignups.length)} of{' '}
-              {sortedSignups.length}
-            </div>
-            <div className="flex items-center gap-2">
+      <div className="section-container">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700" htmlFor="signups-items-per-page">
+              Show:
+            </label>
+            <select
+              id="signups-items-per-page"
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="form-select"
+            >
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+              <option value={500}>500</option>
+              <option value={1000}>1000</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+          <div className="text-sm text-gray-600">
+            Showing {startIndex + 1}-{Math.min(endIndex, sortedSignups.length)} of{' '}
+            {sortedSignups.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              First
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              Prev
+            </button>
+            <span className="px-4 py-2 text-sm font-medium">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              Next
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+            >
+              Last
+            </button>
+          </div>
+        </div>
+        {selectedIds.size > 0 && (
+          <div className="mt-3 pt-3 border-t">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
               <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
+                type="button"
+                onClick={() => clearSelection(selectionTab)}
+                className="text-sm text-red-600 hover:text-red-700 font-medium"
               >
-                First
-              </button>
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-              >
-                Prev
-              </button>
-              <span className="px-4 py-2 text-sm font-medium">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-              >
-                Last
+                Clear Selection
               </button>
             </div>
           </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b flex justify-between items-center">
+          <h3 className="text-lg font-semibold">All Sign-ups ({sortedSignups.length})</h3>
           {selectedIds.size > 0 && (
-            <div className="mt-3 pt-3 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
-                <button
-                  onClick={clearSelection}
-                  className="text-sm text-red-600 hover:text-red-700 font-medium"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              className="flex items-center space-x-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Selected ({selectedIds.size})</span>
+            </button>
           )}
         </div>
-
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h3 className="text-lg font-semibold">All Sign-ups ({sortedSignups.length})</h3>
-            {selectedIds.size > 0 && (
-              <button
-                onClick={handleDeleteSelected}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete Selected ({selectedIds.size})</span>
-              </button>
-            )}
-          </div>
-          <div className="overflow-x-auto">
-            <Table
-              data={paginatedSignups}
-              columns={columns}
-              loading={loading}
-              selectedIds={selectedIds}
-              onSelectId={toggleSelection}
-              emptyMessage="No sign-ups found matching your criteria"
-            />
-          </div>
+        <div className="overflow-x-auto">
+          <Table
+            data={paginatedSignups}
+            columns={columns}
+            loading={loading}
+            selectedIds={selectedIds}
+            onSelectId={(id) => toggleSelection(selectionTab, id)}
+            onSelectAll={(ids) => selectAll(selectionTab, ids)}
+            onClearSelection={(ids) => clearSelection(selectionTab, ids)}
+            emptyMessage="No sign-ups found matching your criteria"
+          />
         </div>
-
-        <SignupModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
       </div>
+
+      <SignupModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
     </div>
   );
 }

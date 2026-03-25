@@ -265,6 +265,193 @@ export interface Database {
           updated_at?: string;
         };
       };
+      user_profiles: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          full_name: string;
+          avatar_url: string | null;
+        };
+        Insert: {
+          id: string;
+          created_at?: string;
+          updated_at?: string;
+          full_name: string;
+          avatar_url?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          full_name?: string;
+          avatar_url?: string | null;
+        };
+      };
+      // PAYROLL TABLES
+      staff_members: {
+        Row: {
+          id: string;
+          employee_id: string;
+          full_name: string;
+          job_title: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          employee_id: string;
+          full_name: string;
+          job_title: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          employee_id?: string;
+          full_name?: string;
+          job_title?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      payroll_periods: {
+        Row: {
+          id: string;
+          start_date: string;
+          end_date: string;
+          period_label: string;
+          is_current: boolean;
+          is_closed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          start_date: string;
+          end_date: string;
+          period_label: string;
+          is_current?: boolean;
+          is_closed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          start_date?: string;
+          end_date?: string;
+          period_label?: string;
+          is_current?: boolean;
+          is_closed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      staff_hours: {
+        Row: {
+          id: string;
+          staff_id: string;
+          period_id: string;
+          regular_hours: number;
+          overtime_hours: number;
+          vacation_hours: number;
+          sick_hours: number;
+          mat_cleaning_count: number;
+          total_hours: number;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          period_id: string;
+          regular_hours?: number;
+          overtime_hours?: number;
+          vacation_hours?: number;
+          sick_hours?: number;
+          mat_cleaning_count?: number;
+          total_hours?: number;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          period_id?: string;
+          regular_hours?: number;
+          overtime_hours?: number;
+          vacation_hours?: number;
+          sick_hours?: number;
+          mat_cleaning_count?: number;
+          total_hours?: number;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      time_entries: {
+        Row: {
+          id: string;
+          staff_hours_id: string;
+          entry_date: string;
+          entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
+          hours: number;
+          notes: string | null;
+          source: 'manual' | 'csv' | 'pdf' | 'quick_import';
+          is_after_school_program: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_hours_id: string;
+          entry_date: string;
+          entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
+          hours: number;
+          notes?: string | null;
+          source?: 'manual' | 'csv' | 'pdf' | 'quick_import';
+          is_after_school_program?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_hours_id?: string;
+          entry_date?: string;
+          entry_type?: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
+          hours?: number;
+          notes?: string | null;
+          source?: 'manual' | 'csv' | 'pdf' | 'quick_import';
+          is_after_school_program?: boolean;
+          created_at?: string;
+        };
+      };
+      app_configuration: {
+        Row: {
+          id: string;
+          config_key: string;
+          config_value: Json;
+          description: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          config_key: string;
+          config_value: Json;
+          description?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          config_key?: string;
+          config_value?: Json;
+          description?: string | null;
+          updated_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

@@ -33,8 +33,8 @@ CREATE INDEX IF NOT EXISTS idx_intros_month_staff ON intros(month, staff);
 CREATE INDEX IF NOT EXISTS idx_intros_attended_signed_up ON intros(attended, signed_up);
 
 -- Composite index for active intros that need follow-up
-CREATE INDEX IF NOT EXISTS idx_intros_active_unsigned ON intros(status, attended, signed_up)
-  WHERE status = 'Active' AND attended = 'Yes' AND signed_up != 'Yes';
+-- Note: Removed WHERE clause to avoid immutability issues
+CREATE INDEX IF NOT EXISTS idx_intros_active_unsigned ON intros(status, attended, signed_up);
 
 -- ============================================================================
 -- SIGNUPS TABLE INDEXES
@@ -91,8 +91,8 @@ CREATE INDEX IF NOT EXISTS idx_holds_end_date ON holds(end_date);
 CREATE INDEX IF NOT EXISTS idx_holds_created_at ON holds(created_at DESC);
 
 -- Composite index for finding active holds (end_date in future)
-CREATE INDEX IF NOT EXISTS idx_holds_active ON holds(end_date)
-  WHERE end_date > NOW();
+-- Note: Removed WHERE clause to avoid immutability issues with NOW()
+CREATE INDEX IF NOT EXISTS idx_holds_active ON holds(end_date);
 
 -- ============================================================================
 -- FOLLOW-UP NOTES TABLE INDEXES
@@ -134,6 +134,68 @@ CREATE INDEX IF NOT EXISTS idx_settings_key ON settings(key);
 -- ANALYZE TABLES FOR QUERY PLANNER
 -- ============================================================================
 
+-- ============================================================================
+-- PAYROLL TABLES INDEXES
+-- ============================================================================
+
+-- CSV_EXPORT_FORMATS TABLE
+-- Index for filtering by format name (common lookup)
+CREATE INDEX IF NOT EXISTS idx_csv_format_name ON csv_export_formats(format_name);
+
+-- Index for finding default format (frequent query)
+CREATE INDEX IF NOT EXISTS idx_csv_format_default ON csv_export_formats(is_default);
+
+-- Index for sorting by creation date
+CREATE INDEX IF NOT EXISTS idx_csv_format_created_at ON csv_export_formats(created_at DESC);
+
+-- STAFF_HOURS TABLE
+-- Index for filtering by staff member
+CREATE INDEX IF NOT EXISTS idx_staff_hours_staff ON staff_hours(staff_id);
+
+-- Index for filtering by period
+CREATE INDEX IF NOT EXISTS idx_staff_hours_period ON staff_hours(period_id);
+
+-- Composite index for staff + period queries (most common)
+CREATE INDEX IF NOT EXISTS idx_staff_hours_combined ON staff_hours(staff_id, period_id);
+
+-- Index for sorting by creation date
+CREATE INDEX IF NOT EXISTS idx_staff_hours_created_at ON staff_hours(created_at DESC);
+
+-- TIME_ENTRIES TABLE
+-- Index for filtering by staff hours record
+CREATE INDEX IF NOT EXISTS idx_time_entries_staff_hours ON time_entries(staff_hours_id);
+
+-- Index for filtering by entry type
+CREATE INDEX IF NOT EXISTS idx_time_entries_type ON time_entries(entry_type);
+
+-- Index for sorting by entry date
+CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(entry_date DESC);
+
+-- Index for after school program filtering
+CREATE INDEX IF NOT EXISTS idx_time_entries_asp ON time_entries(is_after_school_program);
+
+-- PAYROLL_PERIODS TABLE
+-- Index for finding current period
+CREATE INDEX IF NOT EXISTS idx_payroll_periods_current ON payroll_periods(is_current);
+
+-- Index for finding closed periods
+CREATE INDEX IF NOT EXISTS idx_payroll_periods_closed ON payroll_periods(is_closed);
+
+-- Index for date range queries
+CREATE INDEX IF NOT EXISTS idx_payroll_periods_dates ON payroll_periods(start_date, end_date);
+
+-- STAFF_MEMBERS TABLE
+-- Index for active staff filtering
+CREATE INDEX IF NOT EXISTS idx_staff_members_active ON staff_members(is_active);
+
+-- Index for employee ID lookups
+CREATE INDEX IF NOT EXISTS idx_staff_members_employee_id ON staff_members(employee_id);
+
+-- Index for name sorting
+CREATE INDEX IF NOT EXISTS idx_staff_members_name ON staff_members(full_name);
+
+-- ============================================================================
+
 -- Update statistics for query planner optimization
 ANALYZE intros;
 ANALYZE signups;
@@ -142,6 +204,11 @@ ANALYZE holds;
 ANALYZE follow_up_notes;
 ANALYZE intro_class_history;
 ANALYZE settings;
+ANALYZE csv_export_formats;
+ANALYZE staff_hours;
+ANALYZE time_entries;
+ANALYZE payroll_periods;
+ANALYZE staff_members;
 
 -- ============================================================================
 -- VACUUM TABLES (OPTIONAL - CLEAN UP)

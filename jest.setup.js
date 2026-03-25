@@ -21,17 +21,25 @@ jest.mock('@supabase/auth-helpers-nextjs', () => ({
       signOut: jest.fn(),
       getSession: jest.fn(),
       onAuthStateChange: jest.fn(),
+      updateUser: jest.fn(),
     },
     from: () => ({
       select: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
+      upsert: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       order: jest.fn().mockReturnThis(),
       range: jest.fn().mockReturnThis(),
       single: jest.fn().mockReturnThis(),
     }),
+    storage: {
+      from: () => ({
+        upload: jest.fn(),
+        getPublicUrl: jest.fn(),
+      }),
+    },
   }),
   createMiddlewareClient: () => ({
     auth: {

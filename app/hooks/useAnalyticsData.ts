@@ -63,7 +63,7 @@ export const useAnalyticsData = (filterOptions: DateRangeFilterOptions) => {
   }, [loadAllData]);
 
   const filteredData = useMemo(() => {
-    const filterByDateRange = (data: any[]) => {
+    const filterByDateRange = <T extends { created_at?: string }>(data: T[]) => {
       if (dateRange === 'all') {
         return data;
       }
@@ -126,6 +126,7 @@ export const useAnalyticsData = (filterOptions: DateRangeFilterOptions) => {
 
   return {
     filteredData,
+    allData,
     loading,
     error,
     refresh: loadAllData,

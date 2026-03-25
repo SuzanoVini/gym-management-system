@@ -15,7 +15,7 @@ export interface LogEntry {
   message: string;
   context?: string | undefined;
   userId?: string | undefined;
-  metadata?: Record<string, any> | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 class Logger {
@@ -25,7 +25,7 @@ class Logger {
     level: LogLevel,
     message: string,
     context?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): LogEntry {
     return {
       timestamp: new Date().toISOString(),
@@ -88,24 +88,24 @@ class Logger {
     }
   }
 
-  debug(message: string, context?: string, metadata?: Record<string, any>) {
+  debug(message: string, context?: string, metadata?: Record<string, unknown>) {
     if (this.isDevelopment) {
       const entry = this.createLogEntry(LogLevel.DEBUG, message, context, metadata);
       this.log(entry);
     }
   }
 
-  info(message: string, context?: string, metadata?: Record<string, any>) {
+  info(message: string, context?: string, metadata?: Record<string, unknown>) {
     const entry = this.createLogEntry(LogLevel.INFO, message, context, metadata);
     this.log(entry);
   }
 
-  warn(message: string, context?: string, metadata?: Record<string, any>) {
+  warn(message: string, context?: string, metadata?: Record<string, unknown>) {
     const entry = this.createLogEntry(LogLevel.WARN, message, context, metadata);
     this.log(entry);
   }
 
-  error(message: string, context?: string, metadata?: Record<string, any>) {
+  error(message: string, context?: string, metadata?: Record<string, unknown>) {
     const entry = this.createLogEntry(LogLevel.ERROR, message, context, metadata);
     this.log(entry);
 
@@ -125,7 +125,7 @@ class Logger {
   }
 
   // User action logging
-  logUserAction(action: string, details?: Record<string, any>) {
+  logUserAction(action: string, details?: Record<string, unknown>) {
     this.info(`User action: ${action}`, 'user-action', {
       action,
       ...details,
@@ -168,6 +168,7 @@ class Logger {
 export const logger = new Logger();
 
 // Performance monitoring utilities
+// biome-ignore lint/complexity/noStaticOnlyClass: Static utilities are intentional for perf tracking.
 export class PerformanceMonitor {
   private static metrics = new Map<string, number[]>();
 

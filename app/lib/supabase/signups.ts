@@ -49,7 +49,7 @@ export const deleteSignup = async (id: string) => {
 };
 
 // REAL-TIME SUBSCRIPTIONS
-export const subscribeToSignups = (callback: (payload: any) => void) => {
+export const subscribeToSignups = (callback: (payload: unknown) => void) => {
   return supabase
     .channel('signups-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'signups' }, callback)

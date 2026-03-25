@@ -1,8 +1,9 @@
 'use client';
 
 import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
-interface TableProps<T> {
+interface TableProps<T extends { id: string }> {
   data: T[];
   columns: {
     key: keyof T;
@@ -15,10 +16,12 @@ interface TableProps<T> {
   onRowClick?: (item: T) => void;
   selectedIds?: Set<string>;
   onSelectId?: (id: string) => void;
+  onSelectAll?: (ids: string[]) => void;
+  onClearSelection?: (ids: string[]) => void;
   emptyMessage?: string;
 }
 
-export default function Table<T extends Record<string, unknown>>({
+export default function Table<T extends { id: string }>({
   data,
   columns,
   loading = false,
@@ -26,8 +29,24 @@ export default function Table<T extends Record<string, unknown>>({
   onRowClick,
   selectedIds,
   onSelectId,
+  onSelectAll,
+  onClearSelection,
   emptyMessage = 'No data available',
 }: TableProps<T>) {
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const pageIds = data.map((item) => item.id);
+  const selectedCount = selectedIds
+    ? pageIds.reduce((count, id) => (selectedIds.has(id) ? count + 1 : count), 0)
+    : 0;
+  const allSelected = selectedCount > 0 && selectedCount === pageIds.length;
+  const someSelected = selectedCount > 0 && selectedCount < pageIds.length;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -49,16 +68,13 @@ export default function Table<T extends Record<string, unknown>>({
               <th className="px-6 py-3 text-left">
                 <input
                   type="checkbox"
-                  checked={selectedIds?.size === data.length}
+                  ref={selectAllRef}
+                  checked={allSelected}
                   onChange={(e) => {
                     if (e.target.checked) {
-                      data.forEach((item) => {
-                        onSelectId((item as Record<string, unknown>).id as string);
-                      });
+                      onSelectAll?.(pageIds);
                     } else {
-                      selectedIds?.forEach((id) => {
-                        onSelectId(id);
-                      });
+                      onClearSelection?.(pageIds);
                     }
                   }}
                   className="rounded border-gray-300 text-red-600 focus:ring-red-500"
@@ -89,7 +105,7 @@ export default function Table<T extends Record<string, unknown>>({
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((item, index) => (
             <tr
-              key={((item as Record<string, unknown>).id as string) || index}
+              key={item.id || index}
               className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
               onClick={() => onRowClick?.(item)}
             >
@@ -97,8 +113,8 @@ export default function Table<T extends Record<string, unknown>>({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input
                     type="checkbox"
-                    checked={selectedIds?.has((item as Record<string, unknown>).id as string)}
-                    onChange={() => onSelectId((item as Record<string, unknown>).id as string)}
+                    checked={selectedIds?.has(item.id)}
+                    onChange={() => onSelectId(item.id)}
                     className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                   />
                 </td>

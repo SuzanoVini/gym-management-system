@@ -35,14 +35,14 @@ export const useCancellations = () => {
       // Validate data before sending to database
       const validation = validate(cancellationSchema, cancellation);
 
-      if (!validation.success) {
+      if (!validation.success || !validation.data) {
         const errorMessage = validation.errors?.join('\n') || 'Validation failed';
         errorHandler.notify(errorMessage, 'error');
         throw new Error(errorMessage);
       }
 
       try {
-        await createCancellation(validation.data!);
+        await createCancellation(validation.data);
         await loadCancellations();
         errorHandler.notify('Cancellation added successfully', 'success');
       } catch (err) {

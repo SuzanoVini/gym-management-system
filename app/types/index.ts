@@ -30,7 +30,6 @@ export interface Intro extends BaseRecord {
   // Relations
   follow_up_notes?: FollowUpNote[];
   intro_class_history?: ClassHistory[];
-  [key: string]: any; // Add index signature
 }
 
 /**
@@ -45,7 +44,8 @@ export interface Signup extends BaseRecord {
   signup_package?: boolean;
   notes?: string;
   created_by?: string;
-  [key: string]: any; // Add index signature
+  // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
+  [key: string]: any;
 }
 
 /**
@@ -59,7 +59,8 @@ export interface Cancellation extends BaseRecord {
   age_group?: string;
   notes?: string;
   created_by?: string;
-  [key: string]: any; // Add index signature
+  // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
+  [key: string]: any;
 }
 
 /**
@@ -73,7 +74,6 @@ export interface Hold extends BaseRecord {
   reason?: string;
   fee?: string;
   created_by?: string;
-  [key: string]: any; // Add index signature
 }
 
 /**
@@ -110,8 +110,17 @@ export interface ClassHistory {
 export interface Settings {
   id: string;
   key: string;
-  value: any; // JSON value
+  // biome-ignore lint/suspicious/noExplicitAny: Settings value can be any JSON type
+  value: any;
   updated_at: string;
+}
+
+/**
+ * User profile record - stores user information
+ */
+export interface UserProfile extends BaseRecord {
+  full_name: string;
+  avatar_url?: string | null;
 }
 
 // ============================================================================
@@ -227,6 +236,11 @@ export type ClassHistoryFormData = Omit<ClassHistory, 'id' | 'created_at'>;
  */
 export type FollowUpNoteFormData = Omit<FollowUpNote, 'id' | 'created_at'>;
 
+/**
+ * Form data for creating/updating a user profile
+ */
+export type ProfileFormData = Omit<UserProfile, 'id' | 'created_at' | 'updated_at'>;
+
 // ============================================================================
 // Analytics & Stats Types
 // ============================================================================
@@ -329,6 +343,7 @@ export interface PaginationInfo {
  */
 export interface ModalState {
   isOpen: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: Modal data can be any record type
   data?: any;
 }
 
@@ -379,12 +394,147 @@ export interface ImportResult {
 }
 
 // ============================================================================
+// Payroll Types
+// ============================================================================
+
+/**
+ * Payroll period record - defines pay cycles (1st-15th, 16th-31st)
+ */
+export interface PayrollPeriod extends BaseRecord {
+  period_label: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  is_closed: boolean;
+}
+
+/**
+ * Staff member record - represents an employee or contractor
+ */
+export interface StaffMember extends BaseRecord {
+  employee_id: string;
+  full_name: string;
+  job_title: string;
+  is_active: boolean;
+}
+
+/**
+ * Staff hours record - tracks staff work time for a payroll period
+ */
+export interface StaffHours extends BaseRecord {
+  period_id: string;
+  staff_id: string;
+  regular_hours: number;
+  overtime_hours: number;
+  vacation_hours: number;
+  sick_hours: number;
+  mat_cleaning_count: number;
+  total_hours: number;
+  notes?: string;
+}
+
+/**
+ * Time entry record - individual time entries for staff hours
+ */
+export interface TimeEntry {
+  id: string;
+  staff_hours_id: string;
+  entry_date: string;
+  hours: number;
+  entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
+  notes?: string;
+  is_after_school_program: boolean;
+  created_at: string;
+}
+
+/**
+ * Form data for creating/updating a payroll period
+ */
+export type PayrollPeriodFormData = Omit<PayrollPeriod, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Form data for creating/updating a staff member
+ */
+export type StaffMemberFormData = Omit<StaffMember, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Form data for creating/updating staff hours
+ */
+export type StaffHoursFormData = Omit<StaffHours, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Form data for creating/updating a time entry
+ */
+export type TimeEntryFormData = Omit<TimeEntry, 'id' | 'created_at'>;
+
+/**
+ * CSV column configuration - defines a single column in CSV export
+ */
+export interface CSVColumnConfig {
+  key: string; // Field key (e.g., 'staff_name', 'employee_id')
+  label: string; // Column header label
+  enabled: boolean; // Whether to include this column in export
+}
+
+/**
+ * CSV staff order configuration - defines how to order staff rows
+ */
+export interface CSVStaffOrderConfig {
+  type: 'id' | 'name' | 'custom'; // Order by employee ID, name, or custom
+  direction: 'asc' | 'desc'; // Ascending or descending
+  customOrder?: string[]; // Array of staff IDs in custom order (if type is 'custom')
+}
+
+/**
+ * CSV export format - complete format configuration
+ */
+export interface CSVExportFormat extends BaseRecord {
+  format_name: string;
+  is_default: boolean;
+  column_config: CSVColumnConfig[];
+  staff_order_config: CSVStaffOrderConfig;
+}
+
+/**
+ * Form data for creating/updating a CSV export format
+ */
+export type CSVExportFormatFormData = Omit<CSVExportFormat, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Field mapping confidence level
+ */
+export type MappingConfidence = 'exact' | 'partial' | 'guess' | 'none';
+
+/**
+ * CSV template field mapping - maps a CSV column to a database field
+ */
+export interface FieldMapping {
+  csvColumn: string; // Original CSV column name
+  dbField: string; // Database field key (e.g., 'staff_name', 'regular_hours')
+  confidence: MappingConfidence; // How confident the automatic mapping is
+  suggested?: boolean; // Whether this was auto-suggested
+}
+
+/**
+ * CSV template analysis result
+ */
+export interface TemplateAnalysisResult {
+  headers: string[]; // Original CSV headers
+  rowCount: number; // Number of data rows (excluding header)
+  sampleData: Record<string, string>[]; // First 3 rows as sample
+  fieldMappings: FieldMapping[]; // Automatic field mappings
+  unmappedColumns: string[]; // CSV columns that couldn't be mapped
+  missingFields: string[]; // Required DB fields not found in CSV
+}
+
+// ============================================================================
 // Type Guards
 // ============================================================================
 
 /**
  * Check if a value is a valid Intro
  */
+// biome-ignore lint/suspicious/noExplicitAny: Type guard requires any to check unknown values
 export function isIntro(value: any): value is Intro {
   return (
     typeof value === 'object' &&
@@ -399,6 +549,7 @@ export function isIntro(value: any): value is Intro {
 /**
  * Check if a value is a valid Signup
  */
+// biome-ignore lint/suspicious/noExplicitAny: Type guard requires any to check unknown values
 export function isSignup(value: any): value is Signup {
   return (
     typeof value === 'object' &&

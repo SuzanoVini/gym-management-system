@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import ProtectedRoute from './components/providers/ProtectedRoute';
@@ -12,8 +13,14 @@ import OverviewTab from './components/tabs/OverviewTab';
 import SignupsTab from './components/tabs/SignupsTab';
 import { useSidebarStore } from './store/useSidebarStore';
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState('overview');
+const VALID_TABS = ['overview', 'insights', 'intros', 'signups', 'cancellations', 'holds'];
+
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : 'overview'
+  );
   const { isOpen } = useSidebarStore();
 
   return (
@@ -32,8 +39,8 @@ export default function Home() {
         {/* Main Content Container */}
         <div className="app-main">
           {/* Main Content Area */}
-          <main className="p-4 sm:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto">
+          <main className="py-6 sm:py-8">
+            <div className="max-w-full">
               <div className="animate-fadeIn">
                 {activeTab === 'overview' && <OverviewTab />}
                 {activeTab === 'insights' && <InsightsTab />}
@@ -46,9 +53,9 @@ export default function Home() {
           </main>
 
           {/* Footer */}
-          <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-300 mt-12">
+          <footer className="bg-white/60 backdrop-blur-md border-t border-slate-200/60 mt-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <p className="text-center text-sm text-gray-600">
+              <p className="text-center text-sm text-slate-600 font-medium">
                 © {new Date().getFullYear()} Gracie Barra Kitsilano. All rights reserved.
               </p>
             </div>
@@ -56,5 +63,13 @@ export default function Home() {
         </div>
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <HomeContent />
+    </Suspense>
   );
 }

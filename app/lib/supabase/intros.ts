@@ -212,14 +212,14 @@ export const fetchFollowUpNotes = async (introId: string) => {
 };
 
 // REAL-TIME SUBSCRIPTIONS
-export const subscribeToIntros = (callback: (payload: any) => void) => {
+export const subscribeToIntros = (callback: (payload: unknown) => void) => {
   return supabase
     .channel('intros-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'intros' }, callback)
     .subscribe();
 };
 
-export const subscribeToFollowUpNotes = (callback: (payload: any) => void) => {
+export const subscribeToFollowUpNotes = (callback: (payload: unknown) => void) => {
   return supabase
     .channel('follow-up-notes-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'follow_up_notes' }, callback)
