@@ -347,7 +347,7 @@ export default function InsightsTab() {
                   key={insight.id}
                   insight={insight}
                   dataHash={hash}
-                  dismissedRecord={record}
+                  {...(record ? { dismissedRecord: record } : {})}
                   onMarkDone={handleMarkDone}
                   onSnooze={handleSnooze}
                   onDismiss={handleDismiss}
