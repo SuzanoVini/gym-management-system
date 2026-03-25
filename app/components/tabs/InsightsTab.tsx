@@ -31,6 +31,7 @@ const InsightIcons = {
   CheckCircle,
   Clock,
   DollarSign,
+  RefreshCw,
   TrendingDown,
   TrendingUp,
   Users,
