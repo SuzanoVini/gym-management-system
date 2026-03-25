@@ -74,3 +74,6 @@ pickup-route*/
 *pickup*route*/
 # Brainstorm session files
 .superpowers/
+
+# Git worktrees
+.worktrees/
