@@ -53,6 +53,14 @@ GEMINI.md
 # OS
 Thumbs.db
 
+# Sensitive data - images, import files, and member data
+*.jpg
+*.jpeg
+IMPORT*.csv
+*import-example*
+*example*.csv
+sheet*.jpg
+
 # Sensitive data - Pickup routes and student information
 Pickup Route*/
 pickup-route*/
