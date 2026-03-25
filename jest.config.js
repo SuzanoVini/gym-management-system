@@ -12,6 +12,7 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/app/$1',
   },
   testEnvironment: 'jest-environment-jsdom',
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/', '/.worktrees/'],
   collectCoverageFrom: [
     'app/**/*.{js,jsx,ts,tsx}',
     '!app/**/*.d.ts',

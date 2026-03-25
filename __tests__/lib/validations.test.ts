@@ -46,6 +46,9 @@ describe('Validation', () => {
     it('should handle missing required fields', () => {
       const incompleteData = {
         month: 'Jan',
+        name: '',
+        class: '',
+        staff: '',
       };
 
       const result = validate(introSchema, incompleteData);

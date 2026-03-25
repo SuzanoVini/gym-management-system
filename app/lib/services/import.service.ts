@@ -81,6 +81,9 @@ export type HoursCsvRow = z.infer<typeof hoursCsvSchema>;
  * @throws Error if parsing fails
  */
 export async function parseCSV(fileContent: string): Promise<ParsedData[]> {
+  if (!fileContent.trim()) {
+    return Promise.resolve([]);
+  }
   return new Promise((resolve, reject) => {
     Papa.parse<ParsedData>(fileContent, {
       header: true,
@@ -201,10 +204,20 @@ export function mapCSVColumns(headers: string[]): Record<string, string> {
   for (const header of headers) {
     const lowerHeader = header.toLowerCase().trim();
 
+    // Prefer exact match first, then substring match (prevents 'first name' matching 'name' alias of full_name)
     for (const [field, aliases] of Object.entries(columnMap)) {
-      if (aliases.some((alias) => lowerHeader === alias || lowerHeader.includes(alias))) {
+      if (aliases.some((alias) => lowerHeader === alias)) {
         mapping[header] = field;
         break;
+      }
+    }
+
+    if (!mapping[header]) {
+      for (const [field, aliases] of Object.entries(columnMap)) {
+        if (aliases.some((alias) => lowerHeader.includes(alias))) {
+          mapping[header] = field;
+          break;
+        }
       }
     }
 
@@ -338,6 +351,7 @@ export function transformToHoursRecords(
     }
 
     // Auto-detect After School Program from notes
+    transformed.is_after_school_program = false;
     if (transformed.notes) {
       const notesLower = transformed.notes.toLowerCase();
       const afterSchoolKeywords = [

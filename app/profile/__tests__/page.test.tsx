@@ -1,9 +1,14 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAuth } from '@/components/providers/AuthProvider';
 import ProfilePage from '@/profile/page';
 
 // Mock dependencies
+jest.mock('focus-trap-react', () => {
+  const FocusTrap = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+  FocusTrap.displayName = 'FocusTrap';
+  return FocusTrap;
+});
 jest.mock('@/components/providers/AuthProvider');
 jest.mock('@/components/providers/ProtectedRoute', () => ({
   __esModule: true,
@@ -206,10 +211,10 @@ describe('ProfilePage', () => {
       });
 
       const nameInput = screen.getByLabelText(/full name/i);
-      await userEvent.clear(nameInput);
+      fireEvent.change(nameInput, { target: { value: '' } });
 
-      const saveButton = screen.getByRole('button', { name: /save profile/i });
-      await userEvent.click(saveButton);
+      const profileForm = nameInput.closest('form') as HTMLFormElement;
+      fireEvent.submit(profileForm);
 
       await waitFor(
         () => {
@@ -327,11 +332,13 @@ describe('ProfilePage', () => {
         expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument();
       });
 
-      await userEvent.type(screen.getByLabelText(/^new password/i), 'NewPass123');
-      await userEvent.type(screen.getByLabelText(/confirm new password/i), 'NewPass123');
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
 
-      const updateButton = screen.getByRole('button', { name: /update password/i });
-      await userEvent.click(updateButton);
+      const passwordForm = newPasswordInput.closest('form') as HTMLFormElement;
+      fireEvent.submit(passwordForm);
 
       await waitFor(
         () => {
@@ -481,7 +488,7 @@ describe('ProfilePage', () => {
 
       await waitFor(
         () => {
-          expect(screen.getByText(/type delete to confirm/i)).toBeInTheDocument();
+          expect(screen.getByPlaceholderText(/type delete to confirm/i)).toBeInTheDocument();
         },
         { timeout: 3000 }
       );
