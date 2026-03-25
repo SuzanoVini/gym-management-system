@@ -80,3 +80,28 @@ npm run e2e
 9. **Snoozed insights aren't filtered from priority counts** — the priority summary cards (Critical/High/Medium) count all visible insights. Snoozed insights that are temporarily hidden still affect these counts since they're counted from `visibleInsights`. This is intentional (they're still active issues) but could be confusing.
 
 10. **`useDismissedInsights` doesn't handle Supabase auth errors gracefully** — if the user is not authenticated (e.g., token expired), `fetchDismissedInsights` will return an empty array silently. The dismiss actions will also fail silently (console.error only). Consider showing a user-facing error or reconnecting.
+
+---
+
+## E2E Smoke Test Review — Verdict: PASS_WITH_CONCERNS
+
+Reviewed by code-reviewer agent. Tests are well-structured overall — helpers are clean, no `waitForTimeout`, proper async/await, credentials guarded. Issues below.
+
+### Critical
+
+- **`navigation.spec.ts`**: `.app-shell` and `aside.app-sidebar` CSS class selectors are fragile — prefer `page.getByRole('complementary')` for the sidebar aside element.
+- **`overview.spec.ts`**: `main .bg-white` may not match the actual DOM if `section-container` doesn't compile to a literal `bg-white` token. Test implementation detail rather than semantics.
+- **`insights.spec.ts`**: Test named "shows either insights or empty state" only asserts the always-present priority cards. Misleading name; fix by renaming or expanding the assertion.
+
+### Important
+
+- **`helpers.ts`**: `waitForLoadState('networkidle')` is fragile when Supabase realtime subscriptions are active. Prefer `waitForLoadState('domcontentloaded')` + a specific visible element assertion.
+- **`admin.spec.ts`**: No guard for non-admin test credentials. If `TEST_EMAIL` is not an admin, the page may redirect or show an empty state — the test will fail without a clear diagnostic. Document that the test credential must be an admin user.
+- **`profile.spec.ts`**: Same `networkidle` concern as helpers.ts.
+
+### Minor
+
+- **`cancellations.spec.ts`, `holds.spec.ts`**: No heading assertion — only structural check. Add heading assertions for better diagnostics.
+- **`intros.spec.ts`**: `getByRole('button', { name: /add intro/i })` — verify button label matches source exactly.
+- **`playwright.config.ts`**: No `webServer` block. Tests silently fail if dev server is not running. Add `webServer: { command: 'npm run dev', url: 'http://localhost:3000', reuseExistingServer: true }`.
+- **`navigation.spec.ts`**: Eight separate `beforeEach` logins for eight tab-visibility tests. Could use shared `storageState` for a ~8x speedup.
