@@ -126,6 +126,7 @@ export const useAnalyticsData = (filterOptions: DateRangeFilterOptions) => {
 
   return {
     filteredData,
+    allData,
     loading,
     error,
     refresh: loadAllData,

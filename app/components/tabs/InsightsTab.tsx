@@ -3,40 +3,38 @@
 import {
   AlertCircle,
   AlertTriangle,
-  ArrowRight,
-  Calendar,
   CheckCircle,
   Clock,
   DollarSign,
   RefreshCw,
   Target,
-  TrendingDown,
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
-
+import { useDismissedInsights } from '@/hooks/useDismissedInsights';
 import { useInsights } from '@/hooks/useInsights';
-
 import type { Insight } from '@/types';
+import { InsightCard } from './InsightCard';
 
-// Map icon names to their components for dynamic rendering and to satisfy TypeScript usage checks
-
-const InsightIcons = {
-  AlertCircle,
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  RefreshCw,
-  TrendingDown,
-  TrendingUp,
-  Users,
-  Target,
+// Compute a stable hash from serialized insight data — defined at module level
+// to avoid Biome's no-unstable-dependencies lint error inside components.
+const insightDataHash = (data: unknown): string => {
+  const str = JSON.stringify(data);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  }
+  return h.toString(36);
 };
+
+interface Toast {
+  id: string;
+  message: string;
+  insightId: string;
+}
 
 export default function InsightsTab() {
   const [dateRange, setDateRange] = useState('3months');
@@ -44,39 +42,121 @@ export default function InsightsTab() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
+  const [showDismissed, setShowDismissed] = useState(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const { filteredData, loading, error, refresh } = useAnalyticsData({
+  const { filteredData, allData, loading, error, refresh } = useAnalyticsData({
     dateRange,
     customStartDate,
     customEndDate,
   });
-  const { insights } = useInsights(filteredData);
+
+  const { insights } = useInsights({
+    ...filteredData,
+    rawHolds: allData.holds,
+  });
+
+  const { isDismissed, markDone, snooze, dismiss, restore, dismissed } = useDismissedInsights();
+
+  // Per-insight data hash — keyed by insight id, computed from the insight content
+  const getInsightHash = useCallback(
+    (insight: Insight) =>
+      insightDataHash({ id: insight.id, title: insight.title, message: insight.message }),
+    []
+  );
+
+  // Toast management
+  const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const addToast = useCallback((insightId: string, message: string) => {
+    const id = `${insightId}-${Date.now()}`;
+    setToasts((prev) => [...prev, { id, message, insightId }]);
+    toastTimers.current[id] = setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 5000);
+  }, []);
+
+  const dismissToast = useCallback((toastId: string) => {
+    clearTimeout(toastTimers.current[toastId]);
+    setToasts((prev) => prev.filter((t) => t.id !== toastId));
+  }, []);
+
+  // Clean up timers on unmount
+  useEffect(
+    () => () => {
+      for (const timer of Object.values(toastTimers.current)) {
+        clearTimeout(timer);
+      }
+    },
+    []
+  );
+
+  const handleMarkDone = useCallback(
+    (insightId: string, dataHash: string) => {
+      markDone(insightId, dataHash);
+      addToast(insightId, 'Marked as done');
+    },
+    [markDone, addToast]
+  );
+
+  const handleSnooze = useCallback(
+    (insightId: string, dataHash: string, days = 7) => {
+      snooze(insightId, dataHash, days);
+      addToast(insightId, `Snoozed for ${days} days`);
+    },
+    [snooze, addToast]
+  );
+
+  const handleDismiss = useCallback(
+    (insightId: string, dataHash: string) => {
+      dismiss(insightId, dataHash);
+      addToast(insightId, 'Insight dismissed');
+    },
+    [dismiss, addToast]
+  );
+
+  const handleRestore = useCallback(
+    (insightId: string) => {
+      restore(insightId);
+      setToasts((prev) => prev.filter((t) => t.insightId !== insightId));
+    },
+    [restore]
+  );
 
   const handleApplyCustomDates = () => {
     setCustomStartDate(tempStartDate);
     setCustomEndDate(tempEndDate);
   };
 
-  // Category breakdown
+  const visibleInsights = insights.filter((i) => {
+    const hash = getInsightHash(i);
+    return !isDismissed(i.id, hash);
+  });
+
+  const dismissedInsightCount = dismissed.filter(
+    (d) => d.action === 'dismissed' || d.action === 'done'
+  ).length;
+
+  // Category breakdown (visible only)
   const insightsByCategory = {
-    conversion: insights.filter((i: Insight) => i.category === 'conversion'),
-    retention: insights.filter((i: Insight) => i.category === 'retention'),
-    financial: insights.filter((i: Insight) => i.category === 'financial'),
-    operational: insights.filter((i: Insight) => i.category === 'operational'),
-    growth: insights.filter((i: Insight) => i.category === 'growth'),
+    conversion: visibleInsights.filter((i: Insight) => i.category === 'conversion'),
+    retention: visibleInsights.filter((i: Insight) => i.category === 'retention'),
+    financial: visibleInsights.filter((i: Insight) => i.category === 'financial'),
+    operational: visibleInsights.filter((i: Insight) => i.category === 'operational'),
+    growth: visibleInsights.filter((i: Insight) => i.category === 'growth'),
   };
 
   const priorityCounts = {
-    critical: insights.filter((i: Insight) => i.priority === 'critical').length,
-    high: insights.filter((i: Insight) => i.priority === 'high').length,
-    medium: insights.filter((i: Insight) => i.priority === 'medium').length,
+    critical: visibleInsights.filter((i: Insight) => i.priority === 'critical').length,
+    high: visibleInsights.filter((i: Insight) => i.priority === 'high').length,
+    medium: visibleInsights.filter((i: Insight) => i.priority === 'medium').length,
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4" />
           <p className="text-gray-600">Analyzing your data...</p>
         </div>
       </div>
@@ -96,6 +176,38 @@ export default function InsightsTab() {
 
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+      {/* Toast notifications */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+          {toasts.map((toast) => (
+            <div
+              key={toast.id}
+              className="flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg text-sm"
+            >
+              <span>{toast.message}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  handleRestore(toast.insightId);
+                  dismissToast(toast.id);
+                }}
+                className="text-blue-400 hover:text-blue-300 font-medium"
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                onClick={() => dismissToast(toast.id)}
+                className="text-gray-400 hover:text-gray-300"
+                aria-label="Close notification"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -213,7 +325,7 @@ export default function InsightsTab() {
         </div>
 
         {/* Insights */}
-        {insights.length === 0 ? (
+        {visibleInsights.length === 0 && !showDismissed ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">Everything Looks Good!</h3>
@@ -224,103 +336,46 @@ export default function InsightsTab() {
         ) : (
           <div className="space-y-4">
             {insights.map((insight: Insight) => {
-              const Icon = InsightIcons[insight.icon as keyof typeof InsightIcons] || AlertCircle;
-
-              const bgColor = {
-                red: 'bg-red-50',
-                orange: 'bg-orange-50',
-                yellow: 'bg-yellow-50',
-                green: 'bg-green-50',
-                blue: 'bg-blue-50',
-                purple: 'bg-purple-50',
-              }[insight.color];
-
-              const borderColor = {
-                red: 'border-red-500',
-                orange: 'border-orange-500',
-                yellow: 'border-yellow-500',
-                green: 'border-green-500',
-                blue: 'border-blue-500',
-                purple: 'border-purple-500',
-              }[insight.color];
-
-              const iconColor = {
-                red: 'text-red-600',
-                orange: 'text-orange-600',
-                yellow: 'text-yellow-600',
-                green: 'text-green-600',
-                blue: 'text-blue-600',
-                purple: 'text-purple-600',
-              }[insight.color];
-
-              const priorityBadge = {
-                critical: 'bg-red-100 text-red-800 border-red-300',
-                high: 'bg-orange-100 text-orange-800 border-orange-300',
-                medium: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-                low: 'bg-gray-100 text-gray-800 border-gray-300',
-              }[insight.priority];
-
+              const hash = getInsightHash(insight);
+              const record = dismissed.find((d) => d.insight_id === insight.id);
+              const hidden = isDismissed(insight.id, hash);
+              if (hidden && !showDismissed) {
+                return null;
+              }
               return (
-                <div
+                <InsightCard
                   key={insight.id}
-                  className={`${bgColor} rounded-lg border-l-4 ${borderColor} p-6 shadow-sm hover:shadow-md transition-shadow`}
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-start flex-1">
-                      <Icon className={`w-6 h-6 ${iconColor} mr-3 mt-1 flex-shrink-0`} />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-bold text-gray-900">{insight.title}</h3>
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded border ${priorityBadge} uppercase`}
-                          >
-                            {insight.priority}
-                          </span>
-                        </div>
-                        {insight.impact && (
-                          <div className="inline-flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm font-semibold text-gray-700 border border-gray-200 mb-2">
-                            <DollarSign className="w-4 h-4" />
-                            {insight.impact}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Message */}
-                  <div className="ml-9 mb-4">
-                    <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                      {insight.message}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="ml-9 bg-white bg-opacity-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex items-center gap-2 mb-3">
-                      <ArrowRight className="w-4 h-4 text-gray-600" />
-                      <h4 className="font-semibold text-sm text-gray-900">Action Steps:</h4>
-                    </div>
-                    <ul className="space-y-2">
-                      {insight.actions.map((action, idx) => (
-                        <li
-                          key={`${insight.id}-${action}`}
-                          className="flex items-start gap-2 text-sm text-gray-700"
-                        >
-                          <span className="text-red-600 font-bold mt-0.5">{idx + 1}.</span>
-                          <span>{action}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                  insight={insight}
+                  dataHash={hash}
+                  dismissedRecord={record}
+                  onMarkDone={handleMarkDone}
+                  onSnooze={handleSnooze}
+                  onDismiss={handleDismiss}
+                  onRestore={handleRestore}
+                  showDismissed={showDismissed}
+                />
               );
             })}
           </div>
         )}
 
+        {/* Show dismissed toggle */}
+        {dismissedInsightCount > 0 && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowDismissed((v) => !v)}
+              className="text-sm text-gray-500 hover:text-gray-700 underline"
+            >
+              {showDismissed
+                ? 'Hide dismissed insights'
+                : `Show dismissed (${dismissedInsightCount})`}
+            </button>
+          </div>
+        )}
+
         {/* Category Breakdown */}
-        {insights.length > 0 && (
+        {visibleInsights.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-bold mb-4">Insights by Category</h3>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
