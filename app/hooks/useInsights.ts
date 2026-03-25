@@ -153,6 +153,14 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
           'Partner with physical therapist for rehab programs',
           'Emphasize injury prevention in classes',
         ];
+      } else if (reasonLower.includes('moving') || reasonLower.includes('relocation')) {
+        actionableAdvice = 'Moving members may return — keep the relationship warm.';
+        specificActions = [
+          'Offer a farewell freeze instead of cancellation',
+          'Ask for a referral to friends/family staying in the area',
+          'Send a "welcome back" offer if they return to the city',
+          'Connect them with a partner gym in their new location',
+        ];
       } else {
         actionableAdvice = 'Pattern detected - needs investigation.';
         specificActions = [
