@@ -42,13 +42,20 @@ next-env.d.ts
 *.swo
 *~
 
-# AI files
-.Claude
-PRODUCTION_READY_CHECKLIST.md
+# AI tooling — never commit any of these
+.claude/
+.Claude/
+CLAUDE.md
 GEMINI.md
-
-# Feature workflow temporary files
+HANDOFF.md
+design-system/
+docs/superpowers/
+.superpowers/
 .features/
+*_CHECKLIST.md
+*_IMPROVEMENTS.md
+*DESIGN_SPEC*
+*OVERHAUL*
 
 # OS
 Thumbs.db
