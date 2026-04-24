@@ -64,6 +64,7 @@ const filterRow = (row: unknown): boolean => {
 export type IntroCsvRecord = {
   month: string;
   date: string | undefined;
+  year: number | undefined;
   time: string | null;
   class: string | null;
   name: string;
@@ -92,6 +93,7 @@ export const parseIntrosCSV = (
         const parsedData = results.data.filter(filterRow).map((row) => ({
           month: String(row.MONTH || row.month || row.Month || '').trim(),
           date: parseDate(String(row.DATE || row.date || row.Date || '').trim(), year),
+          year: year,
           time: String(row.TIME || row.time || row.Time || '').trim() || null,
           class: String(row.CLASS || row.class || row.Class || '').trim() || null,
           name: String(row.NAME || row.name || row.Name || '').trim(),
@@ -128,9 +130,14 @@ export type SignupCsvRecord = {
   first_payment_date: string | undefined;
   signup_package: boolean;
   notes: string;
+  year: number | undefined;
 };
 
-export const parseSignupsCSV = (file: File, onComplete: (data: SignupCsvRecord[]) => void) => {
+export const parseSignupsCSV = (
+  file: File,
+  onComplete: (data: SignupCsvRecord[]) => void,
+  year?: number
+) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
@@ -163,8 +170,8 @@ export const parseSignupsCSV = (file: File, onComplete: (data: SignupCsvRecord[]
             month: String(row.MONTH || row.month || row.Month || '').trim(),
             name: String(row.NAME || row.name || row.Name || '').trim(),
             membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
-            membership_date: parseDate(membershipDateRaw),
-            first_payment_date: parseDate(firstPaymentDateRaw),
+            membership_date: parseDate(membershipDateRaw, year),
+            first_payment_date: parseDate(firstPaymentDateRaw, year),
             signup_package: String(
               row['SIGN-UP PACKAGE?'] ||
                 row['SIGNUP PACKAGE'] ||
@@ -175,6 +182,7 @@ export const parseSignupsCSV = (file: File, onComplete: (data: SignupCsvRecord[]
               .toLowerCase()
               .includes('yes'),
             notes: String(row.NOTES || row.notes || row.Notes || '').trim(),
+            year: year,
           };
         });
         onComplete(parsedData);
@@ -198,11 +206,13 @@ export type CancellationCsvRecord = {
   reason: string | null;
   age_group: string | null;
   notes: string | null;
+  year: number | undefined;
 };
 
 export const parseCancellationsCSV = (
   file: File,
-  onComplete: (data: CancellationCsvRecord[]) => void
+  onComplete: (data: CancellationCsvRecord[]) => void,
+  year?: number
 ) => {
   Papa.parse(file, {
     header: true,
@@ -225,11 +235,12 @@ export const parseCancellationsCSV = (
           return {
             month: String(row.MONTH || row.month || row.Month || '').trim(),
             name: String(row.NAME || row.name || row.Name || '').trim(),
-            date: parseDate(cancellationDateRaw),
+            date: parseDate(cancellationDateRaw, year),
             reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
             age_group:
               String(row['AGE CATEGORY'] || row.age_group || row['Age Group'] || '').trim() || null,
             notes: String(row.NOTES || row.notes || row.Notes || '').trim() || null,
+            year: year,
           };
         });
         onComplete(parsedData);
@@ -253,9 +264,14 @@ export type HoldCsvRecord = {
   end: string | undefined;
   reason: string | null;
   fee: string | null;
+  year: number | undefined;
 };
 
-export const parseHoldsCSV = (file: File, onComplete: (data: HoldCsvRecord[]) => void) => {
+export const parseHoldsCSV = (
+  file: File,
+  onComplete: (data: HoldCsvRecord[]) => void,
+  year?: number
+) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
@@ -276,10 +292,11 @@ export const parseHoldsCSV = (file: File, onComplete: (data: HoldCsvRecord[]) =>
           return {
             month: String(row.MONTH || row.month || row.Month || '').trim(),
             name: String(row.NAME || row.name || row.Name || '').trim(),
-            start: parseDate(startDateRaw),
-            end: parseDate(endDateRaw),
+            start: parseDate(startDateRaw, year),
+            end: parseDate(endDateRaw, year),
             reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
             fee: String(row.FEE || row.fee || row.Fee || '').trim() || null,
+            year: year,
           };
         });
         onComplete(parsedData);

@@ -5,6 +5,7 @@ import { devtools } from 'zustand/middleware';
 
 interface FilterState {
   filters: {
+    year: string;
     month: string;
     staff: string;
     class: string;
@@ -21,6 +22,7 @@ interface FilterState {
 
 const initialState = {
   filters: {
+    year: 'all',
     month: 'all',
     staff: 'all',
     class: 'all',

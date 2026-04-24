@@ -15,6 +15,7 @@ export interface BaseRecord {
 export interface Intro extends BaseRecord {
   month: string;
   date?: string; // Changed from number to string
+  year?: number;
   time?: string;
   class: string;
   name: string;
@@ -43,6 +44,7 @@ export interface Signup extends BaseRecord {
   first_payment_date?: string;
   signup_package?: boolean;
   notes?: string;
+  year?: number;
   created_by?: string;
   // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
   [key: string]: any;
@@ -58,6 +60,7 @@ export interface Cancellation extends BaseRecord {
   reason?: string;
   age_group?: string;
   notes?: string;
+  year?: number;
   created_by?: string;
   // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
   [key: string]: any;
@@ -73,6 +76,7 @@ export interface Hold extends BaseRecord {
   end?: string; // Renamed from end_date
   reason?: string;
   fee?: string;
+  year?: number;
   created_by?: string;
 }
 
