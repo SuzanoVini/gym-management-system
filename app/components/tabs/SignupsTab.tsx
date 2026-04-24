@@ -177,8 +177,7 @@ export default function SignupsTab() {
   }, [signups, filters]);
 
   const availableYears = useMemo(() => {
-    const current = new Date().getFullYear();
-    const years = new Set<number>([current, current - 1, current - 2]);
+    const years = new Set<number>();
     for (const signup of signups) {
       if (signup.year) {
         years.add(signup.year);
@@ -296,6 +295,13 @@ export default function SignupsTab() {
       ),
     },
     {
+      key: 'year' as keyof Signup,
+      label: 'Year',
+      render: (value: unknown) => (
+        <span className="text-sm text-gray-500">{value ? String(value) : '—'}</span>
+      ),
+    },
+    {
       key: 'actions' as keyof Signup,
       label: 'Actions',
       render: (_value: unknown, signup: Signup) => (
@@ -338,7 +344,9 @@ export default function SignupsTab() {
     <div className="space-y-6">
       <div className="section-container">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Sign-ups</h2>
+          <h2 className="text-2xl font-bold">
+            {filters.year === 'all' ? 'All Sign-ups' : `${filters.year} Sign-ups`}
+          </h2>
           <div className="flex space-x-3">
             <button
               type="button"

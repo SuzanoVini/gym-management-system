@@ -195,8 +195,7 @@ export default function CancellationsTab() {
   }, [cancellations, filters]);
 
   const availableYears = useMemo(() => {
-    const current = new Date().getFullYear();
-    const years = new Set<number>([current, current - 1, current - 2]);
+    const years = new Set<number>();
     for (const cancellation of cancellations) {
       if (cancellation.year) {
         years.add(cancellation.year);
@@ -300,6 +299,13 @@ export default function CancellationsTab() {
       ),
     },
     {
+      key: 'year' as keyof Cancellation,
+      label: 'Year',
+      render: (value: unknown) => (
+        <span className="text-sm text-gray-500">{value ? String(value) : '—'}</span>
+      ),
+    },
+    {
       key: 'actions' as keyof Cancellation,
       label: 'Actions',
       render: (_value: unknown, cancellation: Cancellation) => (
@@ -343,7 +349,9 @@ export default function CancellationsTab() {
     <div className="space-y-6">
       <div className="section-container">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Cancellations</h2>
+          <h2 className="text-2xl font-bold">
+            {filters.year === 'all' ? 'All Cancellations' : `${filters.year} Cancellations`}
+          </h2>
           <div className="flex space-x-3">
             <button
               type="button"

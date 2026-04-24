@@ -199,7 +199,11 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
         <button type="button" onClick={onCancel} className="btn btn-tertiary flex-1">
           Cancel
         </button>
-        <button type="submit" disabled={loading} className="btn btn-primary flex-1">
+        <button
+          type="submit"
+          disabled={loading}
+          className={`flex-1 ${intro ? 'btn btn-primary' : 'btn btn-secondary'}`}
+        >
           {loading ? 'Saving...' : intro ? 'Update' : 'Create'}
         </button>
       </div>

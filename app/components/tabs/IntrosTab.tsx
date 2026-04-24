@@ -59,8 +59,7 @@ export default function IntrosTab() {
   }, [intros, filters]);
 
   const availableYears = useMemo(() => {
-    const current = new Date().getFullYear();
-    const years = new Set<number>([current, current - 1, current - 2]);
+    const years = new Set<number>();
     for (const intro of intros) {
       if (intro.year) {
         years.add(intro.year);
@@ -283,6 +282,13 @@ export default function IntrosTab() {
       ),
     },
     {
+      key: 'year' as keyof Intro,
+      label: 'Year',
+      render: (value: unknown, _intro: Intro) => (
+        <span className="text-sm text-gray-500">{value ? String(value) : '—'}</span>
+      ),
+    },
+    {
       key: 'actions' as keyof Intro,
       label: 'Actions',
       render: (_value: unknown, intro: Intro) => (
@@ -332,7 +338,9 @@ export default function IntrosTab() {
       {/* Header Section */}
       <div className="section-container">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Intro Classes</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {filters.year === 'all' ? 'All Intros' : `${filters.year} Intros`}
+          </h2>
           <div className="flex space-x-3">
             <button
               type="button"
