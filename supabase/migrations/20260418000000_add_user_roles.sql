@@ -16,9 +16,12 @@ BEGIN
   WHERE email = 'owner@example.com';
 
   IF owner_id IS NULL THEN
-    RAISE EXCEPTION
-      'Owner user owner@example.com not found in auth.users. '
-      'Create the account in Supabase Auth before running this migration.';
+    RAISE WARNING
+      'Owner user owner@example.com not found in auth.users — '
+      'role column added but no owner promoted. '
+      'On production, create the account and run: '
+      'UPDATE user_profiles SET role = ''owner'' WHERE id = (SELECT id FROM auth.users WHERE email = ''owner@example.com'');';
+    RETURN;
   END IF;
 
   UPDATE user_profiles SET role = 'owner' WHERE id = owner_id;
