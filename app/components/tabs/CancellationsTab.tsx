@@ -3,6 +3,7 @@
 import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Table from '@/components/ui/Table';
+import YearFilter from '@/components/ui/YearFilter';
 import { useCancellations } from '@/hooks/useCancellations';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
@@ -359,27 +360,14 @@ export default function CancellationsTab() {
               ref={fileInputRef}
               onChange={handleCSVImport}
             />
-            <div className="flex items-center rounded-lg border border-blue-200 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="btn btn-secondary-blue rounded-none border-0 border-r border-blue-200"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Import CSV</span>
-              </button>
-              <div className="flex items-center gap-1 px-2 bg-blue-50">
-                <span className="text-xs text-blue-500 font-medium">Year</span>
-                <input
-                  type="number"
-                  min={2000}
-                  max={2100}
-                  value={importYear}
-                  onChange={(e) => setImportYear(Number(e.target.value))}
-                  className="w-16 text-sm text-center bg-transparent border-0 outline-none text-blue-700 font-semibold"
-                />
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="btn btn-secondary-blue"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Import CSV</span>
+            </button>
             <button type="button" onClick={handleExportCancellations} className="btn btn-primary">
               <Download className="w-4 h-4" />
               <span>Export</span>
@@ -431,45 +419,11 @@ export default function CancellationsTab() {
       </div>
 
       <div className="section-container">
-        <div className="flex items-center gap-2 flex-wrap pb-3 mb-1 border-b border-gray-100">
-          <button
-            type="button"
-            onClick={() => setFilters({ year: 'all' })}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              filters.year === 'all'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
-            }`}
-          >
-            All
-            <span
-              className={`ml-1.5 text-xs ${filters.year === 'all' ? 'text-red-100' : 'text-gray-400'}`}
-            >
-              · {cancellations.length}
-            </span>
-          </button>
-          {availableYears.map((year) => {
-            const count = cancellations.filter((s) => s.year === year).length;
-            const isActive = filters.year === String(year);
-            return (
-              <button
-                key={year}
-                type="button"
-                onClick={() => setFilters({ year: String(year) })}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-red-600 text-white shadow-sm'
-                    : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
-                }`}
-              >
-                {year}
-                <span className={`ml-1.5 text-xs ${isActive ? 'text-red-100' : 'text-gray-400'}`}>
-                  · {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <YearFilter
+          availableYears={availableYears}
+          selectedYear={filters.year}
+          onYearChange={(year) => setFilters({ year })}
+        />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="form-label" htmlFor="cancellations-sort">
