@@ -26,6 +26,8 @@ export default function SignupsTab() {
   const setSelectedSignup = useSelectionStore((state) => state.setSelectedSignup);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreviewData, setImportPreviewData] = useState<SignupCsvRecord[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -35,11 +37,23 @@ export default function SignupsTab() {
     if (!file) {
       return;
     }
-    parseSignupsCSV(file, (data) => {
-      setImportPreviewData(data);
-      openModal('importPreview');
-    });
+    setImportFile(file);
+    parseSignupsCSV(
+      file,
+      (data) => {
+        setImportPreviewData(data);
+        openModal('importPreview');
+      },
+      importYear
+    );
     event.target.value = '';
+  };
+
+  const handleImportYearChange = (year: number) => {
+    setImportYear(year);
+    if (importFile) {
+      parseSignupsCSV(importFile, setImportPreviewData, year);
+    }
   };
 
   const confirmCSVImport = async () => {
@@ -67,6 +81,7 @@ export default function SignupsTab() {
         alert(`All ${duplicateCount} records are duplicates. Nothing to import.`);
         closeModal('importPreview');
         setImportPreviewData([]);
+        setImportFile(null);
         // setLoading(false);
         return;
       }
@@ -80,6 +95,7 @@ export default function SignupsTab() {
         await refresh(); // Refresh signups after import
         closeModal('importPreview');
         setImportPreviewData([]);
+        setImportFile(null);
         alert(
           `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
         );
@@ -548,7 +564,16 @@ export default function SignupsTab() {
         </div>
       </div>
 
-      <SignupModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
+      <SignupModals
+        importPreviewData={importPreviewData}
+        confirmCSVImport={confirmCSVImport}
+        importYear={importYear}
+        onImportYearChange={handleImportYearChange}
+        onImportClose={() => {
+          setImportFile(null);
+          setImportPreviewData([]);
+        }}
+      />
     </div>
   );
 }

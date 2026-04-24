@@ -44,10 +44,28 @@ export default function IntrosTab() {
       const matchesStaff = filters.staff === 'all' || intro.staff === filters.staff;
       const matchesClass = filters.class === 'all' || intro.class === filters.class;
       const matchesStatus = filters.status === 'all' || intro.status === filters.status;
+      const matchesYear = filters.year === 'all' || String(intro.year) === filters.year;
 
-      return matchesSearch && matchesMonth && matchesStaff && matchesClass && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesMonth &&
+        matchesStaff &&
+        matchesClass &&
+        matchesStatus &&
+        matchesYear
+      );
     });
   }, [intros, filters]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    for (const intro of intros) {
+      if (intro.year) {
+        years.add(intro.year);
+      }
+    }
+    return Array.from(years).sort((a, b) => b - a); // newest first
+  }, [intros]);
 
   // Calculate metrics
   const metrics = {
@@ -375,6 +393,47 @@ export default function IntrosTab() {
 
       {/* Filters */}
       <div className="section-container">
+        {availableYears.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap pb-3 mb-1 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={() => setFilters({ year: 'all' })}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                filters.year === 'all'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
+              }`}
+            >
+              All
+              <span
+                className={`ml-1.5 text-xs ${filters.year === 'all' ? 'text-red-100' : 'text-gray-400'}`}
+              >
+                · {intros.length}
+              </span>
+            </button>
+            {availableYears.map((year) => {
+              const count = intros.filter((i) => i.year === year).length;
+              const isActive = filters.year === String(year);
+              return (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => setFilters({ year: String(year) })}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-red-600 text-white shadow-sm'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
+                  }`}
+                >
+                  {year}
+                  <span className={`ml-1.5 text-xs ${isActive ? 'text-red-100' : 'text-gray-400'}`}>
+                    · {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <input
             type="text"
@@ -543,25 +602,25 @@ export default function IntrosTab() {
         size="xl"
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-4">
-            <p className="text-sm text-gray-600 flex-1">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
               Preview of data to be imported. Duplicates will be automatically skipped.
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <label
-                htmlFor="import-year"
+                htmlFor="intro-import-year"
                 className="text-sm font-medium text-gray-700 whitespace-nowrap"
               >
                 Year
               </label>
               <input
-                id="import-year"
+                id="intro-import-year"
                 type="number"
                 min={2000}
                 max={2100}
                 value={importYear}
                 onChange={(e) => handleImportYearChange(Number(e.target.value))}
-                className="form-input w-24 text-sm"
+                className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
           </div>

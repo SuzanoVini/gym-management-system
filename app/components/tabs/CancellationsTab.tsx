@@ -28,6 +28,8 @@ export default function CancellationsTab() {
   const setSelectedCancellation = useSelectionStore((state) => state.setSelectedCancellation);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreviewData, setImportPreviewData] = useState<CancellationCsvRecord[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -37,11 +39,23 @@ export default function CancellationsTab() {
     if (!file) {
       return;
     }
-    parseCancellationsCSV(file, (data) => {
-      setImportPreviewData(data);
-      openModal('importPreview');
-    });
+    setImportFile(file);
+    parseCancellationsCSV(
+      file,
+      (data) => {
+        setImportPreviewData(data);
+        openModal('importPreview');
+      },
+      importYear
+    );
     event.target.value = '';
+  };
+
+  const handleImportYearChange = (year: number) => {
+    setImportYear(year);
+    if (importFile) {
+      parseCancellationsCSV(importFile, setImportPreviewData, year);
+    }
   };
 
   const confirmCSVImport = async () => {
@@ -71,6 +85,7 @@ export default function CancellationsTab() {
         alert(`All ${duplicateCount} records are duplicates. Nothing to import.`);
         closeModal('importPreview');
         setImportPreviewData([]);
+        setImportFile(null);
         // setLoading(false);
         return;
       }
@@ -84,6 +99,7 @@ export default function CancellationsTab() {
         await refresh(); // Refresh cancellations after import
         closeModal('importPreview');
         setImportPreviewData([]);
+        setImportFile(null);
         alert(
           `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
         );
@@ -580,6 +596,12 @@ export default function CancellationsTab() {
       <CancellationModals
         importPreviewData={importPreviewData}
         confirmCSVImport={confirmCSVImport}
+        importYear={importYear}
+        onImportYearChange={handleImportYearChange}
+        onImportClose={() => {
+          setImportFile(null);
+          setImportPreviewData([]);
+        }}
       />
     </div>
   );

@@ -18,9 +18,18 @@ const SignupModalIcons = {
 interface SignupModalsProps {
   importPreviewData: SignupCsvRecord[];
   confirmCSVImport: () => Promise<void>;
+  importYear: number;
+  onImportYearChange: (year: number) => void;
+  onImportClose: () => void;
 }
 
-export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModalsProps) {
+export function SignupModals({
+  importPreviewData,
+  confirmCSVImport,
+  importYear,
+  onImportYearChange,
+  onImportClose,
+}: SignupModalsProps) {
   const { modals, closeModal } = useUIStore();
   const { addSignup, editSignup } = useSignups();
   const { selectedSignup, setSelectedSignup } = useSelectionStore();
@@ -118,10 +127,35 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
       </Modal>
       <Modal
         isOpen={modals.importPreview}
-        onClose={() => closeModal('importPreview')}
+        onClose={() => {
+          closeModal('importPreview');
+          onImportClose();
+        }}
         title="Confirm CSV Import"
         size="xl"
       >
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm text-gray-600">
+            Preview of data to be imported. Duplicates will be automatically skipped.
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <label
+              htmlFor="signup-import-year"
+              className="text-sm font-medium text-gray-700 whitespace-nowrap"
+            >
+              Year
+            </label>
+            <input
+              id="signup-import-year"
+              type="number"
+              min={2000}
+              max={2100}
+              value={importYear}
+              onChange={(e) => onImportYearChange(Number(e.target.value))}
+              className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+          </div>
+        </div>
         <div className="border rounded overflow-x-auto mb-4">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
@@ -151,7 +185,10 @@ export function SignupModals({ importPreviewData, confirmCSVImport }: SignupModa
         <div className="flex justify-end space-x-3">
           <button
             type="button"
-            onClick={() => closeModal('importPreview')}
+            onClick={() => {
+              closeModal('importPreview');
+              onImportClose();
+            }}
             className="px-4 py-2 border rounded hover:bg-gray-50"
           >
             Cancel

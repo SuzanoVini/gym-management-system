@@ -27,6 +27,8 @@ export default function HoldsTab() {
   const setSelectedHold = useSelectionStore((state) => state.setSelectedHold);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreviewData, setImportPreviewData] = useState<HoldCsvRecord[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(100);
@@ -36,11 +38,23 @@ export default function HoldsTab() {
     if (!file) {
       return;
     }
-    parseHoldsCSV(file, (data) => {
-      setImportPreviewData(data);
-      openModal('importPreview');
-    });
+    setImportFile(file);
+    parseHoldsCSV(
+      file,
+      (data) => {
+        setImportPreviewData(data);
+        openModal('importPreview');
+      },
+      importYear
+    );
     event.target.value = '';
+  };
+
+  const handleImportYearChange = (year: number) => {
+    setImportYear(year);
+    if (importFile) {
+      parseHoldsCSV(importFile, setImportPreviewData, year);
+    }
   };
 
   const confirmCSVImport = async () => {
@@ -70,6 +84,7 @@ export default function HoldsTab() {
         alert(`All ${duplicateCount} records are duplicates. Nothing to import.`);
         closeModal('importPreview');
         setImportPreviewData([]);
+        setImportFile(null);
         // setLoading(false);
         return;
       }
@@ -83,6 +98,7 @@ export default function HoldsTab() {
         await refresh(); // Refresh holds after import
         closeModal('importPreview');
         setImportPreviewData([]);
+        setImportFile(null);
         alert(
           `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
         );
@@ -594,7 +610,16 @@ export default function HoldsTab() {
         </div>
       </div>
 
-      <HoldModals importPreviewData={importPreviewData} confirmCSVImport={confirmCSVImport} />
+      <HoldModals
+        importPreviewData={importPreviewData}
+        confirmCSVImport={confirmCSVImport}
+        importYear={importYear}
+        onImportYearChange={handleImportYearChange}
+        onImportClose={() => {
+          setImportFile(null);
+          setImportPreviewData([]);
+        }}
+      />
     </div>
   );
 }
