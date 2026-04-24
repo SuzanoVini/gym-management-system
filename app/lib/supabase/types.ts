@@ -272,6 +272,7 @@ export interface Database {
           updated_at: string;
           full_name: string;
           avatar_url: string | null;
+          role: 'owner' | 'staff';
         };
         Insert: {
           id: string;
@@ -279,6 +280,7 @@ export interface Database {
           updated_at?: string;
           full_name: string;
           avatar_url?: string | null;
+          role?: 'owner' | 'staff';
         };
         Update: {
           id?: string;
@@ -286,6 +288,7 @@ export interface Database {
           updated_at?: string;
           full_name?: string;
           avatar_url?: string | null;
+          role?: 'owner' | 'staff';
         };
       };
       // PAYROLL TABLES

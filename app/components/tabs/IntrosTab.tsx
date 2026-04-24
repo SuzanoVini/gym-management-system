@@ -28,6 +28,8 @@ export default function IntrosTab() {
   const setSelectedIntro = useSelectionStore((state) => state.setSelectedIntro);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importPreviewData, setImportPreviewData] = useState<IntroCsvRecord[]>([]);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -62,11 +64,23 @@ export default function IntrosTab() {
     if (!file) {
       return;
     }
-    parseIntrosCSV(file, (data) => {
-      setImportPreviewData(data);
-      openModal('importPreview');
-    });
+    setImportFile(file);
+    parseIntrosCSV(
+      file,
+      (data) => {
+        setImportPreviewData(data);
+        openModal('importPreview');
+      },
+      importYear
+    );
     event.target.value = '';
+  };
+
+  const handleImportYearChange = (year: number) => {
+    setImportYear(year);
+    if (importFile) {
+      parseIntrosCSV(importFile, setImportPreviewData, year);
+    }
   };
 
   const confirmCSVImport = async () => {
@@ -523,14 +537,34 @@ export default function IntrosTab() {
         onClose={() => {
           closeModal('importPreview');
           setImportPreviewData([]);
+          setImportFile(null);
         }}
         title="Import Preview"
         size="xl"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Preview of data to be imported. Duplicates will be automatically skipped.
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-gray-600 flex-1">
+              Preview of data to be imported. Duplicates will be automatically skipped.
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <label
+                htmlFor="import-year"
+                className="text-sm font-medium text-gray-700 whitespace-nowrap"
+              >
+                Year
+              </label>
+              <input
+                id="import-year"
+                type="number"
+                min={2000}
+                max={2100}
+                value={importYear}
+                onChange={(e) => handleImportYearChange(Number(e.target.value))}
+                className="form-input w-24 text-sm"
+              />
+            </div>
+          </div>
           <div className="max-h-96 overflow-y-auto border rounded">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0">
@@ -564,6 +598,7 @@ export default function IntrosTab() {
               onClick={() => {
                 closeModal('importPreview');
                 setImportPreviewData([]);
+                setImportFile(null);
               }}
               className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
             >

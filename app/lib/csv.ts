@@ -1,22 +1,37 @@
 import Papa, { type ParseResult } from 'papaparse';
 
-// Helper function to parse dates from CSV
-const parseDate = (dateStr: string): string | undefined => {
+// Helper function to parse dates from CSV.
+// Pass `year` when the CSV date only contains day and month (no year).
+const parseDate = (dateStr: string, year?: number): string | undefined => {
   if (!dateStr || dateStr.trim() === '') {
     return undefined;
   }
 
   try {
-    // Try parsing as MM/DD/YYYY or similar formats
     const cleanStr = dateStr.trim();
-    const date = new Date(cleanStr);
 
+    // MM/DD or DD/MM without a year — two 1-2-digit numbers separated by / - or .
+    const twoPartMatch = cleanStr.match(/^(\d{1,2})[/\-.](\d{1,2})$/);
+    if (twoPartMatch) {
+      const [, part1, part2] = twoPartMatch as [string, string, string];
+      const y = year ?? new Date().getFullYear();
+      return `${y}-${part1.padStart(2, '0')}-${part2.padStart(2, '0')}`;
+    }
+
+    // MM/DD/YYYY
+    const mmddyyyy = cleanStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+    if (mmddyyyy) {
+      const [, m, d, y] = mmddyyyy as [string, string, string, string];
+      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    // YYYY-MM-DD or any other full date string
+    const date = new Date(cleanStr);
     if (!Number.isNaN(date.getTime())) {
-      // Convert to YYYY-MM-DD format for database
-      const year = date.getFullYear();
+      const y = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      return `${y}-${month}-${day}`;
     }
 
     return undefined;
@@ -60,7 +75,11 @@ export type IntroCsvRecord = {
   status: 'Active';
 };
 
-export const parseIntrosCSV = (file: File, onComplete: (data: IntroCsvRecord[]) => void) => {
+export const parseIntrosCSV = (
+  file: File,
+  onComplete: (data: IntroCsvRecord[]) => void,
+  year?: number
+) => {
   Papa.parse(file, {
     header: true,
     dynamicTyping: false,
@@ -72,7 +91,7 @@ export const parseIntrosCSV = (file: File, onComplete: (data: IntroCsvRecord[]) 
         // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: CSV mapping normalizes many fields.
         const parsedData = results.data.filter(filterRow).map((row) => ({
           month: String(row.MONTH || row.month || row.Month || '').trim(),
-          date: parseDate(String(row.DATE || row.date || row.Date || '').trim()),
+          date: parseDate(String(row.DATE || row.date || row.Date || '').trim(), year),
           time: String(row.TIME || row.time || row.Time || '').trim() || null,
           class: String(row.CLASS || row.class || row.Class || '').trim() || null,
           name: String(row.NAME || row.name || row.Name || '').trim(),
