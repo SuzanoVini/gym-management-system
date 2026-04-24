@@ -58,13 +58,14 @@ export default function IntrosTab() {
   }, [intros, filters]);
 
   const availableYears = useMemo(() => {
-    const years = new Set<number>();
+    const current = new Date().getFullYear();
+    const years = new Set<number>([current, current - 1, current - 2]);
     for (const intro of intros) {
       if (intro.year) {
         years.add(intro.year);
       }
     }
-    return Array.from(years).sort((a, b) => b - a); // newest first
+    return Array.from(years).sort((a, b) => b - a);
   }, [intros]);
 
   // Calculate metrics
@@ -347,14 +348,27 @@ export default function IntrosTab() {
               ref={fileInputRef}
               onChange={handleCSVImport}
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="btn btn-secondary-blue"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Import CSV</span>
-            </button>
+            <div className="flex items-center rounded-lg border border-blue-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="btn btn-secondary-blue rounded-none border-0 border-r border-blue-200"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Import CSV</span>
+              </button>
+              <div className="flex items-center gap-1 px-2 bg-blue-50">
+                <span className="text-xs text-blue-500 font-medium">Year</span>
+                <input
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={importYear}
+                  onChange={(e) => setImportYear(Number(e.target.value))}
+                  className="w-16 text-sm text-center bg-transparent border-0 outline-none text-blue-700 font-semibold"
+                />
+              </div>
+            </div>
             <button type="button" onClick={() => openModal('addIntro')} className="btn btn-primary">
               <Plus className="w-4 h-4" />
               <span>Add Intro</span>
@@ -393,47 +407,45 @@ export default function IntrosTab() {
 
       {/* Filters */}
       <div className="section-container">
-        {availableYears.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap pb-3 mb-1 border-b border-gray-100">
-            <button
-              type="button"
-              onClick={() => setFilters({ year: 'all' })}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                filters.year === 'all'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
-              }`}
+        <div className="flex items-center gap-2 flex-wrap pb-3 mb-1 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => setFilters({ year: 'all' })}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              filters.year === 'all'
+                ? 'bg-red-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
+            }`}
+          >
+            All
+            <span
+              className={`ml-1.5 text-xs ${filters.year === 'all' ? 'text-red-100' : 'text-gray-400'}`}
             >
-              All
-              <span
-                className={`ml-1.5 text-xs ${filters.year === 'all' ? 'text-red-100' : 'text-gray-400'}`}
+              · {intros.length}
+            </span>
+          </button>
+          {availableYears.map((year) => {
+            const count = intros.filter((i) => i.year === year).length;
+            const isActive = filters.year === String(year);
+            return (
+              <button
+                key={year}
+                type="button"
+                onClick={() => setFilters({ year: String(year) })}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
+                }`}
               >
-                · {intros.length}
-              </span>
-            </button>
-            {availableYears.map((year) => {
-              const count = intros.filter((i) => i.year === year).length;
-              const isActive = filters.year === String(year);
-              return (
-                <button
-                  key={year}
-                  type="button"
-                  onClick={() => setFilters({ year: String(year) })}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-red-600 text-white shadow-sm'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
-                  }`}
-                >
-                  {year}
-                  <span className={`ml-1.5 text-xs ${isActive ? 'text-red-100' : 'text-gray-400'}`}>
-                    · {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+                {year}
+                <span className={`ml-1.5 text-xs ${isActive ? 'text-red-100' : 'text-gray-400'}`}>
+                  · {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <input
             type="text"
