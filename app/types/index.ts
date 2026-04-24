@@ -121,6 +121,7 @@ export interface Settings {
 export interface UserProfile extends BaseRecord {
   full_name: string;
   avatar_url?: string | null;
+  role: 'owner' | 'staff';
 }
 
 // ============================================================================
