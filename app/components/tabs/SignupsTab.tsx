@@ -155,7 +155,8 @@ export default function SignupsTab() {
       const matchesMembership =
         filters.membership === 'all' ||
         (signup.membership && signup.membership === filters.membership);
-      return matchesMonth && matchesMembership;
+      const matchesYear = filters.year === 'all' || String(signup.year) === filters.year;
+      return matchesMonth && matchesMembership && matchesYear;
     });
 
     // Apply search filter
@@ -173,6 +174,17 @@ export default function SignupsTab() {
 
     return filtered;
   }, [signups, filters]);
+
+  const availableYears = useMemo(() => {
+    const current = new Date().getFullYear();
+    const years = new Set<number>([current, current - 1, current - 2]);
+    for (const signup of signups) {
+      if (signup.year) {
+        years.add(signup.year);
+      }
+    }
+    return Array.from(years).sort((a, b) => b - a);
+  }, [signups]);
 
   const getSortTimestamp = (signup: Signup) => {
     const dateValue = signup.membership_date ? new Date(signup.membership_date).getTime() : 0;
@@ -342,14 +354,27 @@ export default function SignupsTab() {
               ref={fileInputRef}
               onChange={handleCSVImport}
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="btn btn-secondary-blue"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Import CSV</span>
-            </button>
+            <div className="flex items-center rounded-lg border border-blue-200 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="btn btn-secondary-blue rounded-none border-0 border-r border-blue-200"
+              >
+                <Upload className="w-4 h-4" />
+                <span>Import CSV</span>
+              </button>
+              <div className="flex items-center gap-1 px-2 bg-blue-50">
+                <span className="text-xs text-blue-500 font-medium">Year</span>
+                <input
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  value={importYear}
+                  onChange={(e) => setImportYear(Number(e.target.value))}
+                  className="w-16 text-sm text-center bg-transparent border-0 outline-none text-blue-700 font-semibold"
+                />
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => openModal('addSignup')}
@@ -400,6 +425,45 @@ export default function SignupsTab() {
       </div>
 
       <div className="section-container">
+        <div className="flex items-center gap-2 flex-wrap pb-3 mb-1 border-b border-gray-100">
+          <button
+            type="button"
+            onClick={() => setFilters({ year: 'all' })}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              filters.year === 'all'
+                ? 'bg-red-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
+            }`}
+          >
+            All
+            <span
+              className={`ml-1.5 text-xs ${filters.year === 'all' ? 'text-red-100' : 'text-gray-400'}`}
+            >
+              · {signups.length}
+            </span>
+          </button>
+          {availableYears.map((year) => {
+            const count = signups.filter((s) => s.year === year).length;
+            const isActive = filters.year === String(year);
+            return (
+              <button
+                key={year}
+                type="button"
+                onClick={() => setFilters({ year: String(year) })}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-200 hover:border-red-400 hover:text-red-600'
+                }`}
+              >
+                {year}
+                <span className={`ml-1.5 text-xs ${isActive ? 'text-red-100' : 'text-gray-400'}`}>
+                  · {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="form-label" htmlFor="signups-sort">
