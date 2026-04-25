@@ -1,4 +1,4 @@
-# GB Kitsilano Gym — Member Management System
+# GB Kitsilano Gym - Operations & Management System
 
 ![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
@@ -6,7 +6,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 ![Deployed on Vercel](https://img.shields.io/badge/Deployed_on_Vercel-000?style=flat&logo=vercel)
 
-A full-stack management dashboard built for **Gracie Barra Kitsilano**, a Brazilian jiu-jitsu gym in Vancouver, BC. The gym was tracking members, payroll, and class attendance across a mix of spreadsheets. This replaced all of that.
+A full-stack operations platform built for **Gracie Barra Kitsilano**, a Brazilian jiu-jitsu gym in Vancouver, BC. The gym was managing members, payroll, and class attendance across scattered spreadsheets. This replaced all of that with one system.
 
 **Live demo:** *(custom domain coming soon)*
 
@@ -14,9 +14,9 @@ A full-stack management dashboard built for **Gracie Barra Kitsilano**, a Brazil
 
 ## Background
 
-The gym had years of member data scattered across Excel and Google Sheets — one file for signups, another for cancellations, another for payroll. Cross-referencing them to answer a simple question like "how many members signed up in March vs cancelled in April?" meant opening three files and doing mental math.
+The gym had years of data spread across Excel and Google Sheets: one file for signups, another for cancellations, another for payroll, nothing connected. Answering a question like "how many members signed up in March vs cancelled in April?" meant opening three files and doing mental math. Tracking which intro class leads had been followed up on was basically impossible.
 
-The goal was a single dashboard where staff could see everything in one place, import existing CSV data, and filter by year so old records didn't pollute current month views.
+The goal was a single platform where staff could manage everything in one place, follow up on leads, run payroll, and actually understand how the business was performing month to month.
 
 ---
 
@@ -24,41 +24,51 @@ The goal was a single dashboard where staff could see everything in one place, i
 
 **Member lifecycle tracking**
 
-Four record types — Intros (trial classes), Signups, Cancellations, Holds — each with its own tab, filters, and CSV import. When a member comes in for a free intro class, staff log it. If they sign up, that's a separate record. If they pause their membership, that's a Hold.
+Four record types cover the full member journey: Intros (trial classes), Signups, Cancellations, and Holds. Each has its own tab with filters, CSV import, bulk operations, and a year selector that only shows years where data actually exists.
+
+**Intro class follow-up system**
+
+When a prospect comes in for a free trial class, staff log the intro and can add timestamped follow-up notes at each contact attempt. The system tracks follow-up status so no lead falls through the cracks. Staff can also log multiple class visits for the same prospect before they decide to sign up.
+
+**Payroll hours tracking**
+
+Staff hours are entered and tracked by bi-weekly payroll period. The system handles regular hours, overtime, and mat cleaning bonuses. Export generates a file that matches the exact column format and staff ordering the gym's accountant expects, configurable through a format editor so it can adapt if the accountant's template changes.
+
+**Actionable insights**
+
+The Insights tab auto-generates observations from the underlying data: things like a drop in hold return rate, a spike in cancellations from a specific reason, or intro-to-signup conversion falling below average. Each insight can be marked as done, snoozed, or dismissed, and resurfaces automatically if the numbers shift again.
+
+**Analytics overview**
+
+Monthly signup and cancellation trends, membership type breakdown, churn rate, and revenue estimates, all rendered with Recharts. Filters for date range and year keep the view focused on the period you care about.
 
 **CSV import with year resolution**
 
-The gym's existing spreadsheets had dates formatted as `MM/DD` with no year. The import flow asks you to confirm the year before the data goes in, which prevents old records from getting stamped with the wrong year. Each tab has a year filter (pills, data-driven — they only appear when records with that year actually exist).
-
-**Analytics**
-
-The Overview tab shows monthly signup and cancellation trends, membership type breakdown, and a few automatically generated insights — things like hold return rate dropping or a spike in a specific cancellation reason. Recharts handles the visualisation.
-
-**Payroll**
-
-Staff hours are tracked by payroll period. The export matches the exact column format the gym's accountant expects, which was one of the more tedious things to get right.
+The gym's existing spreadsheets had dates formatted as `MM/DD` with no year. The import flow asks you to confirm the year before writing anything, which prevents old records from getting the wrong year stamped on them. The year picker also lives inside each tab's filter row for quick viewing by period.
 
 **Access control**
 
-Two roles: `owner` and `staff`. Owners can access configuration, admin settings, and the payroll system. Staff see member data only. Row Level Security on every Supabase table means the database enforces this at the query level, not just in the UI.
+Two roles: `owner` and `staff`. Owners get access to payroll, configuration, and admin settings. Staff see member data only. Row Level Security on every Supabase table enforces this at the database level, not just the UI.
 
 ---
 
 ## Tech stack
 
-**Next.js 15** (App Router) for the full-stack framework. Server and client components in the same project, file-based routing for the different pages (login, dashboard, payroll, profile, admin).
+**Next.js 15** (App Router) for the full-stack framework. Server and client components in the same project, file-based routing across dashboard, payroll, profile, and admin pages.
 
-**TypeScript** throughout. The codebase is strict — it caught a fair number of bugs before they became runtime errors, especially around the CSV parsing and date handling.
+**TypeScript** throughout. Strict mode caught a fair number of bugs before runtime, especially in the CSV parsing and date handling logic.
 
-**Supabase** for the database and auth. PostgreSQL under the hood with Row Level Security policies on every table. Schema changes are tracked as versioned SQL migration files and applied through the Supabase CLI, so nothing gets changed directly in the dashboard.
+**Supabase** for the database and auth. PostgreSQL with Row Level Security policies on every table. All schema changes are versioned SQL migrations applied through the Supabase CLI, so nothing gets modified directly in the dashboard.
 
-**Tailwind CSS v4** for styling. No external component library — all UI components (Table, Modal, YearFilter, etc.) are custom-built.
+**Tailwind CSS v4** for styling. No external component library; all UI components (Table, Modal, YearFilter, etc.) are custom-built.
 
-**Zustand** for state management. Four stores handle filter state, UI state (which modals are open), multi-tab selection, and sidebar state. Kept component trees cleaner than passing everything as props.
+**Zustand** for state management. Four stores cover filter state, UI state (modals open/closed), multi-tab record selection, and sidebar state.
 
-**Zod** for validation. Used on form inputs and also on CSV rows during import to catch malformed data before it hits the database.
+**Zod** for validation on both form inputs and CSV rows during import, catching malformed data before it reaches the database.
 
-**Biome** as the linter and formatter, running as a pre-commit hook. Keeps the codebase consistent without much configuration.
+**Recharts** for data visualisation across the Overview and Insights tabs.
+
+**Biome** as linter and formatter, enforced through a pre-commit hook via lint-staged and Husky.
 
 ---
 
@@ -70,22 +80,22 @@ app/
 │   ├── layout/          # Header, sidebar, navigation
 │   ├── tabs/            # One component per major feature tab
 │   │   ├── forms/       # IntroForm, SignupForm, CancellationForm, HoldForm
-│   │   └── modals/      # Modal components per tab
-│   ├── payroll/         # Payroll UI components
+│   │   └── modals/      # Follow-up notes, settings, and import preview modals
+│   ├── payroll/         # Hours entry, period selector, export, import, staff management
 │   └── ui/              # Shared: Table, Modal, YearFilter, etc.
-├── hooks/               # Data hooks — useIntros, useSignups, useCancellations, etc.
+├── hooks/               # Data hooks: useIntros, useSignups, useInsights, useStaffHours, etc.
 ├── lib/
 │   ├── supabase/        # DB queries, one file per table
-│   ├── services/        # Payroll calculations, CSV format logic
+│   ├── services/        # Payroll calculations, CSV format logic, template analysis
 │   └── csv.ts           # CSV parsing for all record types
 ├── store/               # Zustand stores
 └── types/               # Shared TypeScript types
 
 supabase/
-└── migrations/          # 16 migrations, tracked in version control
+└── migrations/          # 16 versioned migrations, applied via Supabase CLI
 ```
 
-Each tab follows the same pattern: a hook fetches data, the tab component handles filtering and selection state, and forms/modals live in subdirectories. Adding the Holds tab after Cancellations was mostly copy, adjust, done.
+Each tab follows the same pattern: a hook fetches and caches data, the tab component handles filtering and selection, and forms and modals live in subdirectories. That consistency made it straightforward to add new tabs without rethinking the structure each time.
 
 ---
 
@@ -94,8 +104,8 @@ Each tab follows the same pattern: a hook fetches data, the tab component handle
 ### What you need
 
 - Node.js 18+
-- A Supabase project (free tier is fine)
-- Supabase CLI — `npm install -g supabase`
+- A Supabase project (free tier works)
+- Supabase CLI: `npm install -g supabase`
 
 ### Setup
 
@@ -105,7 +115,7 @@ cd gb-kitsilano-gym
 npm install
 ```
 
-Copy the environment file and add your Supabase credentials:
+Copy the environment file and fill in your Supabase credentials:
 
 ```bash
 cp .env.example .env.local
@@ -118,7 +128,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 CRON_SECRET=any_random_string
 ```
 
-Run the migrations against your Supabase project:
+Apply the migrations to your Supabase project:
 
 ```bash
 supabase link --project-ref your_project_ref
@@ -131,13 +141,13 @@ Start the dev server:
 npm run dev
 ```
 
-Go to [http://localhost:3000](http://localhost:3000). You'll hit the login page — create a user through your Supabase dashboard under Authentication, then log in.
+Open [http://localhost:3000](http://localhost:3000). Create a user in your Supabase dashboard under Authentication, then log in.
 
 ---
 
 ## What's next
 
-- Replace Supabase Auth with a custom authentication system
+- Replace Supabase Auth with a custom authentication implementation
 - Add screenshots to this README
 - Mobile layout improvements
 - Email reminders for intro class follow-ups
@@ -146,8 +156,8 @@ Go to [http://localhost:3000](http://localhost:3000). You'll hit the login page 
 
 ## About
 
-Built by **Vinicius Suzano** — Computer Information Systems, Vancouver, BC.
+Built by **Vinicius Suzano** - Computer Information Systems, Vancouver, BC.
 
-This started as a small freelance project for a gym that needed something better than spreadsheets. It grew into a full app with real users, real data, and constraints I wouldn't have run into building something for practice. That's probably the most honest summary of why it turned out the way it did.
+This started as a freelance project for a gym that needed something better than spreadsheets. It grew into a full platform with real users, real data, and the kind of constraints you only run into when something is actually in production.
 
 [GitHub](https://github.com/SuzanoVini)
