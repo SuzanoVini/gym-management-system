@@ -14,9 +14,9 @@ A full-stack operations platform built for **Gracie Barra Kitsilano**, a Brazili
 
 ## Background
 
-The gym had years of data spread across Excel and Google Sheets: one file for signups, another for cancellations, another for payroll, nothing connected. Answering a question like "how many members signed up in March vs cancelled in April?" meant opening three files and doing mental math. Tracking which intro class leads had been followed up on was basically impossible.
+As program director at the gym, I was responsible for tracking member signups, intro classes, cancellations, holds, and payroll across a mix of Excel and Google Sheets files with no connection between them. Answering a simple question like "how many members signed up in March vs cancelled in April?" meant opening three files and doing mental math. Tracking which intro class leads had been followed up on was basically impossible.
 
-The goal was a single platform where staff could manage everything in one place, follow up on leads, run payroll, and actually understand how the business was performing month to month.
+I built this to fix that: one platform where the whole operation lives, from a prospect's first trial class through to payroll export at the end of the month.
 
 ---
 
@@ -158,6 +158,6 @@ Open [http://localhost:3000](http://localhost:3000). Create a user in your Supab
 
 Built by **Vinicius Suzano** - Computer Information Systems, Vancouver, BC.
 
-This started as a freelance project for a gym that needed something better than spreadsheets. It grew into a full platform with real users, real data, and the kind of constraints you only run into when something is actually in production.
+I built this while working as program director at Gracie Barra Kitsilano. The spreadsheet situation was genuinely bad, so I decided to fix it myself. It grew into a full platform the gym now runs on day to day, which meant real data, real edge cases, and the kind of constraints that don't show up in tutorial projects.
 
 [GitHub](https://github.com/SuzanoVini)
