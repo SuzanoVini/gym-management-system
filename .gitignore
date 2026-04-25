@@ -77,3 +77,8 @@ pickup-route*/
 
 # Git worktrees
 .worktrees/
+
+# Playwright
+/playwright-report/
+/test-results/
+/.env.test.local
