@@ -225,3 +225,17 @@ export const subscribeToFollowUpNotes = (callback: (payload: unknown) => void) =
     .on('postgres_changes', { event: '*', schema: 'public', table: 'follow_up_notes' }, callback)
     .subscribe();
 };
+
+export const toggleFollowUpDone = async (
+  id: string,
+  currentStatus: string | null | undefined
+): Promise<void> => {
+  const newStatus = currentStatus ? null : 'Done';
+  const { error } = await supabase
+    .from('intros')
+    .update({ follow_up_status: newStatus })
+    .eq('id', id);
+  if (error) {
+    throw error;
+  }
+};
