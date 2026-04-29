@@ -68,14 +68,18 @@ export default function IntrosTab() {
     return intro.created_at ? new Date(intro.created_at).getTime() : 0;
   };
 
-  const sortedIntros = [...filteredIntros].sort((a, b) => {
-    const dateA = getSortTimestamp(a);
-    const dateB = getSortTimestamp(b);
-    if (dateA === dateB) {
-      return 0;
-    }
-    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-  });
+  const sortedIntros = useMemo(
+    () =>
+      [...filteredIntros].sort((a, b) => {
+        const dateA = getSortTimestamp(a);
+        const dateB = getSortTimestamp(b);
+        if (dateA === dateB) {
+          return 0;
+        }
+        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+      }),
+    [filteredIntros, sortOrder]
+  );
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -254,7 +258,8 @@ export default function IntrosTab() {
         if (!value) {
           return '-';
         }
-        const d = new Date(value as string);
+        const parts = (value as string).split('-');
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
         return Number.isNaN(d.getTime())
           ? '-'
           : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -621,6 +626,7 @@ export default function IntrosTab() {
         onClose={() => {
           closeModal('followUp');
           setSelectedIntro(null);
+          refresh();
         }}
         intro={selectedIntro}
       />
