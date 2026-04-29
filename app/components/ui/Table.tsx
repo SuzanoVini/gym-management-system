@@ -19,6 +19,7 @@ interface TableProps<T extends { id: string }> {
   onSelectAll?: (ids: string[]) => void;
   onClearSelection?: (ids: string[]) => void;
   emptyMessage?: string;
+  getRowClassName?: (item: T) => string;
 }
 
 export default function Table<T extends { id: string }>({
@@ -32,6 +33,7 @@ export default function Table<T extends { id: string }>({
   onSelectAll,
   onClearSelection,
   emptyMessage = 'No data available',
+  getRowClassName,
 }: TableProps<T>) {
   const selectAllRef = useRef<HTMLInputElement>(null);
   const pageIds = data.map((item) => item.id);
@@ -106,7 +108,7 @@ export default function Table<T extends { id: string }>({
           {data.map((item, index) => (
             <tr
               key={item.id || index}
-              className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
+              className={`${getRowClassName ? getRowClassName(item) : 'hover:bg-gray-50'} ${onRowClick ? 'cursor-pointer' : ''}`}
               onClick={() => onRowClick?.(item)}
             >
               {onSelectId && (
