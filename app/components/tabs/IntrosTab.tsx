@@ -8,6 +8,7 @@ import YearFilter from '@/components/ui/YearFilter';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
+import { toggleFollowUpDone } from '@/lib/supabase/intros';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -31,6 +32,7 @@ export default function IntrosTab() {
   const [importPreviewData, setImportPreviewData] = useState<IntroCsvRecord[]>([]);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -57,6 +59,23 @@ export default function IntrosTab() {
       );
     });
   }, [intros, filters]);
+
+  const getSortTimestamp = (intro: Intro): number => {
+    const dateValue = intro.date ? new Date(intro.date).getTime() : 0;
+    if (dateValue) {
+      return dateValue;
+    }
+    return intro.created_at ? new Date(intro.created_at).getTime() : 0;
+  };
+
+  const sortedIntros = [...filteredIntros].sort((a, b) => {
+    const dateA = getSortTimestamp(a);
+    const dateB = getSortTimestamp(b);
+    if (dateA === dateB) {
+      return 0;
+    }
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+  });
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -229,6 +248,19 @@ export default function IntrosTab() {
       render: (value: unknown, _intro: Intro) => (value as string) || '-',
     },
     {
+      key: 'date' as keyof Intro,
+      label: 'Date',
+      render: (value: unknown) => {
+        if (!value) {
+          return '-';
+        }
+        const d = new Date(value as string);
+        return Number.isNaN(d.getTime())
+          ? '-'
+          : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      },
+    },
+    {
       key: 'attended' as keyof Intro,
       label: 'Attended',
       render: (value: unknown, _intro: Intro) => (
@@ -292,7 +324,27 @@ export default function IntrosTab() {
       key: 'actions' as keyof Intro,
       label: 'Actions',
       render: (_value: unknown, intro: Intro) => (
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                await toggleFollowUpDone(intro.id, intro.follow_up_status);
+                await refresh();
+              } catch (err) {
+                console.error('Failed to toggle follow-up status', err);
+              }
+            }}
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
+              intro.follow_up_status
+                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+            }`}
+            title={intro.follow_up_status ? 'Mark as not followed up' : 'Mark as followed up'}
+          >
+            {intro.follow_up_status ? '✓ Done' : 'Follow up'}
+          </button>
           <button
             type="button"
             onClick={() => handleEditClick(intro)}
@@ -408,7 +460,7 @@ export default function IntrosTab() {
           selectedYear={filters.year}
           onYearChange={(year) => setFilters({ year })}
         />
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <input
             type="text"
             placeholder="Search by name, email, or phone..."
@@ -477,6 +529,14 @@ export default function IntrosTab() {
             <option value="Completed">Completed</option>
             <option value="Cancelled">Cancelled</option>
           </select>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+            className="form-select"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
         </div>
       </div>
 
@@ -510,7 +570,7 @@ export default function IntrosTab() {
           </div>
         )}
         <Table
-          data={filteredIntros}
+          data={sortedIntros}
           columns={columns}
           loading={loading}
           selectedIds={selectedIds}
@@ -518,6 +578,9 @@ export default function IntrosTab() {
           onSelectAll={(ids) => selectAll(selectionTab, ids)}
           onClearSelection={(ids) => clearSelection(selectionTab, ids)}
           emptyMessage="No intros found matching your criteria"
+          getRowClassName={(intro) =>
+            intro.follow_up_status ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'
+          }
         />
       </div>
 
