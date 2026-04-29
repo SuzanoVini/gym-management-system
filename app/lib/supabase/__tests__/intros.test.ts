@@ -33,12 +33,14 @@ describe('toggleFollowUpDone', () => {
     const chain = mockChain({ error: null });
     await toggleFollowUpDone('abc-123', undefined);
     expect(chain.update).toHaveBeenCalledWith({ follow_up_status: 'Done' });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'abc-123');
   });
 
   it('sets follow_up_status to Done when currentStatus is empty string', async () => {
     const chain = mockChain({ error: null });
     await toggleFollowUpDone('abc-123', '');
     expect(chain.update).toHaveBeenCalledWith({ follow_up_status: 'Done' });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'abc-123');
   });
 
   it('sets follow_up_status to null when currentStatus is Done', async () => {
