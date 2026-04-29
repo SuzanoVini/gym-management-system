@@ -60,26 +60,27 @@ export default function IntrosTab() {
     });
   }, [intros, filters]);
 
-  const getSortTimestamp = (intro: Intro): number => {
-    const dateValue = intro.date ? new Date(intro.date).getTime() : 0;
-    if (dateValue) {
-      return dateValue;
-    }
-    return intro.created_at ? new Date(intro.created_at).getTime() : 0;
-  };
-
-  const sortedIntros = useMemo(
-    () =>
-      [...filteredIntros].sort((a, b) => {
-        const dateA = getSortTimestamp(a);
-        const dateB = getSortTimestamp(b);
-        if (dateA === dateB) {
-          return 0;
-        }
-        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-      }),
-    [filteredIntros, sortOrder]
-  );
+  const sortedIntros = useMemo(() => {
+    const parseDateStr = (s: string): number => {
+      const parts = s.split('-');
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+    };
+    const getSortTimestamp = (intro: Intro): number => {
+      const dateValue = intro.date ? parseDateStr(intro.date) : 0;
+      if (dateValue) {
+        return dateValue;
+      }
+      return intro.created_at ? new Date(intro.created_at).getTime() : 0;
+    };
+    return [...filteredIntros].sort((a, b) => {
+      const dateA = getSortTimestamp(a);
+      const dateB = getSortTimestamp(b);
+      if (dateA === dateB) {
+        return 0;
+      }
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [filteredIntros, sortOrder]);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
