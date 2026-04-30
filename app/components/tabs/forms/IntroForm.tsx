@@ -51,6 +51,10 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
     };
     if (formData.date) {
       payload.date = formData.date;
+      const yr = Number(formData.date.split('-')[0]);
+      if (!Number.isNaN(yr)) {
+        payload.year = yr;
+      }
     }
     if (formData.time) {
       payload.time = formData.time;
@@ -139,13 +143,50 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
           required
         />
 
-        <FormField
-          label="Time"
-          name="time"
-          value={formData.time}
-          onChange={(value) => updateField('time', value)}
-          placeholder="10:00 AM"
-        />
+        <div className="flex flex-col gap-1">
+          <label htmlFor="time" className="form-label">
+            Time
+          </label>
+          <input
+            id="time"
+            list="time-options"
+            value={formData.time}
+            onChange={(e) => updateField('time', e.target.value)}
+            placeholder="Type or select a time…"
+            className="form-input"
+            autoComplete="off"
+          />
+          <datalist id="time-options">
+            {[
+              '6:00 AM',
+              '6:30 AM',
+              '7:00 AM',
+              '7:30 AM',
+              '8:00 AM',
+              '8:30 AM',
+              '9:00 AM',
+              '9:30 AM',
+              '10:00 AM',
+              '10:30 AM',
+              '11:00 AM',
+              '11:30 AM',
+              '12:00 PM',
+              '12:30 PM',
+              '4:00 PM',
+              '4:30 PM',
+              '5:00 PM',
+              '5:30 PM',
+              '6:00 PM',
+              '6:30 PM',
+              '7:00 PM',
+              '7:30 PM',
+              '8:00 PM',
+              '8:30 PM',
+            ].map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
+        </div>
 
         <FormField
           label="Class"

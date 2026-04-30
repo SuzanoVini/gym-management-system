@@ -22,7 +22,8 @@ import FollowUpModal from './modals/FollowUpModal';
 import SettingsModal from './modals/SettingsModal';
 
 export default function IntrosTab() {
-  const { intros, loading, error, addIntro, editIntro, removeIntro, refresh } = useIntros();
+  const { intros, loading, error, addIntro, editIntro, removeIntro, refresh, silentRefresh } =
+    useIntros();
   const { modals, openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
   const selectionTab: SelectionTabKey = 'intros';
@@ -370,7 +371,7 @@ export default function IntrosTab() {
               onClick: async () => {
                 try {
                   await toggleFollowUpDone(intro.id, intro.follow_up_status);
-                  await refresh();
+                  await silentRefresh();
                 } catch (err) {
                   console.error('Failed to toggle follow-up status', err);
                 }
