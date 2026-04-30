@@ -2,6 +2,7 @@
 
 import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import YearFilter from '@/components/ui/YearFilter';
 import { useCancellations } from '@/hooks/useCancellations';
@@ -33,7 +34,7 @@ export default function CancellationsTab() {
   const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(100);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -505,89 +506,19 @@ export default function CancellationsTab() {
         </div>
       </div>
 
-      <div className="section-container">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <label
-              className="text-sm font-medium text-gray-700"
-              htmlFor="cancellations-items-per-page"
-            >
-              Show:
-            </label>
-            <select
-              id="cancellations-items-per-page"
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="form-select"
-            >
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
-              <option value={500}>500</option>
-              <option value={1000}>1000</option>
-            </select>
-            <span className="text-sm text-gray-600">per page</span>
-          </div>
-          <div className="text-sm text-gray-600">
-            Showing {startIndex + 1}-{Math.min(endIndex, sortedCancellations.length)} of{' '}
-            {sortedCancellations.length}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-            >
-              First
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-            >
-              Prev
-            </button>
-            <span className="px-4 py-2 text-sm font-medium">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-            >
-              Next
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 border rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50"
-            >
-              Last
-            </button>
-          </div>
-        </div>
-        {selectedIds.size > 0 && (
-          <div className="mt-3 pt-3 border-t">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
-              <button
-                type="button"
-                onClick={() => clearSelection(selectionTab)}
-                className="text-sm text-red-600 hover:text-red-700 font-medium"
-              >
-                Clear Selection
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <PaginationBar
+        id="cancellations-items-per-page"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={sortedCancellations.length}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        selectedCount={selectedIds.size}
+        onClearSelection={() => clearSelection(selectionTab)}
+      />
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b flex justify-between items-center">

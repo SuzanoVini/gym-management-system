@@ -3,6 +3,7 @@
 import { Edit2, MessageSquare, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import Modal from '@/components/ui/Modal';
+import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import YearFilter from '@/components/ui/YearFilter';
 import { useIntros } from '@/hooks/useIntros';
@@ -33,6 +34,8 @@ export default function IntrosTab() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -81,6 +84,11 @@ export default function IntrosTab() {
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
   }, [filteredIntros, sortOrder]);
+
+  const totalPages = Math.ceil(sortedIntros.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedIntros = sortedIntros.slice(startIndex, endIndex);
 
   const availableYears = useMemo(() => {
     const years = new Set<number>();
@@ -561,22 +569,8 @@ export default function IntrosTab() {
             </button>
           )}
         </div>
-        {selectedIds.size > 0 && (
-          <div className="mb-4 pb-4 border-b">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{selectedIds.size} item(s) selected</span>
-              <button
-                type="button"
-                onClick={() => clearSelection(selectionTab)}
-                className="text-sm text-red-600 hover:text-red-700 font-medium"
-              >
-                Clear Selection
-              </button>
-            </div>
-          </div>
-        )}
         <Table
-          data={sortedIntros}
+          data={paginatedIntros}
           columns={columns}
           loading={loading}
           selectedIds={selectedIds}
@@ -589,6 +583,20 @@ export default function IntrosTab() {
           }
         />
       </div>
+
+      <PaginationBar
+        id="intros-items-per-page"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={sortedIntros.length}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        selectedCount={selectedIds.size}
+        onClearSelection={() => clearSelection(selectionTab)}
+      />
 
       {/* Modals */}
       <Modal

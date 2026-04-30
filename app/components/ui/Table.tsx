@@ -67,7 +67,7 @@ export default function Table<T extends { id: string }>({
         <thead className="bg-gray-50">
           <tr>
             {onSelectId && (
-              <th className="px-6 py-3 text-left">
+              <th className="px-4 py-3 text-left w-8">
                 <input
                   type="checkbox"
                   ref={selectAllRef}
@@ -79,7 +79,7 @@ export default function Table<T extends { id: string }>({
                       onClearSelection?.(pageIds);
                     }
                   }}
-                  className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                  className="w-3.5 h-3.5 rounded border-gray-300 accent-red-600 cursor-pointer"
                 />
               </th>
             )}
@@ -112,12 +112,12 @@ export default function Table<T extends { id: string }>({
               onClick={() => onRowClick?.(item)}
             >
               {onSelectId && (
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selectedIds?.has(item.id)}
                     onChange={() => onSelectId(item.id)}
-                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                    className="w-3.5 h-3.5 rounded border-gray-300 accent-red-600 cursor-pointer"
                   />
                 </td>
               )}
