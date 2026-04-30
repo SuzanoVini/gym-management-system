@@ -1,10 +1,13 @@
 'use client';
 
-import { Edit2, MessageSquare, Plus, Settings, Trash2, Upload } from 'lucide-react';
+import { Edit2, Mail, MessageSquare, Phone, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import CopyButton from '@/components/ui/CopyButton';
 import Modal from '@/components/ui/Modal';
+import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
+import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
@@ -229,31 +232,51 @@ export default function IntrosTab() {
     {
       key: 'name' as keyof Intro,
       label: 'Name',
-      render: (value: unknown, _intro: Intro) => (
-        <div className="font-medium text-gray-900">{value as string}</div>
-      ),
+      render: (value: unknown, _intro: Intro) => {
+        const full = (value as string) || '';
+        const parts = full.trim().split(' ');
+        const display =
+          parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
+        return display !== full ? (
+          <Tooltip content={full}>
+            <div className="font-medium text-gray-900 cursor-default">{display}</div>
+          </Tooltip>
+        ) : (
+          <div className="font-medium text-gray-900">{full}</div>
+        );
+      },
     },
     {
       key: 'email' as keyof Intro,
       label: 'Email',
-      render: (value: unknown, _intro: Intro) =>
-        (value as string) ? (
-          <a href={`mailto:${value as string}`} className="text-blue-600 hover:text-blue-800">
-            {value as string}
-          </a>
-        ) : (
-          '-'
-        ),
+      render: (value: unknown, _intro: Intro) => (
+        <CopyButton value={value as string} icon={Mail} ariaLabel="Copy email" />
+      ),
     },
     {
       key: 'phone' as keyof Intro,
       label: 'Phone',
-      render: (value: unknown, _intro: Intro) => (value as string) || '-',
+      render: (value: unknown, _intro: Intro) => (
+        <CopyButton value={value as string} icon={Phone} ariaLabel="Copy phone" />
+      ),
     },
     {
       key: 'staff' as keyof Intro,
       label: 'Staff',
-      render: (value: unknown, _intro: Intro) => (value as string) || '-',
+      render: (value: unknown, _intro: Intro) => {
+        const full = (value as string) || '';
+        if (!full) {
+          return <span className="text-gray-400">—</span>;
+        }
+        const first = full.split(' ')[0];
+        return first !== full ? (
+          <Tooltip content={full}>
+            <span className="text-sm text-gray-700 cursor-default">{first}</span>
+          </Tooltip>
+        ) : (
+          <span className="text-sm text-gray-700">{full}</span>
+        );
+      },
     },
     {
       key: 'class' as keyof Intro,
@@ -336,54 +359,41 @@ export default function IntrosTab() {
     },
     {
       key: 'actions' as keyof Intro,
-      label: 'Actions',
+      label: '',
       render: (_value: unknown, intro: Intro) => (
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={async (e) => {
-              e.stopPropagation();
-              try {
-                await toggleFollowUpDone(intro.id, intro.follow_up_status);
-                await refresh();
-              } catch (err) {
-                console.error('Failed to toggle follow-up status', err);
-              }
-            }}
-            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors ${
-              intro.follow_up_status
-                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
-            }`}
-            title={intro.follow_up_status ? 'Mark as not followed up' : 'Mark as followed up'}
-          >
-            {intro.follow_up_status ? '✓ Done' : 'Follow up'}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleEditClick(intro)}
-            className="btn-icon hover:text-blue-600"
-            title="Edit"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => handleFollowUpClick(intro)}
-            className="btn-icon hover:text-green-600"
-            title="Add Follow-up"
-          >
-            <MessageSquare className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => removeIntro(intro.id, intro.name)}
-            className="btn-icon hover:text-red-600"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        <OverflowMenu
+          items={[
+            {
+              label: intro.follow_up_status ? 'Unmark Follow-up' : 'Mark Follow-up',
+              icon: intro.follow_up_status ? Trash2 : MessageSquare,
+              variant: intro.follow_up_status ? 'default' : 'success',
+              onClick: async () => {
+                try {
+                  await toggleFollowUpDone(intro.id, intro.follow_up_status);
+                  await refresh();
+                } catch (err) {
+                  console.error('Failed to toggle follow-up status', err);
+                }
+              },
+            },
+            {
+              label: 'Add Note',
+              icon: MessageSquare,
+              onClick: () => handleFollowUpClick(intro),
+            },
+            {
+              label: 'Edit',
+              icon: Edit2,
+              onClick: () => handleEditClick(intro),
+            },
+            {
+              label: 'Delete',
+              icon: Trash2,
+              variant: 'danger',
+              onClick: () => removeIntro(intro.id, intro.name),
+            },
+          ]}
+        />
       ),
     },
   ];

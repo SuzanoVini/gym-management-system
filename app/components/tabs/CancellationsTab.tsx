@@ -2,8 +2,10 @@
 
 import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
+import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useCancellations } from '@/hooks/useCancellations';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
@@ -267,9 +269,19 @@ export default function CancellationsTab() {
     {
       key: 'name' as keyof Cancellation,
       label: 'Name',
-      render: (value: unknown, _item: Cancellation) => (
-        <div className="font-medium text-gray-900">{value as string}</div>
-      ),
+      render: (value: unknown, _item: Cancellation) => {
+        const full = (value as string) || '';
+        const parts = full.trim().split(' ');
+        const display =
+          parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
+        return display !== full ? (
+          <Tooltip content={full}>
+            <div className="font-medium text-gray-900 cursor-default">{display}</div>
+          </Tooltip>
+        ) : (
+          <div className="font-medium text-gray-900">{full}</div>
+        );
+      },
     },
     {
       key: 'date' as keyof Cancellation,
@@ -308,29 +320,26 @@ export default function CancellationsTab() {
     },
     {
       key: 'actions' as keyof Cancellation,
-      label: 'Actions',
+      label: '',
       render: (_value: unknown, cancellation: Cancellation) => (
-        <div className="flex space-x-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedCancellation(cancellation);
-              openModal('editCancellation');
-            }}
-            className="btn-icon hover:text-blue-600"
-            title="Edit"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => removeCancellation(cancellation.id, cancellation.name)}
-            className="btn-icon hover:text-red-600"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        <OverflowMenu
+          items={[
+            {
+              label: 'Edit',
+              icon: Edit2,
+              onClick: () => {
+                setSelectedCancellation(cancellation);
+                openModal('editCancellation');
+              },
+            },
+            {
+              label: 'Delete',
+              icon: Trash2,
+              variant: 'danger',
+              onClick: () => removeCancellation(cancellation.id, cancellation.name),
+            },
+          ]}
+        />
       ),
     },
   ];
