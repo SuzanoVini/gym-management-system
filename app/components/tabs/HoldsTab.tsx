@@ -2,8 +2,10 @@
 
 import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
+import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useHolds } from '@/hooks/useHolds';
 import { type HoldCsvRecord, parseHoldsCSV } from '@/lib/csv';
@@ -288,9 +290,19 @@ export default function HoldsTab() {
     {
       key: 'name' as keyof Hold,
       label: 'Name',
-      render: (value: unknown, _item: Hold) => (
-        <div className="font-medium text-gray-900">{value as string}</div>
-      ),
+      render: (value: unknown, _item: Hold) => {
+        const full = (value as string) || '';
+        const parts = full.trim().split(' ');
+        const display =
+          parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
+        return display !== full ? (
+          <Tooltip content={full}>
+            <div className="font-medium text-gray-900 cursor-default">{display}</div>
+          </Tooltip>
+        ) : (
+          <div className="font-medium text-gray-900">{full}</div>
+        );
+      },
     },
     {
       key: 'start' as keyof Hold,
@@ -345,29 +357,26 @@ export default function HoldsTab() {
     },
     {
       key: 'actions' as keyof Hold,
-      label: 'Actions',
+      label: '',
       render: (_value: unknown, hold: Hold) => (
-        <div className="flex space-x-2">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedHold(hold);
-              openModal('editHold');
-            }}
-            className="btn-icon hover:text-blue-600"
-            title="Edit"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => removeHold(hold.id, hold.name)}
-            className="btn-icon hover:text-red-600"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        <OverflowMenu
+          items={[
+            {
+              label: 'Edit',
+              icon: Edit2,
+              onClick: () => {
+                setSelectedHold(hold);
+                openModal('editHold');
+              },
+            },
+            {
+              label: 'Delete',
+              icon: Trash2,
+              variant: 'danger',
+              onClick: () => removeHold(hold.id, hold.name),
+            },
+          ]}
+        />
       ),
     },
   ];

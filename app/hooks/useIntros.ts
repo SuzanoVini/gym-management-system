@@ -28,6 +28,15 @@ export const useIntros = () => {
     }
   }, []);
 
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await fetchIntros();
+      setIntros(data);
+    } catch (err) {
+      errorHandler.handle(err, 'silentRefresh');
+    }
+  }, []);
+
   const addIntro = useCallback(
     async (intro: IntroFormData) => {
       // Validate data before sending to database
@@ -97,6 +106,7 @@ export const useIntros = () => {
     loading,
     error,
     refresh: loadIntros,
+    silentRefresh,
     addIntro,
     editIntro,
     removeIntro,

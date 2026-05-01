@@ -176,10 +176,11 @@ export interface Database {
           updated_at: string;
           month: string;
           name: string;
-          cancellation_date: string | null;
+          date: string | null;
           reason: string | null;
-          age_category: string | null;
+          age_group: string | null;
           notes: string | null;
+          year: number | null;
           created_by: string | null;
         };
         Insert: {
@@ -188,10 +189,11 @@ export interface Database {
           updated_at?: string;
           month: string;
           name: string;
-          cancellation_date?: string | null;
+          date?: string | null;
           reason?: string | null;
-          age_category?: string | null;
+          age_group?: string | null;
           notes?: string | null;
+          year?: number | null;
           created_by?: string | null;
         };
         Update: {
@@ -200,10 +202,11 @@ export interface Database {
           updated_at?: string;
           month?: string;
           name?: string;
-          cancellation_date?: string | null;
+          date?: string | null;
           reason?: string | null;
-          age_category?: string | null;
+          age_group?: string | null;
           notes?: string | null;
+          year?: number | null;
           created_by?: string | null;
         };
       };
