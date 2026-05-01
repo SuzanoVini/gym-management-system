@@ -1,6 +1,16 @@
 'use client';
 
-import { Edit2, Mail, MessageSquare, Phone, Plus, Settings, Trash2, Upload } from 'lucide-react';
+import {
+  Edit2,
+  Mail,
+  MessageSquare,
+  Phone,
+  Plus,
+  RotateCcw,
+  Settings,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import CopyButton from '@/components/ui/CopyButton';
 import Modal from '@/components/ui/Modal';
@@ -9,6 +19,7 @@ import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
+import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
@@ -40,6 +51,8 @@ export default function IntrosTab() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
+  const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
+  const [undoBatch, setUndoBatch] = useState(() => getImportBatch('intros'));
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -165,12 +178,19 @@ export default function IntrosTab() {
         return;
       }
 
-      const { error } = await supabase.from('intros').insert(newRecords);
+      // Coerce date: string|undefined → string|null to satisfy DB Insert type
+      const recordsToInsert = newRecords.map((r) => ({ ...r, date: r.date ?? null }));
+      const { data, error } = await supabase.from('intros').insert(recordsToInsert).select('id');
 
       if (error) {
         console.error('Error bulk importing:', error);
         alert(`Error importing: ${error.message}`);
       } else {
+        saveImportBatch(
+          'intros',
+          (data ?? []).map((r) => r.id)
+        );
+        setUndoBatch(getImportBatch('intros'));
         await refresh();
         closeModal('importPreview');
         setImportPreviewData([]);
@@ -181,6 +201,28 @@ export default function IntrosTab() {
     } catch (error) {
       console.error('Fatal error importing CSV:', error);
       alert(`Error importing CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleUndoImport = async () => {
+    const batch = getImportBatch('intros');
+    if (!batch) {
+      return;
+    }
+    if (!confirm(`Undo import of ${batch.count} records? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      const { error } = await supabase.from('intros').delete().in('id', batch.ids);
+      if (error) {
+        throw error;
+      }
+      clearImportBatch('intros');
+      setUndoBatch(null);
+      await refresh();
+    } catch {
+      // Preserve localStorage so user can retry
+      alert('Failed to undo import. Please try again.');
     }
   };
 
@@ -442,6 +484,12 @@ export default function IntrosTab() {
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
+            {undoBatch && (
+              <button type="button" onClick={handleUndoImport} className="btn btn-secondary">
+                <RotateCcw className="w-4 h-4" />
+                <span>Undo Import ({undoBatch.count})</span>
+              </button>
+            )}
             <button type="button" onClick={() => openModal('addIntro')} className="btn btn-primary">
               <Plus className="w-4 h-4" />
               <span>Add Intro</span>
