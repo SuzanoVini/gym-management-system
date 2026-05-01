@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
+import { Download, Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
@@ -8,6 +8,7 @@ import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useCancellations } from '@/hooks/useCancellations';
+import { useImportUndo } from '@/hooks/useImportUndo';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { exportToCSV } from '@/lib/supabase/utils';
@@ -37,6 +38,8 @@ export default function CancellationsTab() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
+  const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
+  const [undoBatch, setUndoBatch] = useState(() => getImportBatch('cancellations'));
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -94,12 +97,15 @@ export default function CancellationsTab() {
         return;
       }
 
-      const { error } = await supabase.from('cancellations').insert(newRecords);
+      const { data, error } = await supabase.from('cancellations').insert(newRecords).select('id');
 
       if (error) {
         console.error('Error bulk importing:', error);
         alert(`Error importing: ${error.message}`);
       } else {
+        const importedIds = (data ?? []).map((r) => r.id);
+        saveImportBatch('cancellations', importedIds);
+        setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
         await refresh(); // Refresh cancellations after import
         closeModal('importPreview');
         setImportPreviewData([]);
@@ -113,6 +119,30 @@ export default function CancellationsTab() {
       alert(`Error importing CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // setLoading(false);
+    }
+  };
+
+  const handleUndoImport = async () => {
+    if (!undoBatch) {
+      return;
+    }
+    if (
+      !confirm(
+        `Delete the ${undoBatch.count} records from the last import? This is permanent and cannot be reversed.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const { error } = await supabase.from('cancellations').delete().in('id', undoBatch.ids);
+      if (error) {
+        throw error;
+      }
+      clearImportBatch('cancellations');
+      setUndoBatch(null);
+      await refresh();
+    } catch {
+      alert('Failed to undo import. Please try again.');
     }
   };
 
@@ -386,6 +416,12 @@ export default function CancellationsTab() {
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
+            {undoBatch && (
+              <button type="button" onClick={handleUndoImport} className="btn btn-secondary">
+                <RotateCcw className="w-4 h-4" />
+                <span>Undo Import ({undoBatch.count})</span>
+              </button>
+            )}
             <button type="button" onClick={handleExportCancellations} className="btn btn-primary">
               <Download className="w-4 h-4" />
               <span>Export</span>

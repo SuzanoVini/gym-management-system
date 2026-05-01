@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Edit2, Plus, Settings, Trash2, Upload } from 'lucide-react';
+import { Download, Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
@@ -8,6 +8,7 @@ import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useHolds } from '@/hooks/useHolds';
+import { useImportUndo } from '@/hooks/useImportUndo';
 import { type HoldCsvRecord, parseHoldsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { exportToCSV } from '@/lib/supabase/utils';
@@ -36,6 +37,8 @@ export default function HoldsTab() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
+  const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
+  const [undoBatch, setUndoBatch] = useState(() => getImportBatch('holds'));
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -61,6 +64,42 @@ export default function HoldsTab() {
     }
   };
 
+  const filterNewRecords = (records: HoldCsvRecord[]) => {
+    return records.filter((row) => {
+      if (!row.name || !row.month) {
+        return false;
+      }
+      const isDuplicate = holds.some(
+        (h) =>
+          h.name.toLowerCase().trim() === row.name.toLowerCase().trim() &&
+          h.month === row.month &&
+          h.start === row.start
+      );
+      return !isDuplicate;
+    });
+  };
+
+  const handleImportSuccess = async (newRecords: HoldCsvRecord[], duplicateCount: number) => {
+    const { data, error } = await supabase.from('holds').insert(newRecords).select('id');
+
+    if (error) {
+      console.error('Error bulk importing:', error);
+      alert(`Error importing: ${error.message}`);
+      return;
+    }
+
+    const importedIds = (data ?? []).map((r) => r.id);
+    saveImportBatch('holds', importedIds);
+    setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
+    await refresh(); // Refresh holds after import
+    closeModal('importPreview');
+    setImportPreviewData([]);
+    setImportFile(null);
+    alert(
+      `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
+    );
+  };
+
   const confirmCSVImport = async () => {
     if (!importPreviewData || importPreviewData.length === 0) {
       alert('No data to import');
@@ -69,19 +108,7 @@ export default function HoldsTab() {
 
     try {
       // setLoading(true); // Use useUIStore's setLoading
-      const newRecords = importPreviewData.filter((row) => {
-        if (!row.name || !row.month) {
-          return false;
-        }
-        const isDuplicate = holds.some(
-          (h) =>
-            h.name.toLowerCase().trim() === row.name.toLowerCase().trim() &&
-            h.month === row.month &&
-            h.start === row.start
-        );
-        return !isDuplicate;
-      });
-
+      const newRecords = filterNewRecords(importPreviewData);
       const duplicateCount = importPreviewData.length - newRecords.length;
 
       if (newRecords.length === 0) {
@@ -93,25 +120,36 @@ export default function HoldsTab() {
         return;
       }
 
-      const { error } = await supabase.from('holds').insert(newRecords);
-
-      if (error) {
-        console.error('Error bulk importing:', error);
-        alert(`Error importing: ${error.message}`);
-      } else {
-        await refresh(); // Refresh holds after import
-        closeModal('importPreview');
-        setImportPreviewData([]);
-        setImportFile(null);
-        alert(
-          `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
-        );
-      }
+      await handleImportSuccess(newRecords, duplicateCount);
     } catch (error) {
       console.error('Fatal error importing CSV:', error);
       alert(`Error importing CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       // setLoading(false);
+    }
+  };
+
+  const handleUndoImport = async () => {
+    if (!undoBatch) {
+      return;
+    }
+    if (
+      !confirm(
+        `Delete the ${undoBatch.count} records from the last import? This is permanent and cannot be reversed.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const { error } = await supabase.from('holds').delete().in('id', undoBatch.ids);
+      if (error) {
+        throw error;
+      }
+      clearImportBatch('holds');
+      setUndoBatch(null);
+      await refresh();
+    } catch {
+      alert('Failed to undo import. Please try again.');
     }
   };
 
@@ -423,6 +461,12 @@ export default function HoldsTab() {
               <Upload className="w-4 h-4" />
               <span>Import CSV</span>
             </button>
+            {undoBatch && (
+              <button type="button" onClick={handleUndoImport} className="btn btn-secondary">
+                <RotateCcw className="w-4 h-4" />
+                <span>Undo Import ({undoBatch.count})</span>
+              </button>
+            )}
             <button type="button" onClick={handleExportHolds} className="btn btn-primary">
               <Download className="w-4 h-4" />
               <span>Export</span>
