@@ -238,7 +238,14 @@ export const parseCancellationsCSV = (
             date: parseDate(cancellationDateRaw, year),
             reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
             age_group:
-              String(row['AGE CATEGORY'] || row.age_group || row['Age Group'] || '').trim() || null,
+              String(
+                row['AGE CATEGORY'] ||
+                  row['Age Category'] ||
+                  row.age_group ||
+                  row['Age Group'] ||
+                  row['AGE GROUP'] ||
+                  ''
+              ).trim() || null,
             notes: String(row.NOTES || row.notes || row.Notes || '').trim() || null,
             year: year,
           };
