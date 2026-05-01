@@ -186,11 +186,9 @@ export default function IntrosTab() {
         console.error('Error bulk importing:', error);
         alert(`Error importing: ${error.message}`);
       } else {
-        saveImportBatch(
-          'intros',
-          (data ?? []).map((r) => r.id)
-        );
-        setUndoBatch(getImportBatch('intros'));
+        const importedIds = (data ?? []).map((r) => r.id);
+        saveImportBatch('intros', importedIds);
+        setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
         await refresh();
         closeModal('importPreview');
         setImportPreviewData([]);
@@ -205,15 +203,18 @@ export default function IntrosTab() {
   };
 
   const handleUndoImport = async () => {
-    const batch = getImportBatch('intros');
-    if (!batch) {
+    if (!undoBatch) {
       return;
     }
-    if (!confirm(`Undo import of ${batch.count} records? This cannot be undone.`)) {
+    if (
+      !confirm(
+        `Delete the ${undoBatch.count} records from the last import? This is permanent and cannot be reversed.`
+      )
+    ) {
       return;
     }
     try {
-      const { error } = await supabase.from('intros').delete().in('id', batch.ids);
+      const { error } = await supabase.from('intros').delete().in('id', undoBatch.ids);
       if (error) {
         throw error;
       }
