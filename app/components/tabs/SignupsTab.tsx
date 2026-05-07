@@ -11,6 +11,7 @@ import { useImportUndo } from '@/hooks/useImportUndo';
 import { useSignups } from '@/hooks/useSignups';
 import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
+import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -248,22 +249,6 @@ export default function SignupsTab() {
     special: filteredAndSearchedSignups.filter((s) => s.membership === 'Special').length,
     asp: filteredAndSearchedSignups.filter((s) => s.membership === 'ASP').length,
     withPackage: filteredAndSearchedSignups.filter((s) => s.signup_package).length,
-  };
-
-  // Helper to format dates for display
-  const formatDate = (dateStr?: string): string => {
-    if (!dateStr) {
-      return '-';
-    }
-    try {
-      const date = new Date(dateStr);
-      if (Number.isNaN(date.getTime())) {
-        return '-';
-      }
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch {
-      return '-';
-    }
   };
 
   const columns = [

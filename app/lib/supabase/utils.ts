@@ -1,4 +1,16 @@
 // app/lib/supabase/utils.ts
+export const formatDate = (dateStr?: string | null): string => {
+  if (!dateStr) {
+    return '-';
+  }
+  const parts = dateStr.split('-');
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  if (Number.isNaN(d.getTime())) {
+    return '-';
+  }
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 // Export data to CSV (helper function)
 export const exportToCSV = <T extends object>(data: T[], filename: string) => {
   if (data.length === 0) {
