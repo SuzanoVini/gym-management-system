@@ -5,6 +5,16 @@ import type { Hold, HoldFormData } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const monthFromDate = (dateStr: string): string => {
+  const parts = dateStr.split('-');
+  return parts.length >= 2 ? (MONTHS[Number(parts[1]) - 1] ?? '') : '';
+};
+
+const yearFromDate = (dateStr: string): number | undefined => {
+  const y = Number(dateStr.split('-')[0]);
+  return Number.isNaN(y) || y < 2000 ? undefined : y;
+};
+
 interface HoldFormProps {
   hold?: Hold | null;
   onSubmit: (data: HoldFormData) => void;
@@ -35,10 +45,19 @@ export function HoldForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    if (name === 'start' && value) {
+      const newYear = yearFromDate(value);
+      setFormData((prev) => ({
+        ...prev,
+        start: value,
+        month: monthFromDate(value) || prev.month,
+        ...(newYear !== undefined ? { year: newYear } : {}),
+      }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,27 +65,10 @@ export function HoldForm({
     onSubmit(formData);
   };
 
+  const showMonthFallback = !formData.start;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <label className="form-label" htmlFor="hold-month">
-          Month *
-        </label>
-        <select
-          id="hold-month"
-          name="month"
-          value={formData.month}
-          onChange={handleChange}
-          className="form-select"
-        >
-          <option value="">Select month</option>
-          {MONTHS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
       <div>
         <label className="form-label" htmlFor="hold-name">
           Name *
@@ -82,7 +84,7 @@ export function HoldForm({
       </div>
       <div>
         <label className="form-label" htmlFor="hold-start">
-          Start Date
+          Start Date *
         </label>
         <input
           id="hold-start"
@@ -93,6 +95,30 @@ export function HoldForm({
           className="form-input"
         />
       </div>
+      {showMonthFallback && (
+        <div>
+          <label className="form-label" htmlFor="hold-month">
+            Month *{' '}
+            <span className="text-xs text-gray-400 font-normal">
+              (set a start date above to auto-fill)
+            </span>
+          </label>
+          <select
+            id="hold-month"
+            name="month"
+            value={formData.month}
+            onChange={handleChange}
+            className="form-select"
+          >
+            <option value="">Select month</option>
+            {MONTHS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className="form-label" htmlFor="hold-end">
           End Date

@@ -4,6 +4,13 @@ import { useState } from 'react';
 import { Form, FormField } from '@/components/ui/Form';
 import type { Intro, IntroFormData } from '@/types';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const monthFromDate = (dateStr: string): string => {
+  const parts = dateStr.split('-');
+  return parts.length >= 2 ? (MONTHS[Number(parts[1]) - 1] ?? '') : '';
+};
+
 interface IntroFormProps {
   intro?: Intro | null;
   onSubmit: (data: IntroFormData) => void;
@@ -112,34 +119,14 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
         />
 
         <FormField
-          label="Month"
-          name="month"
-          type="select"
-          value={formData.month}
-          onChange={(value) => updateField('month', value)}
-          options={[
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-          ]}
-          required
-        />
-
-        <FormField
           label="Date"
           name="date"
           type="date"
           value={formData.date}
-          onChange={(value) => updateField('date', value)}
+          onChange={(value) => {
+            const s = value as string;
+            setFormData((prev) => ({ ...prev, date: s, month: monthFromDate(s) || prev.month }));
+          }}
           required
         />
 
