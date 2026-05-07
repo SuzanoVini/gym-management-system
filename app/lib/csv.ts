@@ -41,6 +41,45 @@ const parseDate = (dateStr: string, year?: number): string | undefined => {
   }
 };
 
+const MONTH_ABBREVS: Record<string, string> = {
+  january: 'Jan',
+  february: 'Feb',
+  march: 'Mar',
+  april: 'Apr',
+  may: 'May',
+  june: 'Jun',
+  july: 'Jul',
+  august: 'Aug',
+  september: 'Sep',
+  october: 'Oct',
+  november: 'Nov',
+  december: 'Dec',
+  jan: 'Jan',
+  feb: 'Feb',
+  mar: 'Mar',
+  apr: 'Apr',
+  jun: 'Jun',
+  jul: 'Jul',
+  aug: 'Aug',
+  sep: 'Sep',
+  oct: 'Oct',
+  nov: 'Nov',
+  dec: 'Dec',
+};
+
+const normalizeMonth = (raw: string): string => MONTH_ABBREVS[raw.toLowerCase().trim()] ?? raw;
+
+const normalizeYesNo = (raw: string): 'Yes' | 'No' | '' => {
+  const v = raw.toLowerCase().trim();
+  if (v === 'yes' || v === 'true' || v === '1') {
+    return 'Yes';
+  }
+  if (v === 'no' || v === 'false' || v === '0') {
+    return 'No';
+  }
+  return '';
+};
+
 // Common filter function for all parsers
 export type CsvRow = Record<string, unknown>;
 
@@ -89,9 +128,8 @@ export const parseIntrosCSV = (
     transformHeader: (header: string) => header.trim(),
     complete: (results: ParseResult<CsvRow>) => {
       try {
-        // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: CSV mapping normalizes many fields.
         const parsedData = results.data.filter(filterRow).map((row) => ({
-          month: String(row.MONTH || row.month || row.Month || '').trim(),
+          month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
           date: parseDate(String(row.DATE || row.date || row.Date || '').trim(), year),
           year: year,
           time: String(row.TIME || row.time || row.Time || '').trim() || null,
@@ -100,12 +138,12 @@ export const parseIntrosCSV = (
           email: String(row.EMAIL || row.email || row.Email || '').trim() || null,
           phone: String(row.PHONE || row.phone || row.Phone || '').trim() || null,
           staff: String(row.STAFF || row.staff || row.Staff || '').trim() || null,
-          attended: (String(row.ATTENDED || row.attended || row.Attended || '').trim() || '') as
-            | 'Yes'
-            | 'No'
-            | '',
-          signed_up: (String(row['SIGNED UP'] || row.signed_up || row['Signed Up'] || '').trim() ||
-            '') as 'Yes' | 'No' | '',
+          attended: normalizeYesNo(
+            String(row.ATTENDED || row.attended || row.Attended || '').trim()
+          ),
+          signed_up: normalizeYesNo(
+            String(row['SIGNED UP'] || row.signed_up || row['Signed Up'] || '').trim()
+          ),
           status: 'Active' as const,
         }));
         onComplete(parsedData);
@@ -167,7 +205,7 @@ export const parseSignupsCSV = (
           ).trim();
 
           return {
-            month: String(row.MONTH || row.month || row.Month || '').trim(),
+            month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
             name: String(row.NAME || row.name || row.Name || '').trim(),
             membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
             membership_date: parseDate(membershipDateRaw, year),
@@ -233,7 +271,7 @@ export const parseCancellationsCSV = (
           ).trim();
 
           return {
-            month: String(row.MONTH || row.month || row.Month || '').trim(),
+            month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
             name: String(row.NAME || row.name || row.Name || '').trim(),
             date: parseDate(cancellationDateRaw, year),
             reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
@@ -297,7 +335,7 @@ export const parseHoldsCSV = (
           ).trim();
 
           return {
-            month: String(row.MONTH || row.month || row.Month || '').trim(),
+            month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
             name: String(row.NAME || row.name || row.Name || '').trim(),
             start: parseDate(startDateRaw, year),
             end: parseDate(endDateRaw, year),

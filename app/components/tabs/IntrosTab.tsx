@@ -744,6 +744,12 @@ export default function IntrosTab() {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Month</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Class</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Staff</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                    Attended
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                    Signed Up
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -753,6 +759,8 @@ export default function IntrosTab() {
                     <td className="px-4 py-2 text-sm">{row.month}</td>
                     <td className="px-4 py-2 text-sm">{row.class ?? '-'}</td>
                     <td className="px-4 py-2 text-sm">{row.staff ?? '-'}</td>
+                    <td className="px-4 py-2 text-sm">{row.attended || '-'}</td>
+                    <td className="px-4 py-2 text-sm">{row.signed_up || '-'}</td>
                   </tr>
                 ))}
               </tbody>
