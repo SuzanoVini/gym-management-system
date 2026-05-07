@@ -24,6 +24,7 @@ import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { toggleFollowUpDone } from '@/lib/supabase/intros';
+import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -330,16 +331,7 @@ export default function IntrosTab() {
     {
       key: 'date' as keyof Intro,
       label: 'Date',
-      render: (value: unknown) => {
-        if (!value) {
-          return '-';
-        }
-        const parts = (value as string).split('-');
-        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-        return Number.isNaN(d.getTime())
-          ? '-'
-          : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      },
+      render: (value: unknown) => formatDate(value as string),
     },
     {
       key: 'attended' as keyof Intro,

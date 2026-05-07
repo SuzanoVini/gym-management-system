@@ -11,7 +11,7 @@ import { useHolds } from '@/hooks/useHolds';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { type HoldCsvRecord, parseHoldsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
-import { exportToCSV } from '@/lib/supabase/utils';
+import { exportToCSV, formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -294,27 +294,6 @@ export default function HoldsTab() {
     upcoming: filteredAndSearchedHolds.filter((h) => getHoldStatus(h.start, h.end) === 'upcoming')
       .length,
     ended: filteredAndSearchedHolds.filter((h) => getHoldStatus(h.start, h.end) === 'ended').length,
-  };
-
-  const formatDate = (dateStr?: string): string => {
-    if (!dateStr) {
-      return '-';
-    }
-    try {
-      const date = new Date(dateStr);
-      if (Number.isNaN(date.getTime())) {
-        return '-';
-      }
-
-      // Format as MM/DD/YY
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const year = String(date.getFullYear()).slice(-2); // Get last 2 digits
-
-      return `${month}/${day}/${year}`;
-    } catch {
-      return '-';
-    }
   };
 
   const columns = [

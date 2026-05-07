@@ -11,7 +11,7 @@ import { useCancellations } from '@/hooks/useCancellations';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
-import { exportToCSV } from '@/lib/supabase/utils';
+import { exportToCSV, formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -272,21 +272,6 @@ export default function CancellationsTab() {
   const topReasons = Object.entries(reasonCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
-
-  const formatDate = (dateStr?: string): string => {
-    if (!dateStr) {
-      return '-';
-    }
-    try {
-      const date = new Date(dateStr);
-      if (Number.isNaN(date.getTime())) {
-        return '-';
-      }
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch {
-      return '-';
-    }
-  };
 
   const columns = [
     {
