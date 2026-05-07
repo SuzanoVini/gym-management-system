@@ -606,6 +606,20 @@ export default function IntrosTab() {
         </div>
       </div>
 
+      <PaginationBar
+        id="intros-items-per-page"
+        currentPage={currentPage}
+        totalPages={totalPages}
+        itemsPerPage={itemsPerPage}
+        totalItems={sortedIntros.length}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        selectedCount={selectedIds.size}
+        onClearSelection={() => clearSelection(selectionTab)}
+      />
+
       {/* Table */}
       <div className="section-container">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
@@ -635,20 +649,6 @@ export default function IntrosTab() {
           }
         />
       </div>
-
-      <PaginationBar
-        id="intros-items-per-page"
-        currentPage={currentPage}
-        totalPages={totalPages}
-        itemsPerPage={itemsPerPage}
-        totalItems={sortedIntros.length}
-        startIndex={startIndex}
-        endIndex={endIndex}
-        onPageChange={setCurrentPage}
-        onItemsPerPageChange={setItemsPerPage}
-        selectedCount={selectedIds.size}
-        onClearSelection={() => clearSelection(selectionTab)}
-      />
 
       {/* Modals */}
       <Modal
