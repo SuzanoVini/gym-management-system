@@ -32,7 +32,7 @@ export function HoldForm({
 }: HoldFormProps) {
   const [formData, setFormData] = useState(
     hold || {
-      month: '',
+      month: MONTHS[new Date().getMonth()] ?? '',
       name: '',
       start: '',
       end: '',
