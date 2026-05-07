@@ -69,6 +69,21 @@ const MONTH_ABBREVS: Record<string, string> = {
 
 const normalizeMonth = (raw: string): string => MONTH_ABBREVS[raw.toLowerCase().trim()] ?? raw;
 
+const MONTH_NUMBERS: Record<string, number> = {
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
+};
+
 const normalizeYesNo = (raw: string): 'Yes' | 'No' | '' => {
   const v = raw.toLowerCase().trim();
   if (v === 'yes' || v === 'true' || v === '1') {
@@ -128,24 +143,37 @@ export const parseIntrosCSV = (
     transformHeader: (header: string) => header.trim(),
     complete: (results: ParseResult<CsvRow>) => {
       try {
-        const parsedData = results.data.filter(filterRow).map((row) => ({
-          month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
-          date: parseDate(String(row.DATE || row.date || row.Date || '').trim(), year),
-          year: year,
-          time: String(row.TIME || row.time || row.Time || '').trim() || null,
-          class: String(row.CLASS || row.class || row.Class || '').trim() || null,
-          name: String(row.NAME || row.name || row.Name || '').trim(),
-          email: String(row.EMAIL || row.email || row.Email || '').trim() || null,
-          phone: String(row.PHONE || row.phone || row.Phone || '').trim() || null,
-          staff: String(row.STAFF || row.staff || row.Staff || '').trim() || null,
-          attended: normalizeYesNo(
-            String(row.ATTENDED || row.attended || row.Attended || '').trim()
-          ),
-          signed_up: normalizeYesNo(
-            String(row['SIGNED UP'] || row.signed_up || row['Signed Up'] || '').trim()
-          ),
-          status: 'Active' as const,
-        }));
+        const parsedData = results.data.filter(filterRow).map((row) => {
+          const monthStr = normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim());
+          const dayRaw = String(row.DATE || row.date || row.Date || '').trim();
+          let date: string | undefined;
+          if (/^\d{1,2}$/.test(dayRaw) && year) {
+            const monthNum = MONTH_NUMBERS[monthStr.toLowerCase()];
+            if (monthNum) {
+              date = `${year}-${String(monthNum).padStart(2, '0')}-${dayRaw.padStart(2, '0')}`;
+            }
+          } else {
+            date = parseDate(dayRaw, year);
+          }
+          return {
+            month: monthStr,
+            date,
+            year: year,
+            time: String(row.TIME || row.time || row.Time || '').trim() || null,
+            class: String(row.CLASS || row.class || row.Class || '').trim() || null,
+            name: String(row.NAME || row.name || row.Name || '').trim(),
+            email: String(row.EMAIL || row.email || row.Email || '').trim() || null,
+            phone: String(row.PHONE || row.phone || row.Phone || '').trim() || null,
+            staff: String(row.STAFF || row.staff || row.Staff || '').trim() || null,
+            attended: normalizeYesNo(
+              String(row.ATTENDED || row.attended || row.Attended || '').trim()
+            ),
+            signed_up: normalizeYesNo(
+              String(row['SIGNED UP'] || row.signed_up || row['Signed Up'] || '').trim()
+            ),
+            status: 'Active' as const,
+          };
+        });
         onComplete(parsedData);
       } catch (error) {
         console.error('Error processing CSV data:', error);
