@@ -32,7 +32,7 @@ export function SignupForm({
 }: SignupFormProps) {
   const [formData, setFormData] = useState(
     signup || {
-      month: '',
+      month: MONTHS[new Date().getMonth()] ?? '',
       name: '',
       membership: '',
       membership_date: '',

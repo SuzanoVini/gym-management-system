@@ -33,7 +33,7 @@ export function CancellationForm({
 }: CancellationFormProps) {
   const [formData, setFormData] = useState(
     cancellation || {
-      month: '',
+      month: MONTHS[new Date().getMonth()] ?? '',
       name: '',
       date: '',
       reason: '',

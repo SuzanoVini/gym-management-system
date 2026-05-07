@@ -34,7 +34,7 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
   };
 
   const [formData, setFormData] = useState<IntroFormValues>({
-    month: intro?.month || '',
+    month: intro?.month || (MONTHS[new Date().getMonth()] ?? ''),
     date: intro?.date || '',
     time: intro?.time || '',
     class: intro?.class || '',
