@@ -327,11 +327,23 @@ export const parseHoldsCSV = (
       try {
         const parsedData = results.data.filter(filterRow).map((row) => {
           const startDateRaw = String(
-            row['START DATE'] || row['Start Date'] || row.start_date || ''
+            row['START DATE'] ||
+              row['Start Date'] ||
+              row.start_date ||
+              row.START ||
+              row.Start ||
+              row.start ||
+              ''
           ).trim();
 
           const endDateRaw = String(
-            row['END DATE'] || row['End Date'] || row.end_date || ''
+            row['END DATE'] ||
+              row['End Date'] ||
+              row.end_date ||
+              row.END ||
+              row.End ||
+              row.end ||
+              ''
           ).trim();
 
           return {
