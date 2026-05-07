@@ -336,35 +336,59 @@ export default function IntrosTab() {
     {
       key: 'attended' as keyof Intro,
       label: 'Attended',
-      render: (value: unknown, _intro: Intro) => (
-        <span
-          className={`px-2 py-1 text-xs rounded-full ${
+      render: (value: unknown, intro: Intro) => (
+        <select
+          value={(value as string) || ''}
+          onChange={async (e) => {
+            const val = e.target.value;
+            await supabase
+              .from('intros')
+              .update({ attended: val === '' ? null : val })
+              .eq('id', intro.id);
+            await silentRefresh();
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs rounded-full px-2 py-0.5 border cursor-pointer font-medium focus:outline-none focus:ring-1 focus:ring-blue-400 ${
             (value as string) === 'Yes'
-              ? 'bg-green-100 text-green-800'
+              ? 'bg-green-100 text-green-800 border-green-200'
               : (value as string) === 'No'
-                ? 'bg-red-100 text-red-800'
-                : 'bg-gray-100 text-gray-800'
+                ? 'bg-red-100 text-red-800 border-red-200'
+                : 'bg-gray-100 text-gray-800 border-gray-200'
           }`}
         >
-          {(value as string) || '-'}
-        </span>
+          <option value="">—</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
       ),
     },
     {
       key: 'signed_up' as keyof Intro,
       label: 'Signed Up',
-      render: (value: unknown, _intro: Intro) => (
-        <span
-          className={`px-2 py-1 text-xs rounded-full ${
+      render: (value: unknown, intro: Intro) => (
+        <select
+          value={(value as string) || ''}
+          onChange={async (e) => {
+            const val = e.target.value;
+            await supabase
+              .from('intros')
+              .update({ signed_up: val === '' ? null : val })
+              .eq('id', intro.id);
+            await silentRefresh();
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs rounded-full px-2 py-0.5 border cursor-pointer font-medium focus:outline-none focus:ring-1 focus:ring-blue-400 ${
             (value as string) === 'Yes'
-              ? 'bg-green-100 text-green-800'
+              ? 'bg-green-100 text-green-800 border-green-200'
               : (value as string) === 'No'
-                ? 'bg-red-100 text-red-800'
-                : 'bg-gray-100 text-gray-800'
+                ? 'bg-red-100 text-red-800 border-red-200'
+                : 'bg-gray-100 text-gray-800 border-gray-200'
           }`}
         >
-          {(value as string) || '-'}
-        </span>
+          <option value="">—</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+        </select>
       ),
     },
     {

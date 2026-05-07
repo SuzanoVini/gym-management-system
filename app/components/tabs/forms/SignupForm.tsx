@@ -5,6 +5,16 @@ import type { Signup, SignupFormData } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const monthFromDate = (dateStr: string): string => {
+  const parts = dateStr.split('-');
+  return parts.length >= 2 ? (MONTHS[Number(parts[1]) - 1] ?? '') : '';
+};
+
+const yearFromDate = (dateStr: string): number | undefined => {
+  const y = Number(dateStr.split('-')[0]);
+  return Number.isNaN(y) || y < 2000 ? undefined : y;
+};
+
 interface SignupFormProps {
   signup?: Signup | null;
   onSubmit: (data: SignupFormData) => void;
@@ -36,16 +46,25 @@ export function SignupForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    let newValue: string | boolean = value;
 
     if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
-      newValue = e.target.checked;
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData((prev) => ({ ...prev, [name]: checked }));
+      return;
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+    if (name === 'membership_date' && value) {
+      const newYear = yearFromDate(value);
+      setFormData((prev) => ({
+        ...prev,
+        membership_date: value,
+        month: monthFromDate(value) || prev.month,
+        ...(newYear !== undefined ? { year: newYear } : {}),
+      }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -53,27 +72,10 @@ export function SignupForm({
     onSubmit(formData);
   };
 
+  const showMonthFallback = !formData.membership_date;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <label className="form-label" htmlFor="signup-month">
-          Month *
-        </label>
-        <select
-          id="signup-month"
-          name="month"
-          value={formData.month}
-          onChange={handleChange}
-          className="form-select"
-        >
-          <option value="">Select month</option>
-          {MONTHS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
       <div>
         <label className="form-label" htmlFor="signup-name">
           Name *
@@ -108,7 +110,7 @@ export function SignupForm({
       </div>
       <div>
         <label className="form-label" htmlFor="signup-membership-date">
-          Sign Up Date
+          Sign Up Date *
         </label>
         <input
           id="signup-membership-date"
@@ -119,6 +121,30 @@ export function SignupForm({
           className="form-input"
         />
       </div>
+      {showMonthFallback && (
+        <div>
+          <label className="form-label" htmlFor="signup-month">
+            Month *{' '}
+            <span className="text-xs text-gray-400 font-normal">
+              (set a date above to auto-fill)
+            </span>
+          </label>
+          <select
+            id="signup-month"
+            name="month"
+            value={formData.month}
+            onChange={handleChange}
+            className="form-select"
+          >
+            <option value="">Select month</option>
+            {MONTHS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className="form-label" htmlFor="signup-first-payment-date">
           First Payment Date
