@@ -69,7 +69,10 @@ export function SignupForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const yearDerived = formData.membership_date
+      ? yearFromDate(formData.membership_date as string)
+      : undefined;
+    onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
 
   const showMonthFallback = !formData.membership_date;

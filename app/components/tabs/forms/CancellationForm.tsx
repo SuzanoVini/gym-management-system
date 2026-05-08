@@ -63,7 +63,8 @@ export function CancellationForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const yearDerived = formData.date ? yearFromDate(formData.date as string) : undefined;
+    onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
 
   const showMonthFallback = !formData.date;
