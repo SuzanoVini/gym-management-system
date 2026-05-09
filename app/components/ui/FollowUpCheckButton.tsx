@@ -46,6 +46,19 @@ export default function FollowUpCheckButton({ intro, onUpdate }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   if (intro.signed_up === 'Yes') {
     return <span className="text-gray-300 text-sm">—</span>;
   }
@@ -100,6 +113,7 @@ export default function FollowUpCheckButton({ intro, onUpdate }: Props) {
         onClick={handleToggle}
         disabled={loading}
         title="Follow-up status"
+        aria-label="Follow-up status"
         className={`h-7 w-7 inline-flex items-center justify-center rounded-md border text-xs font-bold transition-colors duration-150 cursor-pointer disabled:opacity-50 ${iconStyle}`}
       >
         {icon}
