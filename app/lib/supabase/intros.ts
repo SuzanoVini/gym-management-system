@@ -302,3 +302,24 @@ export const clearFollowUp2 = async (id: string): Promise<void> => {
     throw error;
   }
 };
+
+export const markMostRecentIntroAsSignedUp = async (name: string): Promise<void> => {
+  const { data: intro } = await supabase
+    .from('intros')
+    .select('id, signed_up')
+    .ilike('name', name.toLowerCase().trim())
+    .order('date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!intro || intro.signed_up === 'Yes') {
+    return;
+  }
+
+  const { error } = await supabase.from('intros').update({ signed_up: 'Yes' }).eq('id', intro.id);
+
+  if (error) {
+    throw error;
+  }
+};

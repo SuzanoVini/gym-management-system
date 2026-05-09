@@ -46,3 +46,27 @@ export const deleteHold = async (id: string) => {
     throw error;
   }
 };
+
+export const closeActiveHold = async (name: string, cancellationDate: string): Promise<void> => {
+  const { data: hold } = await supabase
+    .from('holds')
+    .select('id')
+    .ilike('name', name.toLowerCase().trim())
+    .or(`end.is.null,end.gte.${cancellationDate}`)
+    .order('start', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!hold) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from('holds')
+    .update({ end: cancellationDate })
+    .eq('id', hold.id);
+
+  if (error) {
+    throw error;
+  }
+};
