@@ -239,3 +239,74 @@ export const toggleFollowUpDone = async (
     throw error;
   }
 };
+
+// FOLLOW-UP SYSTEM (followup_1_at / followup_2_at)
+
+export const fetchRecentIntros = async (): Promise<Intro[]> => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const { data, error } = await supabase
+    .from('intros')
+    .select(`
+      *,
+      follow_up_notes (
+        id,
+        note,
+        created_at,
+        staff_name
+      )
+    `)
+    .or(
+      `date.gte.${thirtyDaysAgo.toISOString().slice(0, 10)},created_at.gte.${thirtyDaysAgo.toISOString()},followup_1_at.not.is.null`
+    )
+    .order('date', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+  return data || [];
+};
+
+export const markFollowUp1 = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('intros')
+    .update({ followup_1_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) {
+    throw error;
+  }
+};
+
+export const markFollowUp2 = async (id: string): Promise<void> => {
+  // Guard: verify followup_1_at is set before writing
+  const { data } = await supabase.from('intros').select('followup_1_at').eq('id', id).single();
+  if (!data?.followup_1_at) {
+    return;
+  }
+
+  const { error } = await supabase
+    .from('intros')
+    .update({ followup_2_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) {
+    throw error;
+  }
+};
+
+export const clearFollowUp1 = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('intros')
+    .update({ followup_1_at: null, followup_2_at: null })
+    .eq('id', id);
+  if (error) {
+    throw error;
+  }
+};
+
+export const clearFollowUp2 = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('intros').update({ followup_2_at: null }).eq('id', id);
+  if (error) {
+    throw error;
+  }
+};

@@ -21,6 +21,8 @@ export interface Database {
           signed_up: 'Yes' | 'No' | '';
           follow_up_status: string | null;
           last_follow_up: string | null;
+          followup_1_at: string | null;
+          followup_2_at: string | null;
           created_by: string | null;
           status: 'Active' | 'Cancelled' | 'Completed'; // NEW FIELD
         };
@@ -40,6 +42,8 @@ export interface Database {
           signed_up?: 'Yes' | 'No' | '';
           follow_up_status?: string | null;
           last_follow_up?: string | null;
+          followup_1_at?: string | null;
+          followup_2_at?: string | null;
           created_by?: string | null;
           status?: 'Active' | 'Cancelled' | 'Completed'; // NEW FIELD
         };
@@ -59,6 +63,8 @@ export interface Database {
           signed_up?: 'Yes' | 'No' | '';
           follow_up_status?: string | null;
           last_follow_up?: string | null;
+          followup_1_at?: string | null;
+          followup_2_at?: string | null;
           created_by?: string | null;
           status?: 'Active' | 'Cancelled' | 'Completed'; // NEW FIELD
         };

@@ -6,6 +6,7 @@ import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import ProtectedRoute from './components/providers/ProtectedRoute';
 import CancellationsTab from './components/tabs/CancellationsTab';
+import FollowUpsTab from './components/tabs/FollowUpsTab';
 import HoldsTab from './components/tabs/HoldsTab';
 import InsightsTab from './components/tabs/InsightsTab';
 import IntrosTab from './components/tabs/IntrosTab';
@@ -13,7 +14,15 @@ import OverviewTab from './components/tabs/OverviewTab';
 import SignupsTab from './components/tabs/SignupsTab';
 import { useSidebarStore } from './store/useSidebarStore';
 
-const VALID_TABS = ['overview', 'insights', 'intros', 'signups', 'cancellations', 'holds'];
+const VALID_TABS = [
+  'overview',
+  'insights',
+  'intros',
+  'followups',
+  'signups',
+  'cancellations',
+  'holds',
+];
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -45,6 +54,7 @@ function HomeContent() {
                 {activeTab === 'overview' && <OverviewTab />}
                 {activeTab === 'insights' && <InsightsTab />}
                 {activeTab === 'intros' && <IntrosTab />}
+                {activeTab === 'followups' && <FollowUpsTab />}
                 {activeTab === 'signups' && <SignupsTab />}
                 {activeTab === 'cancellations' && <CancellationsTab />}
                 {activeTab === 'holds' && <HoldsTab />}

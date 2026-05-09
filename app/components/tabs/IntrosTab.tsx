@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import CopyButton from '@/components/ui/CopyButton';
+import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
 import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
@@ -23,7 +24,6 @@ import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
-import { toggleFollowUpDone } from '@/lib/supabase/intros';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
@@ -421,39 +421,29 @@ export default function IntrosTab() {
       key: 'actions' as keyof Intro,
       label: '',
       render: (_value: unknown, intro: Intro) => (
-        <OverflowMenu
-          items={[
-            {
-              label: intro.follow_up_status ? 'Unmark Follow-up' : 'Mark Follow-up',
-              icon: intro.follow_up_status ? Trash2 : MessageSquare,
-              variant: intro.follow_up_status ? 'default' : 'success',
-              onClick: async () => {
-                try {
-                  await toggleFollowUpDone(intro.id, intro.follow_up_status);
-                  await silentRefresh();
-                } catch (err) {
-                  console.error('Failed to toggle follow-up status', err);
-                }
+        <div className="flex items-center gap-1">
+          <FollowUpCheckButton intro={intro} onUpdate={silentRefresh} />
+          <OverflowMenu
+            items={[
+              {
+                label: 'Add Note',
+                icon: MessageSquare,
+                onClick: () => handleFollowUpClick(intro),
               },
-            },
-            {
-              label: 'Add Note',
-              icon: MessageSquare,
-              onClick: () => handleFollowUpClick(intro),
-            },
-            {
-              label: 'Edit',
-              icon: Edit2,
-              onClick: () => handleEditClick(intro),
-            },
-            {
-              label: 'Delete',
-              icon: Trash2,
-              variant: 'danger',
-              onClick: () => removeIntro(intro.id, intro.name),
-            },
-          ]}
-        />
+              {
+                label: 'Edit',
+                icon: Edit2,
+                onClick: () => handleEditClick(intro),
+              },
+              {
+                label: 'Delete',
+                icon: Trash2,
+                variant: 'danger',
+                onClick: () => removeIntro(intro.id, intro.name),
+              },
+            ]}
+          />
+        </div>
       ),
     },
   ];
@@ -669,7 +659,9 @@ export default function IntrosTab() {
           onClearSelection={(ids) => clearSelection(selectionTab, ids)}
           emptyMessage="No intros found matching your criteria"
           getRowClassName={(intro) =>
-            intro.follow_up_status ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'
+            intro.followup_1_at && !intro.followup_2_at
+              ? 'bg-blue-50 hover:bg-blue-100'
+              : 'hover:bg-gray-50'
           }
         />
       </div>
