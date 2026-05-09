@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  CheckSquare,
   Clock,
   DollarSign,
   ShieldCheck,
@@ -18,6 +19,7 @@ const tabs = [
   { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'insights', label: 'Insights', icon: BarChart3 },
   { id: 'intros', label: 'Intros', icon: Users },
+  { id: 'followups', label: 'Follow Ups', icon: CheckSquare },
   { id: 'signups', label: 'Sign-ups', icon: UserCheck },
   { id: 'cancellations', label: 'Cancellations', icon: UserX },
   { id: 'holds', label: 'Holds', icon: Clock },
