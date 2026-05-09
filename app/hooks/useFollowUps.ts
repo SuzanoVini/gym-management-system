@@ -92,7 +92,11 @@ export function useFollowUps() {
   const rows = useMemo<FollowUpRow[]>(() => {
     const base = recentIntros
       .filter(
-        (intro) => intro.attended === 'Yes' && intro.signed_up !== 'Yes' && !intro.followup_2_at
+        (intro) =>
+          intro.attended === 'Yes' &&
+          intro.signed_up !== 'Yes' &&
+          intro.signed_up !== 'No' &&
+          !intro.followup_2_at
       )
       .map((intro) => {
         const introDate = intro.date ? new Date(intro.date) : new Date(intro.created_at);
