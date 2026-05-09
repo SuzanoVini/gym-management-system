@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   let imported = 0;
   const skipped: string[] = [];
   const errors: string[] = [];
+  const debug: { name: string; phone: string | null; email: string | null }[] = [];
 
   try {
     const messages = await getUnreadZenPlannerEmails();
@@ -34,6 +35,8 @@ export async function GET(req: NextRequest) {
           errors.push(`Could not parse email ${message.id}`);
           continue;
         }
+
+        debug.push({ name: booking.name, phone: booking.phone, email: booking.email });
 
         // Duplicate check: same name + month + year + time
         const { data: existing } = await supabase
@@ -88,6 +91,7 @@ export async function GET(req: NextRequest) {
     imported,
     skipped: skipped.length,
     errors,
+    debug,
     timestamp: new Date().toISOString(),
   });
 }
