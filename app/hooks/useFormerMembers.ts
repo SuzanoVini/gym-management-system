@@ -49,27 +49,31 @@ export function useFormerMembers(): Map<string, string> {
     let cancelled = false;
 
     const load = async () => {
-      const [signupsResult, cancellationsResult] = await Promise.all([
-        supabase.from('signups').select('name, membership_date'),
-        supabase.from('cancellations').select('name, date'),
-      ]);
+      try {
+        const [signupsResult, cancellationsResult] = await Promise.all([
+          supabase.from('signups').select('name, membership_date'),
+          supabase.from('cancellations').select('name, date'),
+        ]);
 
-      if (cancelled) {
-        return;
+        if (cancelled) {
+          return;
+        }
+
+        const signups = (signupsResult.data ?? []) as SignupRecord[];
+        const cancellations = (cancellationsResult.data ?? []) as CancellationRecord[];
+
+        const signupMap = buildMostRecentMap(
+          signups.map((s) => ({ name: s.name, date: s.membership_date }))
+        );
+        const cancellationMap = buildMostRecentMap(
+          cancellations.map((c) => ({ name: c.name, date: c.date }))
+        );
+
+        const result = filterFormerMembers(signupMap, cancellationMap);
+        setMap(result);
+      } catch (err) {
+        console.error('useFormerMembers: failed to load', err);
       }
-
-      const signups = (signupsResult.data ?? []) as SignupRecord[];
-      const cancellations = (cancellationsResult.data ?? []) as CancellationRecord[];
-
-      const signupMap = buildMostRecentMap(
-        signups.map((s) => ({ name: s.name, date: s.membership_date }))
-      );
-      const cancellationMap = buildMostRecentMap(
-        cancellations.map((c) => ({ name: c.name, date: c.date }))
-      );
-
-      const result = filterFormerMembers(signupMap, cancellationMap);
-      setMap(result);
     };
 
     load();
