@@ -27,6 +27,8 @@ export interface Intro extends BaseRecord {
   status?: 'Active' | 'Cancelled' | 'Completed';
   follow_up_status?: string;
   last_follow_up?: string;
+  followup_1_at?: string | null;
+  followup_2_at?: string | null;
   created_by?: string;
   // Relations
   follow_up_notes?: FollowUpNote[];
