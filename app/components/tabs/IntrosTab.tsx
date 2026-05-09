@@ -20,6 +20,7 @@ import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
+import { useFormerMembers } from '@/hooks/useFormerMembers';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
@@ -33,11 +34,20 @@ import IntroForm from './forms/IntroForm';
 import FollowUpModal from './modals/FollowUpModal';
 import SettingsModal from './modals/SettingsModal';
 
+function formatFormerMemberDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+  });
+}
+
 export default function IntrosTab() {
   const { intros, loading, error, addIntro, editIntro, removeIntro, refresh, silentRefresh } =
     useIntros();
   const { modals, openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
+  const formerMemberMap = useFormerMembers();
   const selectionTab: SelectionTabKey = 'intros';
   const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
   const toggleSelection = useSelectionStore((state) => state.toggleSelection);
@@ -277,17 +287,32 @@ export default function IntrosTab() {
     {
       key: 'name' as keyof Intro,
       label: 'Name',
-      render: (value: unknown, _intro: Intro) => {
+      render: (value: unknown, intro: Intro) => {
         const full = (value as string) || '';
         const parts = full.trim().split(' ');
         const display =
           parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
-        return display !== full ? (
-          <Tooltip content={full}>
-            <div className="font-medium text-gray-900 cursor-default">{display}</div>
-          </Tooltip>
-        ) : (
-          <div className="font-medium text-gray-900">{full}</div>
+        const cancellationDate = formerMemberMap.get(intro.name.toLowerCase().trim());
+        const isFormer = !!cancellationDate && intro.signed_up !== 'Yes';
+        const nameNode =
+          display !== full ? (
+            <Tooltip content={full}>
+              <div className="font-medium text-gray-900 cursor-default">{display}</div>
+            </Tooltip>
+          ) : (
+            <div className="font-medium text-gray-900">{full}</div>
+          );
+        return (
+          <div className="flex items-center gap-1.5">
+            {nameNode}
+            {isFormer && (
+              <Tooltip
+                content={`Former member cancelled on ${formatFormerMemberDate(cancellationDate)}`}
+              >
+                <span className="text-amber-500 cursor-help text-sm leading-none">⚠</span>
+              </Tooltip>
+            )}
+          </div>
         );
       },
     },
