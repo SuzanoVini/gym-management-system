@@ -258,7 +258,7 @@ export const fetchRecentIntros = async (): Promise<Intro[]> => {
       )
     `)
     .or(
-      `date.gte.${thirtyDaysAgo.toISOString().slice(0, 10)},created_at.gte.${thirtyDaysAgo.toISOString()},followup_1_at.not.is.null`
+      `date.gte.${thirtyDaysAgo.toISOString().slice(0, 10)},created_at.gte.${thirtyDaysAgo.toISOString()},not.followup_1_at.is.null`
     )
     .order('date', { ascending: false });
 
