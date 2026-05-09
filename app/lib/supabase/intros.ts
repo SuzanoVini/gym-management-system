@@ -245,27 +245,43 @@ export const toggleFollowUpDone = async (
 export const fetchRecentIntros = async (): Promise<Intro[]> => {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const cutoffDate = thirtyDaysAgo.toISOString().slice(0, 10);
+  const cutoffTs = thirtyDaysAgo.toISOString();
 
-  const { data, error } = await supabase
+  const select = `*, follow_up_notes(id, note, created_at, staff_name)`;
+
+  // Fetch intros from the last 30 days
+  const { data: recentData, error: recentError } = await supabase
     .from('intros')
-    .select(`
-      *,
-      follow_up_notes (
-        id,
-        note,
-        created_at,
-        staff_name
-      )
-    `)
-    .or(
-      `date.gte.${thirtyDaysAgo.toISOString().slice(0, 10)},created_at.gte.${thirtyDaysAgo.toISOString()},not.followup_1_at.is.null`
-    )
+    .select(select)
+    .or(`date.gte.${cutoffDate},created_at.gte.${cutoffTs}`)
     .order('date', { ascending: false });
 
-  if (error) {
-    throw error;
+  if (recentError) {
+    throw recentError;
   }
-  return data || [];
+
+  // Separately fetch any intros mid-workflow (followup_1_at set, older than 30 days)
+  // PostgREST cannot express IS NOT NULL inside .or(), so this must be a separate query
+  const { data: inProgressData, error: inProgressError } = await supabase
+    .from('intros')
+    .select(select)
+    .not('followup_1_at', 'is', null)
+    .order('date', { ascending: false });
+
+  if (inProgressError) {
+    throw inProgressError;
+  }
+
+  // Merge and deduplicate by id
+  const seen = new Set<string>();
+  return [...(recentData || []), ...(inProgressData || [])].filter((row) => {
+    if (seen.has(row.id)) {
+      return false;
+    }
+    seen.add(row.id);
+    return true;
+  });
 };
 
 export const markFollowUp1 = async (id: string): Promise<void> => {
