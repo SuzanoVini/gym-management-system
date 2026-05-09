@@ -1,6 +1,7 @@
 // hooks/useSignups.ts
 import { useCallback, useEffect, useState } from 'react';
 import { errorHandler } from '@/lib/errorHandler';
+import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
 import { createSignup, deleteSignup, fetchSignups, updateSignup } from '@/lib/supabase/signups';
 import { signupSchema, validate } from '@/lib/validations';
 import type { Signup, SignupFormData } from '@/types';
@@ -38,6 +39,9 @@ export const useSignups = () => {
 
       try {
         await createSignup(validation.data);
+        await markMostRecentIntroAsSignedUp(validation.data.name).catch(() => {
+          // Silently ignore sync errors
+        });
         await loadSignups();
         errorHandler.notify('Signup added successfully', 'success');
       } catch (err) {
@@ -52,6 +56,11 @@ export const useSignups = () => {
     async (id: string, updates: Partial<SignupFormData>) => {
       try {
         await updateSignup(id, updates);
+        if (updates.name) {
+          await markMostRecentIntroAsSignedUp(updates.name).catch(() => {
+            // Silently ignore sync errors
+          });
+        }
         await loadSignups();
         errorHandler.notify('Signup updated successfully', 'success');
       } catch (err) {

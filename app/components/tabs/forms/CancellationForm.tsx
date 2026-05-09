@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { getMostRecentSignupDate } from '@/lib/supabase/memberStatus';
 import type { Cancellation, CancellationFormData } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -41,6 +42,7 @@ export function CancellationForm({
       notes: '',
     }
   );
+  const [dateError, setDateError] = useState<string | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -55,14 +57,27 @@ export function CancellationForm({
         month: monthFromDate(value) || prev.month,
         ...(newYear !== undefined ? { year: newYear } : {}),
       }));
+      setDateError(null);
       return;
     }
 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setDateError(null);
+
+    if (formData.date && formData.name) {
+      const signupDate = await getMostRecentSignupDate((formData.name as string).trim());
+      if (signupDate && (formData.date as string) < signupDate) {
+        setDateError(
+          `Cancellation date cannot be before ${(formData.name as string).trim()}'s signup date (${signupDate}).`
+        );
+        return;
+      }
+    }
+
     const yearDerived = formData.date ? yearFromDate(formData.date as string) : undefined;
     onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
@@ -70,7 +85,12 @@ export function CancellationForm({
   const showMonthFallback = !formData.date;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
+      className="space-y-3"
+    >
       <div>
         <label className="form-label" htmlFor="cancellation-name">
           Name *
@@ -96,6 +116,7 @@ export function CancellationForm({
           onChange={handleChange}
           className="form-input"
         />
+        {dateError && <p className="text-sm text-red-600 mt-1">{dateError}</p>}
       </div>
       {showMonthFallback && (
         <div>

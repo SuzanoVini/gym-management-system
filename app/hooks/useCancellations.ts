@@ -7,6 +7,7 @@ import {
   fetchCancellations,
   updateCancellation,
 } from '@/lib/supabase/cancellations';
+import { closeActiveHold } from '@/lib/supabase/holds';
 import { cancellationSchema, validate } from '@/lib/validations';
 import type { Cancellation, CancellationFormData } from '@/types';
 
@@ -43,6 +44,11 @@ export const useCancellations = () => {
 
       try {
         await createCancellation(validation.data);
+        if (validation.data.date) {
+          await closeActiveHold(validation.data.name, validation.data.date).catch(() => {
+            // Silently ignore sync errors
+          });
+        }
         await loadCancellations();
         errorHandler.notify('Cancellation added successfully', 'success');
       } catch (err) {

@@ -11,6 +11,7 @@ import { useCancellations } from '@/hooks/useCancellations';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
+import { closeActiveHold } from '@/lib/supabase/holds';
 import { exportToCSV, formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
@@ -65,6 +66,16 @@ export default function CancellationsTab() {
     }
   };
 
+  const syncCancellationHolds = async (records: CancellationCsvRecord[]) => {
+    for (const record of records) {
+      if (record.name && record.date) {
+        await closeActiveHold(record.name, record.date).catch(() => {
+          // Sync failure does not block import
+        });
+      }
+    }
+  };
+
   const confirmCSVImport = async () => {
     if (!importPreviewData || importPreviewData.length === 0) {
       alert('No data to import');
@@ -107,6 +118,7 @@ export default function CancellationsTab() {
         saveImportBatch('cancellations', importedIds);
         setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
         await refresh(); // Refresh cancellations after import
+        await syncCancellationHolds(newRecords);
         closeModal('importPreview');
         setImportPreviewData([]);
         setImportFile(null);

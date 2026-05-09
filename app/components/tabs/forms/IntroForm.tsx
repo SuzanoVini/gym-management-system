@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Form, FormField } from '@/components/ui/Form';
+import { checkMemberStatus } from '@/lib/supabase/memberStatus';
 import type { Intro, IntroFormData } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -47,8 +48,31 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
     status: intro?.status || 'Active',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Create mode only: hard block if current member
+    if (!intro) {
+      const status = await checkMemberStatus(formData.name.trim());
+      if (status.isCurrentMember && status.signupDate) {
+        setMemberError(
+          `${formData.name.trim()} is a current member (signed up ${status.signupDate}). Cannot add as intro.`
+        );
+        return;
+      }
+    }
+
     const payload: IntroFormData = {
       month: formData.month,
       class: formData.class,
@@ -89,16 +113,51 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
   };
 
   return (
-    <Form onSubmit={handleSubmit} loading={loading}>
+    <Form
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
+      loading={loading}
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           label="Name"
           name="name"
           value={formData.name}
-          onChange={(value) => updateField('name', value)}
+          onChange={(value) => {
+            updateField('name', value);
+            setMemberError(null);
+
+            // Only validate in create mode
+            if (intro) {
+              return;
+            }
+
+            if (debounceRef.current) {
+              clearTimeout(debounceRef.current);
+            }
+            const trimmed = (value as string).trim();
+            if (!trimmed) {
+              return;
+            }
+
+            // biome-ignore lint/suspicious/noConfusingVoidType: async callback in setTimeout
+            debounceRef.current = setTimeout(async () => {
+              const status = await checkMemberStatus(trimmed);
+              if (status.isCurrentMember && status.signupDate) {
+                setMemberError(
+                  `${trimmed} is a current member (signed up ${status.signupDate}). Cannot add as intro.`
+                );
+              }
+            }, 500);
+          }}
           placeholder="Enter full name"
           required
         />
+
+        {memberError && (
+          <p className="text-sm text-red-600 -mt-2 col-span-1 md:col-span-2">{memberError}</p>
+        )}
 
         <FormField
           label="Email"

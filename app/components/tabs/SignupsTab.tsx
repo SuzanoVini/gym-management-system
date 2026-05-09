@@ -11,6 +11,7 @@ import { useImportUndo } from '@/hooks/useImportUndo';
 import { useSignups } from '@/hooks/useSignups';
 import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
+import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
@@ -64,6 +65,16 @@ export default function SignupsTab() {
     }
   };
 
+  const syncSignupIntros = async (records: SignupCsvRecord[]) => {
+    for (const record of records) {
+      if (record.name) {
+        await markMostRecentIntroAsSignedUp(record.name).catch(() => {
+          // Sync failure does not block import
+        });
+      }
+    }
+  };
+
   const confirmCSVImport = async () => {
     if (!importPreviewData || importPreviewData.length === 0) {
       alert('No data to import');
@@ -104,6 +115,7 @@ export default function SignupsTab() {
         saveImportBatch('signups', importedIds);
         setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
         await refresh(); // Refresh signups after import
+        await syncSignupIntros(newRecords);
         closeModal('importPreview');
         setImportPreviewData([]);
         setImportFile(null);

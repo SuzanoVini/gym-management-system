@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/keep-alive",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/mark-unsigned-intros",
+      "schedule": "0 8 * * *"
     }
   ]
 }
