@@ -421,7 +421,7 @@ export default function IntrosTab() {
       key: 'actions' as keyof Intro,
       label: '',
       render: (_value: unknown, intro: Intro) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-3">
           <FollowUpCheckButton intro={intro} onUpdate={silentRefresh} />
           <OverflowMenu
             items={[
