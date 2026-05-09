@@ -53,14 +53,21 @@ export const MONTH_TO_NUM: Record<string, number> = {
   Dec: 12,
 };
 
+// Extract a field value from the email body, stopping at line boundaries and stripping \r
+function extractField(text: string, label: string): string | null {
+  const match = text.match(new RegExp(`${label}:\\s*([^\r\n]+)`));
+  const value = match?.[1]?.trim().replace(/\r$/, '') ?? null;
+  return value || null;
+}
+
 export function parseBookingEmail(text: string): ParsedBooking | null {
-  const typeMatch = text.match(/Type:\s*(.+)/);
+  const typeMatch = text.match(/Type:\s*([^\r\n]+)/);
   const dateMatch = text.match(/Date:\s*(\w+)\s+(\d{1,2}),\s*(\d{4})/);
   const timeMatch = text.match(/Time:\s*([\d:]+\s*[APMapm]+)/);
   const staffMatch = text.match(/Staff:\s*([^\r\n]+)/);
-  const nameMatch = text.match(/Name:\s*(.+)/);
-  const phoneMatch = text.match(/Phone:\s*(.+)/);
-  const emailMatch = text.match(/Email:\s*(.+)/);
+  const nameMatch = text.match(/Name:\s*([^\r\n]+)/);
+  const phone = extractField(text, 'Phone');
+  const email = extractField(text, 'Email');
 
   if (
     !typeMatch?.[1] ||
@@ -85,7 +92,7 @@ export function parseBookingEmail(text: string): ParsedBooking | null {
     time: timeMatch[1].trim(),
     staff: staffMatch[1].trim(),
     name: nameMatch[1].trim(),
-    phone: phoneMatch?.[1]?.trim() || null,
-    email: emailMatch?.[1]?.trim() || null,
+    phone,
+    email,
   };
 }
