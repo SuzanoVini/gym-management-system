@@ -90,6 +90,7 @@ export default function FollowUpCheckButton({ intro, onUpdate }: Props) {
       onUpdate();
     } catch (err) {
       console.error(err);
+      alert('Failed to save follow-up. Please try again.');
     } finally {
       setLoading(false);
     }

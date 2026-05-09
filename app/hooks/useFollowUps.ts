@@ -67,11 +67,27 @@ export function useFollowUps() {
     load();
   }, [load]);
 
-  const today = useMemo(() => {
+  const [today, setToday] = useState(() => {
     const d = new Date();
     d.setUTCHours(0, 0, 0, 0);
     return d;
-  }, []);
+  });
+
+  useEffect(() => {
+    const msUntilMidnight = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setUTCDate(midnight.getUTCDate() + 1);
+      midnight.setUTCHours(0, 0, 0, 0);
+      return midnight.getTime() - now.getTime();
+    };
+    const id = setTimeout(() => {
+      const d = new Date();
+      d.setUTCHours(0, 0, 0, 0);
+      setToday(d);
+    }, msUntilMidnight());
+    return () => clearTimeout(id);
+  }, [today]);
 
   const rows = useMemo<FollowUpRow[]>(() => {
     const base = recentIntros
