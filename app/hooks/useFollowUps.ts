@@ -58,7 +58,8 @@ export function useFollowUps() {
       const data = await fetchRecentIntros();
       setRecentIntros(data);
     } catch (err) {
-      errorHandler.handle(err, 'useFollowUps.silentRefresh');
+      const e = err instanceof Error ? err : new Error('Failed to refresh follow-ups');
+      errorHandler.handle(e, 'useFollowUps.silentRefresh');
     }
   }, []);
 
