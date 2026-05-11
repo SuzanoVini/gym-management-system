@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
-import { getEmailTextBody, getUnreadZenPlannerEmails, markEmailAsRead } from '@/lib/gmail';
+import { getEmailTextBody, getZenPlannerBookingEmails } from '@/lib/gmail';
 import { MONTH_TO_NUM, parseBookingEmail } from '@/lib/services/booking-parser';
 
 export async function GET(req: NextRequest) {
@@ -15,12 +15,14 @@ export async function GET(req: NextRequest) {
   );
 
   let imported = 0;
+  let messagesFound = 0;
   const skipped: string[] = [];
   const errors: string[] = [];
   const debug: { name: string; phone: string | null; email: string | null }[] = [];
 
   try {
-    const messages = await getUnreadZenPlannerEmails();
+    const messages = await getZenPlannerBookingEmails();
+    messagesFound = messages.length;
 
     for (const message of messages) {
       if (!message.id) {
@@ -38,26 +40,25 @@ export async function GET(req: NextRequest) {
 
         debug.push({ name: booking.name, phone: booking.phone, email: booking.email });
 
-        // Duplicate check: same name + month + year + time
+        const monthNum = MONTH_TO_NUM[booking.month] ?? 1;
+        const isoDate = `${booking.year}-${String(monthNum).padStart(2, '0')}-${String(booking.date).padStart(2, '0')}`;
+
+        // Duplicate check: all details must match — same person can book different classes/days/times
         const { data: existing } = await supabase
           .from('intros')
           .select('id')
           .eq('name', booking.name)
-          .eq('month', booking.month)
-          .eq('year', booking.year)
+          .eq('date', isoDate)
           .eq('time', booking.time)
+          .eq('class', booking.className)
           .maybeSingle();
 
         if (existing) {
           skipped.push(
-            `${booking.name} (${booking.month} ${booking.date} ${booking.time}) — already exists`
+            `${booking.name} (${booking.month} ${booking.date} ${booking.time} ${booking.className}) — already exists`
           );
-          await markEmailAsRead(message.id);
           continue;
         }
-
-        const monthNum = MONTH_TO_NUM[booking.month] ?? 1;
-        const isoDate = `${booking.year}-${String(monthNum).padStart(2, '0')}-${String(booking.date).padStart(2, '0')}`;
 
         const { error: insertError } = await supabase.from('intros').insert({
           month: booking.month,
@@ -77,7 +78,6 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        await markEmailAsRead(message.id);
         imported++;
       } catch (err) {
         errors.push(`Error processing message ${message.id}: ${String(err)}`);
@@ -89,6 +89,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     imported,
+    messagesFound,
     skipped: skipped.length,
     errors,
     debug,

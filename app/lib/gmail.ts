@@ -12,12 +12,12 @@ function getOAuth2Client() {
   return client;
 }
 
-export async function getUnreadZenPlannerEmails() {
+export async function getZenPlannerBookingEmails() {
   const gmail = google.gmail({ version: 'v1', auth: getOAuth2Client() });
 
   const res = await gmail.users.messages.list({
     userId: 'me',
-    q: 'from:messages-noreply@zenplanner.com is:unread "New appointment scheduled"',
+    q: 'from:messages-noreply@zenplanner.com subject:"New Appointment Scheduled"',
     maxResults: 20,
   });
 
@@ -70,14 +70,4 @@ export async function getEmailTextBody(messageId: string): Promise<string> {
   }
 
   return '';
-}
-
-export async function markEmailAsRead(messageId: string): Promise<void> {
-  const gmail = google.gmail({ version: 'v1', auth: getOAuth2Client() });
-
-  await gmail.users.messages.modify({
-    userId: 'me',
-    id: messageId,
-    requestBody: { removeLabelIds: ['UNREAD'] },
-  });
 }
