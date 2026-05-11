@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   );
 
   let imported = 0;
+  let enriched = 0;
   let messagesFound = 0;
   const skipped: string[] = [];
   const errors: string[] = [];
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
         // Duplicate check: all details must match — same person can book different classes/days/times
         const { data: existing } = await supabase
           .from('intros')
-          .select('id')
+          .select('id, email, phone')
           .eq('name', booking.name)
           .eq('date', isoDate)
           .eq('time', booking.time)
@@ -54,9 +55,28 @@ export async function GET(req: NextRequest) {
           .maybeSingle();
 
         if (existing) {
-          skipped.push(
-            `${booking.name} (${booking.month} ${booking.date} ${booking.time} ${booking.className}) — already exists`
-          );
+          const updates: Record<string, string> = {};
+          if (!existing.email && booking.email) {
+            updates.email = booking.email;
+          }
+          if (!existing.phone && booking.phone) {
+            updates.phone = booking.phone;
+          }
+          if (Object.keys(updates).length > 0) {
+            const { error: updateError } = await supabase
+              .from('intros')
+              .update(updates)
+              .eq('id', existing.id);
+            if (updateError) {
+              errors.push(`Enrich failed for ${booking.name}: ${updateError.message}`);
+            } else {
+              enriched++;
+            }
+          } else {
+            skipped.push(
+              `${booking.name} (${booking.month} ${booking.date} ${booking.time} ${booking.className}) — already exists`
+            );
+          }
           continue;
         }
 
@@ -89,6 +109,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     imported,
+    enriched,
     messagesFound,
     skipped: skipped.length,
     errors,
