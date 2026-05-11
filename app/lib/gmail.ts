@@ -24,6 +24,24 @@ export async function getZenPlannerBookingEmails() {
   return res.data.messages ?? [];
 }
 
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function getEmailTextBody(messageId: string): Promise<string> {
   const gmail = google.gmail({ version: 'v1', auth: getOAuth2Client() });
 
@@ -38,17 +56,19 @@ export async function getEmailTextBody(messageId: string): Promise<string> {
     return '';
   }
 
-  // Recursively find text/plain part
-  const findPlainText = (parts: typeof payload.parts): string | null => {
+  const decode = (data: string) => Buffer.from(data, 'base64').toString('utf-8');
+
+  // Recursively search MIME parts — prefer text/plain, fall back to text/html
+  const findPart = (parts: typeof payload.parts, mime: string): string | null => {
     if (!parts) {
       return null;
     }
     for (const part of parts) {
-      if (part.mimeType === 'text/plain' && part.body?.data) {
-        return Buffer.from(part.body.data, 'base64').toString('utf-8');
+      if (part.mimeType === mime && part.body?.data) {
+        return decode(part.body.data);
       }
       if (part.parts) {
-        const found = findPlainText(part.parts);
+        const found = findPart(part.parts, mime);
         if (found) {
           return found;
         }
@@ -58,15 +78,19 @@ export async function getEmailTextBody(messageId: string): Promise<string> {
   };
 
   if (payload.parts) {
-    const text = findPlainText(payload.parts);
-    if (text) {
-      return text;
+    const plain = findPart(payload.parts, 'text/plain');
+    if (plain) {
+      return htmlToPlainText(plain);
+    }
+
+    const html = findPart(payload.parts, 'text/html');
+    if (html) {
+      return htmlToPlainText(html);
     }
   }
 
-  // Non-multipart message
   if (payload.body?.data) {
-    return Buffer.from(payload.body.data, 'base64').toString('utf-8');
+    return htmlToPlainText(decode(payload.body.data));
   }
 
   return '';
