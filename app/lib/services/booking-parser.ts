@@ -10,19 +10,6 @@ export interface ParsedBooking {
   email: string | null;
 }
 
-// Maps Zen Planner class type labels to the class names used in the app
-const CLASS_MAP: Record<string, string> = {
-  'Jiu-Jitsu No Gi (Adults | All Levels)': 'No-Gi',
-  'Jiu-Jitsu Fundamentals (Adults | GB1)': 'GB1',
-  'Jiu-Jitsu (Adults | GB1 & GB2)': 'GB1',
-  'Muay Thai (Adults)': 'Muay Thai',
-  'Juniors & Teens (9 - 13 yo)': 'Kids 7-9',
-  'Juniors & Teens (9 - 13 yo) - NO GI': 'Kids 7-9',
-  'Tiny & Little Champions 1 (Kids 3 - 5 yo)': 'Kids 3-6',
-  'Tiny & Little Champions 1 (Kids 3 - 5 yo) - NO GI': 'Kids 3-6',
-  "Jiu-Jitsu Women's Only (Adults | All Levels)": "Women's",
-};
-
 const MONTH_SHORT: Record<string, string> = {
   January: 'Jan',
   February: 'Feb',
@@ -85,7 +72,7 @@ export function parseBookingEmail(text: string): ParsedBooking | null {
   const fullMonth = dateMatch[1];
 
   return {
-    className: CLASS_MAP[typeLine] ?? typeLine,
+    className: typeLine,
     month: MONTH_SHORT[fullMonth] ?? fullMonth.slice(0, 3),
     date: parseInt(dateMatch[2], 10),
     year: parseInt(dateMatch[3], 10),
