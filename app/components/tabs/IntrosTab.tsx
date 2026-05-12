@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
+import QuickSignupModal from '@/components/tabs/QuickSignupModal';
 import CopyButton from '@/components/ui/CopyButton';
 import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
 import Modal from '@/components/ui/Modal';
@@ -70,6 +71,7 @@ export default function IntrosTab() {
   const [classTypes, setClassTypes] = useState<string[]>([]);
   const [staffMembers, setStaffMembers] = useState<string[]>([]);
   const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
+  const [pendingSignupIntro, setPendingSignupIntro] = useState<Intro | null>(null);
 
   useEffect(() => {
     Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
@@ -433,6 +435,10 @@ export default function IntrosTab() {
           value={(value as string) || ''}
           onChange={async (e) => {
             const val = e.target.value;
+            if (val === 'Yes') {
+              setPendingSignupIntro(intro);
+              return;
+            }
             await supabase
               .from('intros')
               .update({ signed_up: val === '' ? null : val })
@@ -779,6 +785,17 @@ export default function IntrosTab() {
           onResolved={async () => {
             setResolvingIntro(null);
             await refresh();
+          }}
+        />
+      )}
+
+      {pendingSignupIntro && (
+        <QuickSignupModal
+          intro={pendingSignupIntro}
+          onClose={() => setPendingSignupIntro(null)}
+          onSuccess={async () => {
+            setPendingSignupIntro(null);
+            await silentRefresh();
           }}
         />
       )}
