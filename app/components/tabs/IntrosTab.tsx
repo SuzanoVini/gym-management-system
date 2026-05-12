@@ -13,6 +13,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
 import CopyButton from '@/components/ui/CopyButton';
 import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
 import Modal from '@/components/ui/Modal';
@@ -68,7 +69,7 @@ export default function IntrosTab() {
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('intros'));
   const [classTypes, setClassTypes] = useState<string[]>([]);
   const [staffMembers, setStaffMembers] = useState<string[]>([]);
-  const [_resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
+  const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
 
   useEffect(() => {
     Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
@@ -769,6 +770,18 @@ export default function IntrosTab() {
       />
 
       <SettingsModal isOpen={modals.settings} onClose={() => closeModal('settings')} />
+
+      {resolvingIntro && (
+        <ClassResolutionPopover
+          intro={resolvingIntro}
+          classTypes={classTypes}
+          onClose={() => setResolvingIntro(null)}
+          onResolved={async () => {
+            setResolvingIntro(null);
+            await refresh();
+          }}
+        />
+      )}
 
       {/* Import Preview Modal */}
       <Modal
