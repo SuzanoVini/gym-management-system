@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertTriangle,
   Edit2,
   Mail,
   MessageSquare,
@@ -67,6 +68,7 @@ export default function IntrosTab() {
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('intros'));
   const [classTypes, setClassTypes] = useState<string[]>([]);
   const [staffMembers, setStaffMembers] = useState<string[]>([]);
+  const [_resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
 
   useEffect(() => {
     Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
@@ -363,7 +365,30 @@ export default function IntrosTab() {
     {
       key: 'class' as keyof Intro,
       label: 'Class',
-      render: (value: unknown, _intro: Intro) => (value as string) || '-',
+      render: (value: unknown, intro: Intro) => {
+        const cls = (value as string) || '';
+        const isUnresolved = cls !== '' && !classTypes.includes(cls);
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-sm">{cls || '-'}</span>
+            {isUnresolved && (
+              <Tooltip content="Unknown class — click to resolve">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setResolvingIntro(intro);
+                  }}
+                  className="text-amber-500 hover:text-amber-600 focus:outline-none"
+                  aria-label="Resolve unknown class"
+                >
+                  <AlertTriangle size={14} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'date' as keyof Intro,
