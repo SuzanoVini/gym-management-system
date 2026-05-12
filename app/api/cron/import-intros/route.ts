@@ -49,18 +49,38 @@ export async function GET(req: NextRequest) {
         const monthNum = MONTH_TO_NUM[booking.month] ?? 1;
         const isoDate = `${booking.year}-${String(monthNum).padStart(2, '0')}-${String(booking.date).padStart(2, '0')}`;
 
-        // Duplicate check: all details must match — same person can book different classes/days/times
-        const { data: existing } = await supabase
+        // Duplicate check: match on resolved class name first, then fall back to raw ZenPlanner
+        // name. The fallback catches records imported before the mapping existed — rather than
+        // creating a duplicate, we update the stored class name to the resolved value.
+        let { data: existing } = await supabase
           .from('intros')
-          .select('id, email, phone')
+          .select('id, email, phone, class')
           .eq('name', booking.name)
           .eq('date', isoDate)
           .eq('time', booking.time)
           .eq('class', resolvedClassName)
           .maybeSingle();
 
+        if (!existing && resolvedClassName !== booking.className) {
+          const { data: rawExisting } = await supabase
+            .from('intros')
+            .select('id, email, phone, class')
+            .eq('name', booking.name)
+            .eq('date', isoDate)
+            .eq('time', booking.time)
+            .eq('class', booking.className)
+            .maybeSingle();
+          if (rawExisting) {
+            existing = { ...rawExisting, class: booking.className };
+          }
+        }
+
         if (existing) {
           const updates: Record<string, string> = {};
+          // Upgrade raw class name to resolved system name
+          if (existing.class !== resolvedClassName) {
+            updates.class = resolvedClassName;
+          }
           if (!existing.email && booking.email) {
             updates.email = booking.email;
           }
@@ -112,9 +132,51 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 
+  // Dedup pass: find records with matching name + date + time, keep the one with more info
+  let deduped = 0;
+  try {
+    const { data: allIntros } = await supabase
+      .from('intros')
+      .select('id, name, date, time, class, email, phone')
+      .order('created_at', { ascending: true });
+
+    if (allIntros) {
+      const seen = new Map<string, (typeof allIntros)[0]>();
+      const toDelete: string[] = [];
+
+      for (const intro of allIntros) {
+        const key = `${intro.name}|${intro.date}|${intro.time}`;
+        const prior = seen.get(key);
+        if (!prior) {
+          seen.set(key, intro);
+          continue;
+        }
+        // Score by number of filled fields (email + phone)
+        const priorScore = (prior.email ? 1 : 0) + (prior.phone ? 1 : 0);
+        const currentScore = (intro.email ? 1 : 0) + (intro.phone ? 1 : 0);
+        if (currentScore > priorScore) {
+          toDelete.push(prior.id);
+          seen.set(key, intro);
+        } else {
+          toDelete.push(intro.id);
+        }
+      }
+
+      if (toDelete.length > 0) {
+        const { error: deleteError } = await supabase.from('intros').delete().in('id', toDelete);
+        if (!deleteError) {
+          deduped = toDelete.length;
+        }
+      }
+    }
+  } catch (_err) {
+    // Dedup failure is non-fatal
+  }
+
   return NextResponse.json({
     imported,
     enriched,
+    deduped,
     messagesFound,
     skipped: skipped.length,
     errors,
