@@ -1,6 +1,7 @@
 // hooks/useIntros.ts
 import { useCallback, useEffect, useState } from 'react';
 import { errorHandler } from '@/lib/errorHandler';
+import { supabase } from '@/lib/supabase/client';
 import { createIntro, deleteIntro, fetchIntros, updateIntro } from '@/lib/supabase/intros';
 import { introSchema, validate } from '@/lib/validations';
 import type { Intro, IntroFormData } from '@/types';
@@ -50,6 +51,20 @@ export const useIntros = () => {
 
       try {
         const sanitized = stripUndefined(validation.data) as IntroFormData;
+        if (sanitized.date) {
+          const { data: dup } = await supabase
+            .from('intros')
+            .select('id')
+            .ilike('name', sanitized.name.trim())
+            .eq('date', sanitized.date)
+            .maybeSingle();
+          if (dup) {
+            errorHandler.notify(
+              `An intro for "${sanitized.name}" on this date already exists.`,
+              'warning'
+            );
+          }
+        }
         await createIntro(sanitized);
         await loadIntros();
         errorHandler.notify('Intro added successfully', 'success');
