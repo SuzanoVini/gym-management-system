@@ -14,7 +14,6 @@ export const fetchSettings = async (key: string) => {
         'GB1',
         'GB 1/2',
         'GB2',
-        'NO Gi',
         'No Gi',
         'Kids 3 - 6 yo',
         'Kids 6 - 8 yo',

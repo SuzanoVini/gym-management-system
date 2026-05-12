@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Form, FormField } from '@/components/ui/Form';
 import { checkMemberStatus } from '@/lib/supabase/memberStatus';
+import { fetchSettings } from '@/lib/supabase/settings';
 import type { Intro, IntroFormData } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -49,7 +50,18 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
   });
 
   const [memberError, setMemberError] = useState<string | null>(null);
+  const [classTypes, setClassTypes] = useState<string[]>([]);
+  const [staffMembers, setStaffMembers] = useState<string[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
+      ([classes, staff]) => {
+        setClassTypes(classes);
+        setStaffMembers(staff);
+      }
+    );
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -58,6 +70,13 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
       }
     };
   }, []);
+
+  const classOptions = useMemo(() => {
+    if (intro?.class && !classTypes.includes(intro.class)) {
+      return [...classTypes, intro.class];
+    }
+    return classTypes;
+  }, [classTypes, intro?.class]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,7 +259,7 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
           type="select"
           value={formData.class}
           onChange={(value) => updateField('class', value)}
-          options={['GB1', 'GB2', 'GB3', 'Muay Thai', 'Kids 3-6', 'Kids 7-9', 'No-Gi']}
+          options={classOptions}
           required
         />
 
@@ -250,7 +269,7 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
           type="select"
           value={formData.staff}
           onChange={(value) => updateField('staff', value)}
-          options={['Staff 1', 'Staff 4', 'Staff 2', 'Staff 3', 'Vinicius', 'Jun', 'Staff 7', 'Staff 8']}
+          options={staffMembers}
           required
         />
 

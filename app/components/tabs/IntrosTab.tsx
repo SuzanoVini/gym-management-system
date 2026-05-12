@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertTriangle,
   Edit2,
   Mail,
   MessageSquare,
@@ -11,7 +12,8 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
 import CopyButton from '@/components/ui/CopyButton';
 import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
 import Modal from '@/components/ui/Modal';
@@ -25,6 +27,7 @@ import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
+import { fetchSettings } from '@/lib/supabase/settings';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
@@ -64,6 +67,18 @@ export default function IntrosTab() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('intros'));
+  const [classTypes, setClassTypes] = useState<string[]>([]);
+  const [staffMembers, setStaffMembers] = useState<string[]>([]);
+  const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
+
+  useEffect(() => {
+    Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
+      ([classes, staff]) => {
+        setClassTypes(classes);
+        setStaffMembers(staff);
+      }
+    );
+  }, []);
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -351,7 +366,30 @@ export default function IntrosTab() {
     {
       key: 'class' as keyof Intro,
       label: 'Class',
-      render: (value: unknown, _intro: Intro) => (value as string) || '-',
+      render: (value: unknown, intro: Intro) => {
+        const cls = (value as string) || '';
+        const isUnresolved = cls !== '' && !classTypes.includes(cls);
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-sm">{cls || '-'}</span>
+            {isUnresolved && (
+              <Tooltip content="Unknown class — click to resolve">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setResolvingIntro(intro);
+                  }}
+                  className="text-amber-500 hover:text-amber-600 focus:outline-none"
+                  aria-label="Resolve unknown class"
+                >
+                  <AlertTriangle size={14} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'date' as keyof Intro,
@@ -604,13 +642,11 @@ export default function IntrosTab() {
             className="form-select"
           >
             <option value="all">All Staff</option>
-            {['Staff 1', 'Staff 4', 'Staff 2', 'Staff 3', 'Vinicius', 'Jun', 'Staff 7', 'Staff 8'].map(
-              (staff) => (
-                <option key={staff} value={staff}>
-                  {staff}
-                </option>
-              )
-            )}
+            {staffMembers.map((staff) => (
+              <option key={staff} value={staff}>
+                {staff}
+              </option>
+            ))}
           </select>
           <select
             value={filters.class}
@@ -618,7 +654,7 @@ export default function IntrosTab() {
             className="form-select"
           >
             <option value="all">All Classes</option>
-            {['GB1', 'GB2', 'GB3', 'Muay Thai', 'Kids 3-6', 'Kids 7-9', 'No-Gi'].map((cls) => (
+            {classTypes.map((cls) => (
               <option key={cls} value={cls}>
                 {cls}
               </option>
@@ -734,6 +770,18 @@ export default function IntrosTab() {
       />
 
       <SettingsModal isOpen={modals.settings} onClose={() => closeModal('settings')} />
+
+      {resolvingIntro && (
+        <ClassResolutionPopover
+          intro={resolvingIntro}
+          classTypes={classTypes}
+          onClose={() => setResolvingIntro(null)}
+          onResolved={async () => {
+            setResolvingIntro(null);
+            await refresh();
+          }}
+        />
+      )}
 
       {/* Import Preview Modal */}
       <Modal

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getEmailTextBody, getZenPlannerBookingEmails } from '@/lib/gmail';
 import { MONTH_TO_NUM, parseBookingEmail } from '@/lib/services/booking-parser';
+import { fetchClassMappings } from '@/lib/supabase/classMappings';
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
@@ -13,6 +14,8 @@ export async function GET(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+
+  const classMapping = await fetchClassMappings().catch(() => ({}));
 
   let imported = 0;
   let enriched = 0;
@@ -39,6 +42,8 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
+        const resolvedClassName = classMapping[booking.className] ?? booking.className;
+
         debug.push({ name: booking.name, phone: booking.phone, email: booking.email });
 
         const monthNum = MONTH_TO_NUM[booking.month] ?? 1;
@@ -51,7 +56,7 @@ export async function GET(req: NextRequest) {
           .eq('name', booking.name)
           .eq('date', isoDate)
           .eq('time', booking.time)
-          .eq('class', booking.className)
+          .eq('class', resolvedClassName)
           .maybeSingle();
 
         if (existing) {
@@ -85,7 +90,7 @@ export async function GET(req: NextRequest) {
           date: isoDate,
           year: booking.year,
           time: booking.time,
-          class: booking.className,
+          class: resolvedClassName,
           name: booking.name,
           phone: booking.phone,
           email: booking.email,
