@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const classMapping = await fetchClassMappings().catch(() => ({}));
+  const classMapping = await fetchClassMappings().catch((): Record<string, string> => ({}));
 
   let imported = 0;
   let enriched = 0;
