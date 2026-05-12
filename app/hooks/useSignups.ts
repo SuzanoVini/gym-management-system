@@ -1,6 +1,7 @@
 // hooks/useSignups.ts
 import { useCallback, useEffect, useState } from 'react';
 import { errorHandler } from '@/lib/errorHandler';
+import { supabase } from '@/lib/supabase/client';
 import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
 import { createSignup, deleteSignup, fetchSignups, updateSignup } from '@/lib/supabase/signups';
 import { signupSchema, validate } from '@/lib/validations';
@@ -38,6 +39,17 @@ export const useSignups = () => {
       }
 
       try {
+        const { data: dup } = await supabase
+          .from('signups')
+          .select('id')
+          .ilike('name', validation.data.name.trim())
+          .maybeSingle();
+        if (dup) {
+          errorHandler.notify(
+            `A signup record already exists for "${validation.data.name}".`,
+            'warning'
+          );
+        }
         await createSignup(validation.data);
         await markMostRecentIntroAsSignedUp(validation.data.name).catch(() => {
           // Silently ignore sync errors

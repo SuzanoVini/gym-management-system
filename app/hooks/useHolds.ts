@@ -1,6 +1,7 @@
 // hooks/useHolds.ts
 import { useCallback, useEffect, useState } from 'react';
 import { errorHandler } from '@/lib/errorHandler';
+import { supabase } from '@/lib/supabase/client';
 import { createHold, deleteHold, fetchHolds, updateHold } from '@/lib/supabase/holds';
 import { holdSchema, validate } from '@/lib/validations';
 import type { Hold, HoldFormData } from '@/types';
@@ -42,6 +43,14 @@ export const useHolds = () => {
 
       try {
         const sanitized = stripUndefined(validation.data) as HoldFormData;
+        const { data: dup } = await supabase
+          .from('holds')
+          .select('id')
+          .ilike('name', sanitized.name.trim())
+          .maybeSingle();
+        if (dup) {
+          errorHandler.notify(`A hold record already exists for "${sanitized.name}".`, 'warning');
+        }
         await createHold(sanitized);
         await loadHolds();
         errorHandler.notify('Hold added successfully', 'success');

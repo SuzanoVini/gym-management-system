@@ -7,6 +7,7 @@ import {
   fetchCancellations,
   updateCancellation,
 } from '@/lib/supabase/cancellations';
+import { supabase } from '@/lib/supabase/client';
 import { closeActiveHold } from '@/lib/supabase/holds';
 import { cancellationSchema, validate } from '@/lib/validations';
 import type { Cancellation, CancellationFormData } from '@/types';
@@ -43,6 +44,17 @@ export const useCancellations = () => {
       }
 
       try {
+        const { data: dup } = await supabase
+          .from('cancellations')
+          .select('id')
+          .ilike('name', validation.data.name.trim())
+          .maybeSingle();
+        if (dup) {
+          errorHandler.notify(
+            `A cancellation record already exists for "${validation.data.name}".`,
+            'warning'
+          );
+        }
         await createCancellation(validation.data);
         if (validation.data.date) {
           await closeActiveHold(validation.data.name, validation.data.date).catch(() => {
