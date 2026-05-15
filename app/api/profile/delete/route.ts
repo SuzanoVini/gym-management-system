@@ -7,7 +7,6 @@ export async function DELETE() {
   try {
     const supabase = createRouteHandlerClient({ cookies });
 
-    // Get the current user
     const {
       data: { user },
       error: authError,
@@ -17,7 +16,15 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Deleting auth.users cascades to user_profiles via the foreign key.
+    // Sign out first so the session cookie is cleared in this response.
+    // Must happen before deleteUser so the JWT is still valid for the signOut call.
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      console.error('Error signing out before account deletion:', signOutError);
+      return NextResponse.json({ error: 'Failed to clear session' }, { status: 500 });
+    }
+
+    // Delete the auth user; ON DELETE CASCADE removes user_profiles automatically.
     const admin = createAdminClient();
     const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
     if (deleteError) {

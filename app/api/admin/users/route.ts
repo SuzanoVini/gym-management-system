@@ -62,9 +62,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 
-    const profileData = { id: newUser.user.id, full_name };
-    await admin.from('user_profiles').insert(profileData);
-
     return NextResponse.json({
       user: {
         id: newUser.user.id,

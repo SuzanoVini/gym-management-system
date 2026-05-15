@@ -2,7 +2,6 @@ import type { UserProfile } from '@/lib/supabase/profiles';
 import {
   createUserProfile,
   deleteProfileAvatar,
-  deleteUserAccount,
   fetchUserProfile,
   updateUserPassword,
   updateUserProfile,
@@ -474,112 +473,6 @@ describe('profiles', () => {
       });
 
       await expect(updateUserPassword(newPassword)).rejects.toThrow();
-    });
-  });
-
-  describe('deleteUserAccount', () => {
-    it('should delete user account successfully', async () => {
-      // Mock fetchUserProfile
-      const mockSelect = jest.fn().mockReturnThis();
-      const mockEq = jest.fn().mockReturnThis();
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: { ...mockProfile, avatar_url: null },
-        error: null,
-      });
-
-      // Mock profile deletion
-      const mockDelete = jest.fn().mockReturnThis();
-      const mockDeleteEq = jest.fn().mockResolvedValue({
-        error: null,
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-        delete: mockDelete,
-      });
-
-      mockDelete.mockReturnValue({
-        eq: mockDeleteEq,
-      });
-
-      // Mock auth deletion
-      (supabase.auth.admin.deleteUser as jest.Mock).mockResolvedValue({
-        error: null,
-      });
-
-      const result = await deleteUserAccount(mockUserId);
-
-      expect(result).toBe(true);
-      expect(supabase.auth.admin.deleteUser).toHaveBeenCalledWith(mockUserId);
-    });
-
-    it('should throw error when userId is missing', async () => {
-      await expect(deleteUserAccount('')).rejects.toThrow();
-    });
-
-    it('should throw error on profile deletion failure', async () => {
-      // Mock fetchUserProfile
-      const mockSelect = jest.fn().mockReturnThis();
-      const mockEq = jest.fn().mockReturnThis();
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: { ...mockProfile, avatar_url: null },
-        error: null,
-      });
-
-      // Mock profile deletion failure
-      const mockDelete = jest.fn().mockReturnThis();
-      const mockDeleteEq = jest.fn().mockResolvedValue({
-        error: { message: 'Delete failed' },
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-        delete: mockDelete,
-      });
-
-      mockDelete.mockReturnValue({
-        eq: mockDeleteEq,
-      });
-
-      await expect(deleteUserAccount(mockUserId)).rejects.toThrow();
-    });
-
-    it('should throw error on auth deletion failure', async () => {
-      // Mock fetchUserProfile
-      const mockSelect = jest.fn().mockReturnThis();
-      const mockEq = jest.fn().mockReturnThis();
-      const mockSingle = jest.fn().mockResolvedValue({
-        data: { ...mockProfile, avatar_url: null },
-        error: null,
-      });
-
-      // Mock profile deletion success
-      const mockDelete = jest.fn().mockReturnThis();
-      const mockDeleteEq = jest.fn().mockResolvedValue({
-        error: null,
-      });
-
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        single: mockSingle,
-        delete: mockDelete,
-      });
-
-      mockDelete.mockReturnValue({
-        eq: mockDeleteEq,
-      });
-
-      // Mock auth deletion failure
-      (supabase.auth.admin.deleteUser as jest.Mock).mockResolvedValue({
-        error: { message: 'Auth delete failed' },
-      });
-
-      await expect(deleteUserAccount(mockUserId)).rejects.toThrow();
     });
   });
 });

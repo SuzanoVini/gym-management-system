@@ -16,7 +16,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
         { status: 400 }
       );
     }
-    await admin.from('user_profiles').delete().eq('id', id);
     const { error } = await admin.auth.admin.deleteUser(id);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
