@@ -1,6 +1,6 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
@@ -25,6 +25,7 @@ const VALID_TABS = [
 ];
 
 function HomeContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(
@@ -32,17 +33,22 @@ function HomeContent() {
   );
   const { isOpen } = useSidebarStore();
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    router.replace(`/?tab=${tabId}`, { scroll: false });
+  };
+
   return (
     <ProtectedRoute>
       <div className="app-shell" data-sidebar={isOpen ? 'expanded' : 'collapsed'}>
         {/* Header Container */}
         <div>
-          <Header onLogoClick={() => setActiveTab('overview')} />
+          <Header onLogoClick={() => handleTabChange('overview')} />
         </div>
 
         {/* Sidebar Container */}
         <div>
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
         </div>
 
         {/* Main Content Container */}

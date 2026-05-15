@@ -12,7 +12,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
 import QuickSignupModal from '@/components/tabs/QuickSignupModal';
 import CopyButton from '@/components/ui/CopyButton';
@@ -73,14 +73,18 @@ export default function IntrosTab() {
   const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
   const [pendingSignupIntro, setPendingSignupIntro] = useState<Intro | null>(null);
 
-  useEffect(() => {
-    Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
-      ([classes, staff]) => {
-        setClassTypes(classes);
-        setStaffMembers(staff);
-      }
-    );
+  const refreshSettings = useCallback(async () => {
+    const [classes, staff] = await Promise.all([
+      fetchSettings('class_types'),
+      fetchSettings('staff_members'),
+    ]);
+    setClassTypes(classes);
+    setStaffMembers(staff);
   }, []);
+
+  useEffect(() => {
+    void refreshSettings();
+  }, [refreshSettings]);
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -94,17 +98,9 @@ export default function IntrosTab() {
       const matchesMonth = filters.month === 'all' || intro.month === filters.month;
       const matchesStaff = filters.staff === 'all' || intro.staff === filters.staff;
       const matchesClass = filters.class === 'all' || intro.class === filters.class;
-      const matchesStatus = filters.status === 'all' || intro.status === filters.status;
       const matchesYear = filters.year === 'all' || String(intro.year) === filters.year;
 
-      return (
-        matchesSearch &&
-        matchesMonth &&
-        matchesStaff &&
-        matchesClass &&
-        matchesStatus &&
-        matchesYear
-      );
+      return matchesSearch && matchesMonth && matchesStaff && matchesClass && matchesYear;
     });
   }, [intros, filters]);
 
@@ -150,9 +146,6 @@ export default function IntrosTab() {
     total: filteredIntros.length,
     attended: filteredIntros.filter((i) => i.attended === 'Yes').length,
     signedUp: filteredIntros.filter((i) => i.signed_up === 'Yes').length,
-    active: filteredIntros.filter((i) => i.status === 'Active').length,
-    completed: filteredIntros.filter((i) => i.status === 'Completed').length,
-    cancelled: filteredIntros.filter((i) => i.status === 'Cancelled').length,
   };
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,6 +392,13 @@ export default function IntrosTab() {
       render: (value: unknown) => formatDate(value as string),
     },
     {
+      key: 'time' as keyof Intro,
+      label: 'Time',
+      render: (value: unknown) => (
+        <span className="text-sm text-gray-700">{value ? String(value) : '—'}</span>
+      ),
+    },
+    {
       key: 'attended' as keyof Intro,
       label: 'Attended',
       render: (value: unknown, intro: Intro) => (
@@ -458,25 +458,6 @@ export default function IntrosTab() {
           <option value="Yes">Yes</option>
           <option value="No">No</option>
         </select>
-      ),
-    },
-    {
-      key: 'status' as keyof Intro,
-      label: 'Status',
-      render: (value: unknown, _intro: Intro) => (
-        <span
-          className={`px-2 py-1 text-xs rounded-full ${
-            (value as string) === 'Active'
-              ? 'bg-blue-100 text-blue-800'
-              : (value as string) === 'Completed'
-                ? 'bg-green-100 text-green-800'
-                : (value as string) === 'Cancelled'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {(value as string) || 'Active'}
-        </span>
       ),
     },
     {
@@ -575,7 +556,7 @@ export default function IntrosTab() {
       </div>
 
       {/* Overview Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="section-container border-l-4 border-blue-600">
           <div className="text-sm text-gray-600">Total Intros</div>
           <div className="text-3xl font-bold mt-1">{metrics.total}</div>
@@ -588,18 +569,6 @@ export default function IntrosTab() {
           <div className="text-sm text-gray-600">Signed Up</div>
           <div className="text-3xl font-bold mt-1">{metrics.signedUp}</div>
         </div>
-        <div className="section-container border-l-4 border-cyan-600">
-          <div className="text-sm text-gray-600">Active</div>
-          <div className="text-3xl font-bold mt-1">{metrics.active}</div>
-        </div>
-        <div className="section-container border-l-4 border-emerald-600">
-          <div className="text-sm text-gray-600">Completed</div>
-          <div className="text-3xl font-bold mt-1">{metrics.completed}</div>
-        </div>
-        <div className="section-container border-l-4 border-red-600">
-          <div className="text-sm text-gray-600">Cancelled</div>
-          <div className="text-3xl font-bold mt-1">{metrics.cancelled}</div>
-        </div>
       </div>
 
       {/* Filters */}
@@ -609,7 +578,7 @@ export default function IntrosTab() {
           selectedYear={filters.year}
           onYearChange={(year) => setFilters({ year })}
         />
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <input
             type="text"
             placeholder="Search by name, email, or phone..."
@@ -665,16 +634,6 @@ export default function IntrosTab() {
                 {cls}
               </option>
             ))}
-          </select>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilters({ status: e.target.value })}
-            className="form-select"
-          >
-            <option value="all">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
           </select>
           <select
             value={sortOrder}
@@ -740,7 +699,16 @@ export default function IntrosTab() {
         title="Add New Intro"
         size="lg"
       >
-        <IntroForm onSubmit={addIntro} loading={loading} onCancel={() => closeModal('addIntro')} />
+        <IntroForm
+          onSubmit={async (data) => {
+            await addIntro(data);
+            closeModal('addIntro');
+          }}
+          loading={loading}
+          onCancel={() => closeModal('addIntro')}
+          classTypes={classTypes}
+          staffMembers={staffMembers}
+        />
       </Modal>
 
       <Modal
@@ -751,17 +719,21 @@ export default function IntrosTab() {
       >
         <IntroForm
           intro={selectedIntro}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (!selectedIntro) {
               return;
             }
-            editIntro(selectedIntro.id, data);
+            await editIntro(selectedIntro.id, data);
+            closeModal('editIntro');
+            setSelectedIntro(null);
           }}
           loading={loading}
           onCancel={() => {
             closeModal('editIntro');
             setSelectedIntro(null);
           }}
+          classTypes={classTypes}
+          staffMembers={staffMembers}
         />
       </Modal>
 
@@ -775,7 +747,11 @@ export default function IntrosTab() {
         intro={selectedIntro}
       />
 
-      <SettingsModal isOpen={modals.settings} onClose={() => closeModal('settings')} />
+      <SettingsModal
+        isOpen={modals.settings}
+        onClose={() => closeModal('settings')}
+        onSettingsChange={refreshSettings}
+      />
 
       {resolvingIntro && (
         <ClassResolutionPopover

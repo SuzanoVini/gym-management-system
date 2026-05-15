@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
+const currentDate = new Date();
+
 interface FilterState {
   filters: {
     year: string;
@@ -22,8 +24,8 @@ interface FilterState {
 
 const initialState = {
   filters: {
-    year: 'all',
-    month: 'all',
+    year: currentDate.getFullYear().toString(),
+    month: currentDate.toLocaleString('en-US', { month: 'short' }),
     staff: 'all',
     class: 'all',
     status: 'all', // For intros

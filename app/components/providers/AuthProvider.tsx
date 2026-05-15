@@ -7,6 +7,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   user: User | null;
+  isOwner: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -15,9 +16,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClientComponentClient();
+
+  const fetchRole = async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      setIsOwner(data?.role === 'owner');
+    } catch {
+      setIsOwner(false);
+    }
+  };
 
   useEffect(() => {
     const getSession = async () => {
@@ -25,7 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
+        if (sessionUser) {
+          await fetchRole(sessionUser.id);
+        }
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
@@ -38,7 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        fetchRole(sessionUser.id);
+      } else {
+        setIsOwner(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -49,7 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  return <AuthContext.Provider value={{ user, loading, signOut }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isOwner, loading, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

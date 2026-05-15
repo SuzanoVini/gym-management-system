@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/components/providers/AuthProvider';
 import Modal from '@/components/ui/Modal';
 import { errorHandler } from '@/lib/errorHandler';
 import { updateSystemNameInMappings } from '@/lib/supabase/classMappings';
@@ -10,9 +11,11 @@ import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSettingsChange?: () => void;
 }
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsModalProps) {
+  const { isOwner } = useAuth();
   const [classTypes, setClassTypes] = useState<string[]>([]);
   const [staffMembers, setStaffMembers] = useState<string[]>([]);
   const [newClassType, setNewClassType] = useState('');
@@ -57,6 +60,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       await updateSettings('class_types', updated);
       setClassTypes(updated);
       setNewClassType('');
+      onSettingsChange?.();
       errorHandler.notify('Class type added successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'addClassType');
@@ -76,6 +80,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       await updateSettings('staff_members', updated);
       setStaffMembers(updated);
       setNewStaffMember('');
+      onSettingsChange?.();
       errorHandler.notify('Staff member added successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'addStaffMember');
@@ -113,6 +118,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       }
 
       await updateSystemNameInMappings(original, newName);
+      onSettingsChange?.();
       errorHandler.notify(`Class renamed to "${newName}"`, 'success');
       setEditingClass(null);
     } catch (err) {
@@ -150,6 +156,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         }
       }
 
+      onSettingsChange?.();
       errorHandler.notify(`Staff renamed to "${newName}"`, 'success');
       setEditingStaff(null);
     } catch (err) {
@@ -165,6 +172,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const updated = classTypes.filter((ct) => ct !== classType);
       await updateSettings('class_types', updated);
       setClassTypes(updated);
+      onSettingsChange?.();
       errorHandler.notify('Class type removed successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'removeClassType');
@@ -179,6 +187,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const updated = staffMembers.filter((sm) => sm !== staffMember);
       await updateSettings('staff_members', updated);
       setStaffMembers(updated);
+      onSettingsChange?.();
       errorHandler.notify('Staff member removed successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'removeStaffMember');
@@ -218,24 +227,26 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       {/* Content */}
       {activeTab === 'classes' && (
         <div className="space-y-4">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newClassType}
-              onChange={(e) => setNewClassType(e.target.value)}
-              placeholder="Add new class type"
-              className="form-input flex-1"
-              onKeyPress={(e) => e.key === 'Enter' && handleAddClassType()}
-            />
-            <button
-              type="button"
-              onClick={handleAddClassType}
-              disabled={loading || !newClassType.trim()}
-              className="btn btn-primary"
-            >
-              Add
-            </button>
-          </div>
+          {isOwner && (
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={newClassType}
+                onChange={(e) => setNewClassType(e.target.value)}
+                placeholder="Add new class type"
+                className="form-input flex-1"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddClassType()}
+              />
+              <button
+                type="button"
+                onClick={handleAddClassType}
+                disabled={loading || !newClassType.trim()}
+                className="btn btn-primary"
+              >
+                Add
+              </button>
+            </div>
+          )}
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {classTypes.map((classType) =>
@@ -282,24 +293,26 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   className="flex items-center justify-between p-2 bg-gray-50 rounded"
                 >
                   <span className="text-sm font-medium">{classType}</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingClass({ original: classType, value: classType })}
-                      disabled={loading}
-                      className="btn-icon text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveClassType(classType)}
-                      disabled={loading}
-                      className="btn-icon text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  {isOwner && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingClass({ original: classType, value: classType })}
+                        disabled={loading}
+                        className="btn-icon text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveClassType(classType)}
+                        disabled={loading}
+                        className="btn-icon text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             )}
@@ -309,24 +322,26 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
       {activeTab === 'staff' && (
         <div className="space-y-4">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newStaffMember}
-              onChange={(e) => setNewStaffMember(e.target.value)}
-              placeholder="Add new staff member"
-              className="form-input flex-1"
-              onKeyPress={(e) => e.key === 'Enter' && handleAddStaffMember()}
-            />
-            <button
-              type="button"
-              onClick={handleAddStaffMember}
-              disabled={loading || !newStaffMember.trim()}
-              className="btn btn-primary"
-            >
-              Add
-            </button>
-          </div>
+          {isOwner && (
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={newStaffMember}
+                onChange={(e) => setNewStaffMember(e.target.value)}
+                placeholder="Add new staff member"
+                className="form-input flex-1"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddStaffMember()}
+              />
+              <button
+                type="button"
+                onClick={handleAddStaffMember}
+                disabled={loading || !newStaffMember.trim()}
+                className="btn btn-primary"
+              >
+                Add
+              </button>
+            </div>
+          )}
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {staffMembers.map((staffMember) =>
@@ -373,24 +388,28 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   className="flex items-center justify-between p-2 bg-gray-50 rounded"
                 >
                   <span className="text-sm font-medium">{staffMember}</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingStaff({ original: staffMember, value: staffMember })}
-                      disabled={loading}
-                      className="btn-icon text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveStaffMember(staffMember)}
-                      disabled={loading}
-                      className="btn-icon text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
+                  {isOwner && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingStaff({ original: staffMember, value: staffMember })
+                        }
+                        disabled={loading}
+                        className="btn-icon text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStaffMember(staffMember)}
+                        disabled={loading}
+                        className="btn-icon text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             )}

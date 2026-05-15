@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/components/providers/AuthProvider';
 import Modal from '@/components/ui/Modal';
 import { upsertClassMapping } from '@/lib/supabase/classMappings';
 import { supabase } from '@/lib/supabase/client';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function ClassResolutionPopover({ intro, classTypes, onClose, onResolved }: Props) {
+  const { isOwner } = useAuth();
   const rawClass = intro.class || '';
   const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(false);
@@ -181,53 +183,59 @@ export default function ClassResolutionPopover({ intro, classTypes, onClose, onR
           </div>
         )}
 
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={handleKeepAsIs}
-            disabled={loading}
-            className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm"
-          >
-            <div className="font-medium">Keep as-is</div>
-            <div className="text-gray-500 text-xs">Add "{rawClass}" as a new class type</div>
-          </button>
-
-          <div className="border border-gray-200 rounded-lg p-3 space-y-2">
-            <div className="text-sm font-medium text-gray-700">Change to...</div>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="form-select w-full text-sm"
+        {isOwner ? (
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleKeepAsIs}
+              disabled={loading}
+              className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm"
             >
-              <option value="">Select a class</option>
-              {classTypes.map((ct) => (
-                <option key={ct} value={ct}>
-                  {ct}
-                </option>
-              ))}
-            </select>
-            {selectedClass && (
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleSaveMappingOnly}
-                  disabled={loading}
-                  className="btn btn-secondary flex-1 text-sm"
-                >
-                  Save mapping only
-                </button>
-                <button
-                  type="button"
-                  onClick={handleApplyToAll}
-                  disabled={loading}
-                  className="btn btn-primary flex-1 text-sm"
-                >
-                  Apply to all intros
-                </button>
-              </div>
-            )}
+              <div className="font-medium">Keep as-is</div>
+              <div className="text-gray-500 text-xs">Add "{rawClass}" as a new class type</div>
+            </button>
+
+            <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+              <div className="text-sm font-medium text-gray-700">Change to...</div>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="form-select w-full text-sm"
+              >
+                <option value="">Select a class</option>
+                {classTypes.map((ct) => (
+                  <option key={ct} value={ct}>
+                    {ct}
+                  </option>
+                ))}
+              </select>
+              {selectedClass && (
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSaveMappingOnly}
+                    disabled={loading}
+                    className="btn btn-secondary flex-1 text-sm"
+                  >
+                    Save mapping only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleApplyToAll}
+                    disabled={loading}
+                    className="btn btn-primary flex-1 text-sm"
+                  >
+                    Apply to all intros
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-gray-500">
+            Only owners can resolve unrecognised class names. Contact your gym owner.
+          </p>
+        )}
       </div>
     </Modal>
   );

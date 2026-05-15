@@ -1,11 +1,11 @@
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { useHolds } from '@/hooks/useHolds';
 import type { HoldCsvRecord } from '@/lib/csv';
-import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
+import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
+import type { HoldFormData } from '@/types';
 import { HoldForm } from '../forms/HoldForm';
 
 const HoldModalIcons = {
@@ -21,6 +21,10 @@ interface HoldModalsProps {
   importYear: number;
   onImportYearChange: (year: number) => void;
   onImportClose: () => void;
+  holdReasons: string[];
+  onHoldReasonsChange: () => void | Promise<void>;
+  addHold: (hold: HoldFormData) => Promise<void>;
+  editHold: (id: string, updates: Partial<HoldFormData>) => Promise<void>;
 }
 
 export function HoldModals({
@@ -29,34 +33,23 @@ export function HoldModals({
   importYear,
   onImportYearChange,
   onImportClose,
+  holdReasons,
+  onHoldReasonsChange,
+  addHold,
+  editHold,
 }: HoldModalsProps) {
   const { modals, closeModal } = useUIStore();
-  const { addHold, editHold } = useHolds();
   const { selectedHold, setSelectedHold } = useSelectionStore();
 
-  const [holdReasons, setHoldReasons] = useState<string[]>([]);
   const [newReason, setNewReason] = useState('');
   const [editingReasonIndex, setEditingReasonIndex] = useState<number | null>(null);
-
-  const loadSettings = useCallback(async () => {
-    const reasons = await fetchSettings('hold_reasons');
-    if (reasons) {
-      setHoldReasons(reasons);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (modals.settings) {
-      loadSettings();
-    }
-  }, [modals.settings, loadSettings]);
 
   const handleAddReason = async () => {
     if (newReason.trim() && !holdReasons.includes(newReason.trim())) {
       const updated = [...holdReasons, newReason.trim()].sort();
-      setHoldReasons(updated);
       try {
         await updateSettings('hold_reasons', updated);
+        await onHoldReasonsChange();
         setNewReason('');
       } catch (error) {
         console.error('Error saving reason:', error);
@@ -68,9 +61,9 @@ export function HoldModals({
   const handleDeleteReason = async (index: number) => {
     if (confirm('Are you sure you want to delete this reason?')) {
       const updated = holdReasons.filter((_, i) => i !== index);
-      setHoldReasons(updated);
       try {
         await updateSettings('hold_reasons', updated);
+        await onHoldReasonsChange();
       } catch (error) {
         console.error('Error deleting reason:', error);
         alert('Failed to delete reason');
@@ -82,10 +75,10 @@ export function HoldModals({
     const updated = [...holdReasons];
     updated[index] = newValue.trim();
     const sorted = updated.sort();
-    setHoldReasons(sorted);
     setEditingReasonIndex(null);
     try {
       await updateSettings('hold_reasons', sorted);
+      await onHoldReasonsChange();
     } catch (error) {
       console.error('Error updating reason:', error);
       alert('Failed to update reason');
@@ -96,7 +89,10 @@ export function HoldModals({
     <>
       <Modal isOpen={modals.addHold} onClose={() => closeModal('addHold')} title="Add New Hold">
         <HoldForm
-          onSubmit={addHold}
+          onSubmit={async (data) => {
+            await addHold(data);
+            closeModal('addHold');
+          }}
           onCancel={() => closeModal('addHold')}
           holdReasons={holdReasons}
         />
@@ -104,11 +100,13 @@ export function HoldModals({
       <Modal isOpen={modals.editHold} onClose={() => closeModal('editHold')} title="Edit Hold">
         <HoldForm
           hold={selectedHold}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (!selectedHold) {
               return;
             }
-            editHold(selectedHold.id, data);
+            await editHold(selectedHold.id, data);
+            closeModal('editHold');
+            setSelectedHold(null);
           }}
           onCancel={() => {
             closeModal('editHold');

@@ -17,7 +17,7 @@ const yearFromDate = (dateStr: string): number | undefined => {
 
 interface SignupFormProps {
   signup?: Signup | null;
-  onSubmit: (data: SignupFormData) => void;
+  onSubmit: (data: SignupFormData) => void | Promise<void>;
   onCancel: () => void;
   loading?: boolean;
   membershipTypes: string[];
@@ -67,12 +67,12 @@ export function SignupForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const yearDerived = formData.membership_date
       ? yearFromDate(formData.membership_date as string)
       : undefined;
-    onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
+    await onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
 
   const showMonthFallback = !formData.membership_date;
@@ -104,11 +104,17 @@ export function SignupForm({
           className="form-select"
         >
           <option value="">Select type</option>
-          {membershipTypes.map((type) => (
-            <option key={type} value={type}>
-              {type}
+          {membershipTypes.length === 0 ? (
+            <option value="" disabled>
+              Loading…
             </option>
-          ))}
+          ) : (
+            membershipTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))
+          )}
         </select>
       </div>
       <div>
