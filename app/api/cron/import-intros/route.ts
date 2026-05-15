@@ -33,8 +33,6 @@ export async function GET(req: NextRequest) {
   let messagesFound = 0;
   const skipped: string[] = [];
   const errors: string[] = [];
-  const debug: { name: string; phone: string | null; email: string | null }[] = [];
-
   try {
     const messages = await getZenPlannerBookingEmails();
     messagesFound = messages.length;
@@ -54,8 +52,6 @@ export async function GET(req: NextRequest) {
         }
 
         const resolvedClassName = classMapping[booking.className] ?? booking.className;
-
-        debug.push({ name: booking.name, phone: booking.phone, email: booking.email });
 
         const monthNum = MONTH_TO_NUM[booking.month] ?? 1;
         const isoDate = `${booking.year}-${String(monthNum).padStart(2, '0')}-${String(booking.date).padStart(2, '0')}`;
@@ -190,7 +186,6 @@ export async function GET(req: NextRequest) {
     messagesFound,
     skipped: skipped.length,
     errors,
-    debug,
     timestamp: new Date().toISOString(),
   });
 }
