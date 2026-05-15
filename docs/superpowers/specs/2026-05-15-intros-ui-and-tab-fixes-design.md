@@ -8,115 +8,198 @@
 ## 1. Intros Table: Add Time Column, Remove Status Column
 
 ### Problem
-The Intros tab table does not show what time the intro class is scheduled for, even though `time` is stored on every intro record. The `status` column (Active / Cancelled / Completed badge) provides no actionable information in the table view and wastes column space.
+The Intros tab table does not show what time the intro class is scheduled for, even though `time` is stored on every intro record. The `status` column provides no actionable information in the table view.
 
 ### Change
 **File:** `app/components/tabs/IntrosTab.tsx`
 
-- **Remove** the `status` column from the `columns` array definition.
-- **Remove** the status filter dropdown from the filter bar (the `<select>` or similar UI element bound to `filters.status`).
-- **Add** a `time` column immediately after the `date` column. Renders the `intro.time` string value as-is (e.g. `"9:00 AM"`). If the value is `null` or an empty string, render `—`.
-- The `status` field remains in the data model and Zustand store — only the display is removed. No DB migration is needed.
+**Current column order** (from the `columns` array):
+`Name · Email · Phone · Staff · Class · Date · Attended · Signed Up · Status · Year · Actions`
 
-### Column order after change
-`Name · Date · Time · Class · Staff · Attended · Signed Up`
+**Target column order after changes:**
+`Name · Email · Phone · Staff · Class · Date · Time · Attended · Signed Up · Year · Actions`
+
+Changes to the `columns` array:
+- **Remove** the `status` column object.
+- **Add** a `time` column immediately after `date`. Renders `intro.time` as-is (e.g. `"9:00 AM"`). If `null` or empty string, render `—`.
+
+Additional cleanup in the same file:
+- **Remove** the status filter `<select>` element from the filter bar (the element bound to `filters.status`).
+- **Remove** the `matchesStatus` predicate from the `filteredIntros` `useMemo` block — the status filter logic that consumes `filters.status`.
+- **Remove** any reference to `filters.status` in the `metrics` object.
+
+> The `status` field remains in the data model, DB types, and Zustand store. No DB migration needed.
 
 ---
 
 ## 2. Dropdown Options Not Loading on First Open
 
 ### Problem
-The "Class", "Staff", "Membership Type", and "Reason" dropdowns are empty when the Add modal is opened for the first time after page load. The user has to open the Settings modal and close it before the options appear. Root cause: each form component fetches its own settings data inside a `useEffect([])` that fires when the modal opens. If the Supabase client is not fully session-ready at that moment, the query returns empty results silently. Visiting the Settings modal happens to trigger a successful fetch that populates shared state.
+"Class", "Staff", "Membership Type", and "Reason" dropdowns are empty when the Add modal is opened for the first time after page load. Root cause: settings data is fetched only when specific modals open (not when the tab loads), so there is a race between the async fetch and the user opening the Add modal.
 
-### Fix: lift the fetch to tab level
+Specifically:
+- `IntroForm` fetches `class_types` and `staff_members` in its own `useEffect([])` — fires on every form mount (i.e. every Add modal open), not on tab mount.
+- `SignupModals` fetches `membership_types` only when `modals.settings` becomes true (i.e. the Settings panel is opened), not on tab mount.
+- `HoldModals` fetches `hold_reasons` with the same `modals.settings`-gated pattern.
 
-Each tab component fetches its settings data once on mount — well before the user opens any modal — and passes the result down as props.
+### Fix: lift fetch to tab level
 
-**IntrosTab (`app/components/tabs/IntrosTab.tsx`)**
-- Add state: `classTypes: string[]` and `staffMembers: string[]`, both initialised as `[]`.
-- Add `useEffect([])` that calls `fetchSettings('class_types')` and `fetchSettings('staff_members')` in parallel and stores results in state.
-- Pass `classTypes` and `staffMembers` as props to every `IntroForm` instance (add modal and edit modal).
+Each tab fetches its settings data once on mount and passes the result down as props.
 
-**IntroForm (`app/components/tabs/forms/IntroForm.tsx`)**
-- Remove the internal `useEffect` that fetches `class_types` and `staff_members`.
-- Remove the internal `classTypes` and `staffMembers` state.
-- Accept `classTypes: string[]` and `staffMembers: string[]` as required props.
-- While either array is empty (parent still loading), the corresponding `<select>` renders a single disabled `<option>Loading…</option>`.
+---
 
-**SignupsTab (`app/components/tabs/SignupsTab.tsx`)**
-- Add state: `membershipTypes: string[]`, initialised as `[]`.
-- Add `useEffect([])` that fetches `membership_types` and stores in state.
+#### IntrosTab (`app/components/tabs/IntrosTab.tsx`)
+
+`classTypes: string[]` and `staffMembers: string[]` state variables and their `useEffect([])` fetch **already exist** in this file. The remaining work is:
+- Pass `classTypes` and `staffMembers` as props to every `IntroForm` instance (the Add modal and the Edit modal inside `IntrosTab`).
+- Pass an `onSettingsChange` callback (see SettingsModal section below) to the `SettingsModal` so that after any mutation the tab re-fetches class types and staff members.
+
+---
+
+#### IntroForm (`app/components/tabs/forms/IntroForm.tsx`)
+
+- **Add** `classTypes: string[]` and `staffMembers: string[]` to `IntroFormProps`.
+- **Remove** the internal `classTypes` and `staffMembers` state declarations.
+- **Remove** the internal `useEffect` that calls `fetchSettings('class_types')` and `fetchSettings('staff_members')`.
+- Use the prop values directly where the internal state was previously used.
+- While either prop array is empty (parent still loading), render a single disabled `<option>Loading…</option>` in the relevant `<select>`.
+
+---
+
+#### SettingsModal (`app/components/tabs/modals/SettingsModal.tsx`)
+
+The `SettingsModal` component currently accepts `{ isOpen: boolean; onClose: () => void }`. It manages its own internal state for class types and staff members and does not notify the parent of mutations.
+
+Changes:
+- **Add** `onSettingsChange?: () => void` to the props interface.
+- After every successful mutation handler (`handleAddClassType`, `handleAddStaffMember`, `handleRenameClass`, `handleRenameStaff`, `handleRemoveClassType`, `handleRemoveStaffMember`) — call `onSettingsChange?.()` following the successful DB write.
+- `IntrosTab` passes its settings re-fetch function as `onSettingsChange` so the tab-level arrays stay current after mutations.
+
+---
+
+#### SignupsTab (`app/components/tabs/SignupsTab.tsx`)
+
+- **Add** `membershipTypes: string[]` state, initialised as `[]`.
+- **Add** `useEffect([])` that calls `fetchSettings('membership_types')` and stores in state.
 - Pass `membershipTypes` as a prop to `SignupModals`.
+- Pass a `refreshMembershipTypes` callback to `SignupModals` that re-fetches and updates `membershipTypes` state.
 
-**SignupModals (`app/components/tabs/modals/SignupModals.tsx`)**
-- Remove the internal `useEffect` that fetches `membership_types`.
-- Remove the internal `membershipTypes` state.
-- Accept `membershipTypes: string[]` as a required prop and thread it down to `SignupForm`.
+---
 
-**HoldsTab (`app/components/tabs/HoldsTab.tsx`)**
-- Add state: `holdReasons: string[]`, initialised as `[]`.
-- Add `useEffect([])` that fetches `hold_reasons` and stores in state.
+#### SignupModals (`app/components/tabs/modals/SignupModals.tsx`)
+
+This component owns its own embedded Settings panel (the UI for managing membership types lives inside `SignupModals`, not in the shared `SettingsModal`). The `membershipTypes` data is currently fetched only when `modals.settings` becomes true.
+
+Changes:
+- **Accept** `membershipTypes: string[]` as a required prop.
+- **Accept** `onMembershipTypesChange: () => void` as a required prop (called after any add/edit/delete of a membership type so the parent re-fetches).
+- **Remove** the internal `membershipTypes` state and the `useEffect` that gates on `modals.settings`.
+- Use the prop value wherever internal `membershipTypes` state was previously referenced.
+- After every successful mutation to the membership types list (add, rename, delete), call `onMembershipTypesChange()`.
+- Thread `membershipTypes` down to `SignupForm` as it already does via props.
+
+---
+
+#### HoldsTab (`app/components/tabs/HoldsTab.tsx`)
+
+- **Add** `holdReasons: string[]` state, initialised as `[]`.
+- **Add** `useEffect([])` that calls `fetchSettings('hold_reasons')` and stores in state.
 - Pass `holdReasons` as a prop to `HoldModals`.
+- Pass a `refreshHoldReasons` callback to `HoldModals`.
 
-**HoldModals (`app/components/tabs/modals/HoldModals.tsx`)**
-- Remove the internal `useEffect` that fetches `hold_reasons`.
-- Remove the internal `holdReasons` state.
-- Accept `holdReasons: string[]` as a required prop and thread it down to `HoldForm`.
+---
 
-### Settings mutation
-When a user adds or removes an option via the Settings modal, the tab-level state must update so the dropdowns reflect the change without a page refresh. After any successful Settings save (add, edit, delete an option), the tab re-fetches its settings and updates state. This is already the natural result of the Settings modal calling the same `fetchSettings` utility and the parent re-rendering.
+#### HoldModals (`app/components/tabs/modals/HoldModals.tsx`)
 
-> **Implementation note:** if the Settings modal mutates options (e.g. adds a new class type), the tab-level state array will be stale until the tab re-fetches. The simplest fix is to pass a `refreshSettings` callback from the tab into the Settings modal; the modal calls it after any successful mutation. This replaces whatever internal re-fetch the Settings modal currently does.
+Identical structural situation to `SignupModals`: the Settings panel for Hold Reasons is embedded inside `HoldModals`, not in the shared `SettingsModal`.
+
+Changes:
+- **Accept** `holdReasons: string[]` as a required prop.
+- **Accept** `onHoldReasonsChange: () => void` as a required prop.
+- **Remove** the internal `holdReasons` state and the `modals.settings`-gated `useEffect`.
+- After every successful hold reason mutation, call `onHoldReasonsChange()`.
+- Thread `holdReasons` down to `HoldForm` via props.
 
 ---
 
 ## 3. Modals Auto-Close After Successful Submit
 
 ### Problem
-After clicking Save / Add in any modal across all three tabs, the modal stays open. The user has to manually close it.
+After clicking Save in any Add or Edit modal, the modal stays open regardless of whether the submission succeeded.
 
 ### Fix
-Every submit handler — add and edit — across Intros, Signups, and Holds calls the modal's close function immediately after a confirmed successful write to the database (i.e. after the Supabase call returns without error and before or alongside the success toast).
 
-**Affected handlers (indicative — exact function names to be confirmed by reading the files):**
+The submit handlers for Intros use `useUIStore`'s `closeModal` function, not a local `setOpen` boolean. The pattern to follow for each modal:
 
-| Tab | Handler | Close call |
+```ts
+// Instead of:
+onSubmit={addIntro}
+
+// Use:
+onSubmit={async (data) => {
+  await addIntro(data);     // throws on error — closeModal is skipped if it throws
+  closeModal('addIntro');   // only reached on success
+}}
+```
+
+The `await` + throw-on-error contract is what makes "close only on success" work: if the hook throws (DB error), the `closeModal` call is never reached and the modal stays open with the error toast visible.
+
+**Affected locations and close calls** (exact modal key names to be confirmed by reading `useUIStore`):
+
+| Tab | Operation | Close call |
 |---|---|---|
-| Intros | `handleAddIntro` | `setAddModalOpen(false)` |
-| Intros | `handleEditIntro` | `setEditModalOpen(false)` |
-| Signups | `handleAddSignup` | `setAddModalOpen(false)` |
-| Signups | `handleEditSignup` | `setEditModalOpen(false)` |
-| Holds | `handleAddHold` | `setAddModalOpen(false)` |
-| Holds | `handleEditHold` | `setEditModalOpen(false)` |
+| Intros | Add | `closeModal('addIntro')` |
+| Intros | Edit | `closeModal('editIntro')` |
+| Signups | Add | `closeModal('addSignup')` (or equivalent) |
+| Signups | Edit | `closeModal('editSignup')` |
+| Holds | Add | `closeModal('addHold')` |
+| Holds | Edit | `closeModal('editHold')` |
 
-If a submit fails (Supabase returns an error), the modal stays open and the error is shown — no change from current behaviour.
+> **Important:** The implementer must read `app/store/useUIStore.ts` to confirm the exact modal key strings used in `openModal`/`closeModal` calls across all three tab files, rather than using the indicative names above.
+
+If a submit fails (the hook throws), the modal remains open and the existing error toast is shown — no change from current behaviour.
 
 ---
 
 ## 4. Tab Persistence on Page Refresh
 
 ### Problem
-The active tab is stored only in React state. On page refresh, `useSearchParams()` reads the `tab` URL param to initialise state, but tab clicks never update the URL — so the param is always whatever was in the URL on load (or absent), and refresh always goes back to Overview.
+`setActiveTab` is passed directly as a prop to `<Sidebar>` and only updates React state when called. The URL `tab` param is read once on mount but never updated when the user clicks tabs. On refresh, `useSearchParams()` reads whatever was in the URL at page load time (or nothing), so the tab resets to Overview.
 
 ### Fix
 **File:** `app/page.tsx`
 
-The tab change handler (currently only calling `setActiveTab(tabId)`) also calls:
-
+**Step 1:** Add `useRouter` to the import from `'next/navigation'`:
 ```ts
-router.replace(`/?tab=${tabId}`, { scroll: false });
+import { useRouter, useSearchParams } from 'next/navigation';
 ```
 
-`router.replace` is used instead of `router.push` so tab switches don't pollute the browser's back-button history. With this change, the URL always reflects the current tab. On refresh, `useSearchParams()` reads the correct `tab` param and restores the tab as it already does today.
+**Step 2:** Inside `HomeContent`, declare the router:
+```ts
+const router = useRouter();
+```
 
-No other files need to change.
+**Step 3:** Replace the direct `setActiveTab` prop on `<Sidebar>` with a named handler:
+```ts
+const handleTabChange = (tabId: string) => {
+  setActiveTab(tabId);
+  router.replace(`/?tab=${tabId}`, { scroll: false });
+};
+```
+
+**Step 4:** Pass `handleTabChange` to `<Sidebar>` instead of `setActiveTab`:
+```tsx
+<Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+```
+
+`router.replace` is used (not `push`) so tab navigation does not pollute the browser back-button history. With this change, the URL always reflects the current tab. On refresh, `useSearchParams()` reads the correct `tab` param and restores the tab as it already does today.
 
 ---
 
 ## 5. Default Filters to Current Month and Year
 
 ### Problem
-The Zustand filter store initialises `year` and `month` to `'all'`, so every tab shows all-time data on first load. The most useful default is the current month.
+The Zustand filter store initialises `year` and `month` to `'all'`, so every tab shows all-time data on first load.
 
 ### Fix
 **File:** `app/store/useFilterStore.ts`
@@ -131,10 +214,12 @@ month: 'all',
 // After
 year: new Date().getFullYear().toString(),
 month: new Date().toLocaleString('en-US', { month: 'short' }),
-// produces 'Jan', 'Feb', … 'Dec' — matching the existing month filter values
+// Produces 'Jan' … 'Dec' — matching the existing filter option values
 ```
 
-All tabs read from this shared store, so all tabs default to the current month and year on every fresh page load. Switching tabs preserves whatever filter the user last set (shared store — no per-tab reset). Page refresh returns to current month/year, which is the correct "start fresh" behaviour.
+All tabs read from this shared store, so all tabs default to the current month and year on every fresh page load.
+
+> **Trade-off note:** `clearFilters()` resets to `initialState.filters`. Once the initial state is set to the current month/year at module load time, calling `clearFilters()` on a long-running session (e.g. the next day or month) will reset to the month when the page was first loaded, not to the current month. This is an acceptable trade-off for normal gym use, but implementers should be aware. If precise current-month reset is needed, `clearFilters()` can compute the month/year values dynamically rather than pulling from `initialState`.
 
 ---
 
@@ -142,19 +227,20 @@ All tabs read from this shared store, so all tabs default to the current month a
 
 | File | Change |
 |---|---|
-| `app/components/tabs/IntrosTab.tsx` | Remove status column + filter; add time column; fetch classTypes + staffMembers on mount; pass to IntroForm; pass refreshSettings to modals |
-| `app/components/tabs/forms/IntroForm.tsx` | Remove internal settings fetch; accept classTypes + staffMembers as props; add loading state |
-| `app/components/tabs/SignupsTab.tsx` | Fetch membershipTypes on mount; pass to SignupModals; auto-close on submit |
-| `app/components/tabs/modals/SignupModals.tsx` | Remove internal settings fetch; accept membershipTypes prop; call refreshSettings after mutations; auto-close on submit |
-| `app/components/tabs/HoldsTab.tsx` | Fetch holdReasons on mount; pass to HoldModals; auto-close on submit |
-| `app/components/tabs/modals/HoldModals.tsx` | Remove internal settings fetch; accept holdReasons prop; call refreshSettings after mutations; auto-close on submit |
+| `app/components/tabs/IntrosTab.tsx` | Remove status column, status filter UI, status filter logic, and metrics reference; add time column; thread classTypes + staffMembers as props to IntroForm; pass onSettingsChange to SettingsModal |
+| `app/components/tabs/forms/IntroForm.tsx` | Remove internal settings fetch and state; accept classTypes + staffMembers as required props; add loading option |
+| `app/components/tabs/modals/SettingsModal.tsx` | Add onSettingsChange? prop; call it after each successful mutation handler |
+| `app/components/tabs/SignupsTab.tsx` | Fetch membershipTypes on mount; pass to SignupModals with refresh callback; auto-close on submit |
+| `app/components/tabs/modals/SignupModals.tsx` | Remove internal settings fetch and state; accept membershipTypes + onMembershipTypesChange props; call callback after mutations; auto-close on submit |
+| `app/components/tabs/HoldsTab.tsx` | Fetch holdReasons on mount; pass to HoldModals with refresh callback; auto-close on submit |
+| `app/components/tabs/modals/HoldModals.tsx` | Remove internal settings fetch and state; accept holdReasons + onHoldReasonsChange props; call callback after mutations; auto-close on submit |
 | `app/store/useFilterStore.ts` | Default year and month to current values |
-| `app/page.tsx` | Call router.replace on tab change to keep URL in sync |
+| `app/page.tsx` | Import useRouter; create handleTabChange that calls setActiveTab + router.replace; pass handleTabChange to Sidebar |
 
 ---
 
 ## Out of Scope
 
 - The `status` field is not removed from the database, types, or Zustand store — only from the table display and filter UI.
-- The `errors` array in the cron import response containing booking names is noted but addressed separately (security hardening round 3).
-- No changes to the payroll or admin pages.
+- No changes to the payroll, admin, or settings pages.
+- The `errors` array in the cron import response still contains booking names; that is a separate security hardening item.
