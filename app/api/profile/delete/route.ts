@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function DELETE() {
   try {
@@ -16,16 +17,13 @@ export async function DELETE() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Delete the user profile (RLS will ensure they can only delete their own)
-    const { error: profileError } = await supabase.from('user_profiles').delete().eq('id', user.id);
-
-    if (profileError) {
-      console.error('Error deleting profile:', profileError);
-      return NextResponse.json({ error: 'Failed to delete profile' }, { status: 500 });
+    // Deleting auth.users cascades to user_profiles via the foreign key.
+    const admin = createAdminClient();
+    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+    if (deleteError) {
+      console.error('Error deleting auth user:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 });
     }
-
-    // Sign out the user
-    await supabase.auth.signOut();
 
     return NextResponse.json({ success: true });
   } catch (error) {

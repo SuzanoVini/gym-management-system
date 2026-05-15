@@ -282,6 +282,26 @@ export default function ProfilePage() {
         return;
       }
 
+      if (!user.email) {
+        setErrors((prev) => ({
+          ...prev,
+          password: { currentPassword: 'Unable to verify current password' },
+        }));
+        return;
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordData.currentPassword,
+      });
+      if (verifyError) {
+        setErrors((prev) => ({
+          ...prev,
+          password: { currentPassword: 'Current password is incorrect' },
+        }));
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword,
       });
@@ -321,7 +341,6 @@ export default function ProfilePage() {
 
       errorHandler.notify('Account deleted successfully', 'success');
 
-      // The API route signs the user out, so just redirect
       router.push('/login');
     } catch (err) {
       errorHandler.handle(err, 'deleteAccount');

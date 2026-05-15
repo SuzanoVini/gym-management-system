@@ -1,20 +1,14 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { requireOwner } from '@/lib/supabase/authorization';
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authorization = await requireOwner();
+    if (!authorization.ok) {
+      return authorization.response;
     }
 
-    const admin = createAdminClient();
+    const { admin } = authorization;
     const { data, error } = await admin.auth.admin.listUsers();
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -37,15 +31,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const authorization = await requireOwner();
+    if (!authorization.ok) {
+      return authorization.response;
     }
 
+    const { admin } = authorization;
     const body = (await request.json()) as {
       email?: string;
       password?: string;
@@ -60,7 +51,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const admin = createAdminClient();
     const { data: newUser, error: createError } = await admin.auth.admin.createUser({
       email,
       password,
@@ -72,10 +62,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 
-    // Insert into user_profiles (best-effort)
     const profileData = { id: newUser.user.id, full_name };
-    // biome-ignore lint/suspicious/noExplicitAny: Supabase v2.58 PostgrestVersion generic causes insert type to resolve as never
-    await admin.from('user_profiles').insert(profileData as unknown as any);
+    await admin.from('user_profiles').insert(profileData);
 
     return NextResponse.json({
       user: {
