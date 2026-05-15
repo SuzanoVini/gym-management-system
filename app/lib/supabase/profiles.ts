@@ -308,51 +308,6 @@ export const updateUserPassword = async (newPassword: string): Promise<boolean> 
 };
 
 // ============================================================================
-// Account Deletion
-// ============================================================================
-
-/**
- * Delete user account (profile, avatar, and auth user)
- * WARNING: This is a destructive operation and cannot be undone
- * @param userId - The user's UUID
- * @returns Success status
- * @throws Error if deletion fails
- */
-export const deleteUserAccount = async (userId: string): Promise<boolean> => {
-  if (!userId) {
-    throw errors.validation('userId', 'User ID is required');
-  }
-
-  // Step 1: Delete avatar from storage
-  await deleteProfileAvatar(userId, false);
-
-  // Step 2: Delete user profile from database
-  const { error: profileError } = await supabase.from('user_profiles').delete().eq('id', userId);
-
-  if (profileError) {
-    throw errors.database('delete profile', profileError.message);
-  }
-
-  // Step 3: Delete user from auth
-  // Note: This requires Supabase service role key (admin privileges)
-  // In a production app, this should be done via an Edge Function or backend API
-  // For now, we'll use the auth.admin API if available
-  const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-
-  if (authError) {
-    // If auth deletion fails, we should ideally rollback profile deletion
-    // But since we can't easily do that, we'll log the error
-    console.error('Error deleting auth user:', authError);
-    throw errors.database(
-      'delete account',
-      'Failed to delete user authentication. Please contact support.'
-    );
-  }
-
-  return true;
-};
-
-// ============================================================================
 // Real-time Subscriptions
 // ============================================================================
 
