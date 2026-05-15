@@ -1,17 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { verifyCronRequest } from '@/lib/cron';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const unauthorizedResponse = verifyCronRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createAdminClient();
 
     // Calls the mark_unsigned_intros() SQL function created in Supabase SQL Editor
     // Uses COALESCE(date::date, created_at::date) to handle legacy null-date records

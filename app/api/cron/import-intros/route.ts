@@ -1,21 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
 import { type NextRequest, NextResponse } from 'next/server';
+import { verifyCronRequest } from '@/lib/cron';
 import { getEmailTextBody, getZenPlannerBookingEmails } from '@/lib/gmail';
 import { MONTH_TO_NUM, parseBookingEmail } from '@/lib/services/booking-parser';
-import { fetchClassMappings } from '@/lib/supabase/classMappings';
+import { createAdminClient } from '@/lib/supabase/admin';
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Gmail import handles parsing, enrichment, dedupe, and reporting in one cron transaction.
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const unauthorizedResponse = verifyCronRequest(req);
+  if (unauthorizedResponse) {
+    return unauthorizedResponse;
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createAdminClient();
 
-  const classMapping = await fetchClassMappings().catch((): Record<string, string> => ({}));
+  const { data: classMappingRows, error: classMappingError } = await supabase
+    .from('class_mappings')
+    .select('zenplanner_name, system_name');
+
+  if (classMappingError) {
+    return NextResponse.json(
+      { error: 'Failed to fetch class mappings', details: classMappingError.message },
+      { status: 500 }
+    );
+  }
+
+  const classMapping: Record<string, string> = Object.fromEntries(
+    (classMappingRows ?? []).map((r) => [r.zenplanner_name, r.system_name])
+  );
 
   let imported = 0;
   let enriched = 0;
@@ -50,8 +61,7 @@ export async function GET(req: NextRequest) {
         const isoDate = `${booking.year}-${String(monthNum).padStart(2, '0')}-${String(booking.date).padStart(2, '0')}`;
 
         // Duplicate check: match on resolved class name first, then fall back to raw ZenPlanner
-        // name. The fallback catches records imported before the mapping existed — rather than
-        // creating a duplicate, we update the stored class name to the resolved value.
+        // name. The fallback catches records imported before the mapping existed.
         let { data: existing } = await supabase
           .from('intros')
           .select('id, email, phone, class')
@@ -99,7 +109,7 @@ export async function GET(req: NextRequest) {
             }
           } else {
             skipped.push(
-              `${booking.name} (${booking.month} ${booking.date} ${booking.time} ${booking.className}) — already exists`
+              `${booking.name} (${booking.month} ${booking.date} ${booking.time} ${booking.className}) - already exists`
             );
           }
           continue;

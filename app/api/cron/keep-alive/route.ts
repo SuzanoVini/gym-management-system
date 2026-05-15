@@ -1,16 +1,15 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { verifyCronRequest } from '@/lib/cron';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: Request) {
   try {
-    // Verify request is from Vercel Cron
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const unauthorizedResponse = verifyCronRequest(request);
+    if (unauthorizedResponse) {
+      return unauthorizedResponse;
     }
 
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createAdminClient();
 
     // Perform a simple database query to keep the project active
     // Using settings table as it's lightweight

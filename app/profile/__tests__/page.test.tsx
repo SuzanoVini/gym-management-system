@@ -23,6 +23,7 @@ const mockSupabaseClient = {
     from: jest.fn(),
   },
   auth: {
+    signInWithPassword: jest.fn(),
     updateUser: jest.fn(),
   },
 };
@@ -88,6 +89,7 @@ describe('ProfilePage', () => {
     });
 
     mockSupabaseClient.auth.updateUser.mockResolvedValue({ error: null });
+    mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({ error: null });
   };
 
   beforeEach(() => {
@@ -319,6 +321,10 @@ describe('ProfilePage', () => {
       await userEvent.click(updateButton);
 
       await waitFor(() => {
+        expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+          email: 'test@example.com',
+          password: 'OldPass123',
+        });
         expect(mockSupabaseClient.auth.updateUser).toHaveBeenCalledWith({
           password: 'NewPass123',
         });
