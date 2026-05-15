@@ -18,7 +18,11 @@ export async function DELETE() {
 
     // Sign out first so the session cookie is cleared in this response.
     // Must happen before deleteUser so the JWT is still valid for the signOut call.
-    await supabase.auth.signOut();
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) {
+      console.error('Error signing out before account deletion:', signOutError);
+      return NextResponse.json({ error: 'Failed to clear session' }, { status: 500 });
+    }
 
     // Delete the auth user; ON DELETE CASCADE removes user_profiles automatically.
     const admin = createAdminClient();

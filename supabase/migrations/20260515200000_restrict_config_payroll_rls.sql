@@ -1,6 +1,9 @@
 -- supabase/migrations/20260515200000_restrict_config_payroll_rls.sql
 
 -- ── settings: staff read-only, owner writes ──────────────────────────────────
+-- No INSERT or DELETE owner policy is added: the settings table uses a fixed set
+-- of rows managed only by migrations. Add owner-only INSERT/DELETE policies here
+-- if application code ever needs to create or remove settings rows.
 DROP POLICY IF EXISTS "Users can view settings" ON settings;
 DROP POLICY IF EXISTS "Users can update settings" ON settings;
 
