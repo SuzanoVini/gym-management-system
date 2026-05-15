@@ -1,11 +1,11 @@
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { useSignups } from '@/hooks/useSignups';
 import type { SignupCsvRecord } from '@/lib/csv';
-import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
+import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useUIStore } from '@/store/useUIStore';
+import type { SignupFormData } from '@/types';
 import { SignupForm } from '../forms/SignupForm';
 
 const SignupModalIcons = {
@@ -21,6 +21,10 @@ interface SignupModalsProps {
   importYear: number;
   onImportYearChange: (year: number) => void;
   onImportClose: () => void;
+  membershipTypes: string[];
+  onMembershipTypesChange: () => void | Promise<void>;
+  addSignup: (signup: SignupFormData) => Promise<void>;
+  editSignup: (id: string, updates: Partial<SignupFormData>) => Promise<void>;
 }
 
 export function SignupModals({
@@ -29,34 +33,23 @@ export function SignupModals({
   importYear,
   onImportYearChange,
   onImportClose,
+  membershipTypes,
+  onMembershipTypesChange,
+  addSignup,
+  editSignup,
 }: SignupModalsProps) {
   const { modals, closeModal } = useUIStore();
-  const { addSignup, editSignup } = useSignups();
   const { selectedSignup, setSelectedSignup } = useSelectionStore();
 
-  const [membershipTypes, setMembershipTypes] = useState<string[]>([]);
   const [newMembershipType, setNewMembershipType] = useState('');
   const [editingMembershipIndex, setEditingMembershipIndex] = useState<number | null>(null);
-
-  const loadSettings = useCallback(async () => {
-    const types = await fetchSettings('membership_types');
-    if (types) {
-      setMembershipTypes(types);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (modals.settings) {
-      loadSettings();
-    }
-  }, [modals.settings, loadSettings]);
 
   const handleAddMembershipType = async () => {
     if (newMembershipType.trim() && !membershipTypes.includes(newMembershipType.trim())) {
       const updated = [...membershipTypes, newMembershipType.trim()].sort();
-      setMembershipTypes(updated);
       try {
         await updateSettings('membership_types', updated);
+        await onMembershipTypesChange();
         setNewMembershipType('');
       } catch (error) {
         console.error('Error saving membership type:', error);
@@ -68,9 +61,9 @@ export function SignupModals({
   const handleDeleteMembershipType = async (index: number) => {
     if (confirm('Are you sure you want to delete this membership type?')) {
       const updated = membershipTypes.filter((_, i) => i !== index);
-      setMembershipTypes(updated);
       try {
         await updateSettings('membership_types', updated);
+        await onMembershipTypesChange();
       } catch (error) {
         console.error('Error deleting membership type:', error);
         alert('Failed to delete membership type');
@@ -82,10 +75,10 @@ export function SignupModals({
     const updated = [...membershipTypes];
     updated[index] = newValue.trim();
     const sorted = updated.sort();
-    setMembershipTypes(sorted);
     setEditingMembershipIndex(null);
     try {
       await updateSettings('membership_types', sorted);
+      await onMembershipTypesChange();
     } catch (error) {
       console.error('Error updating membership type:', error);
       alert('Failed to update membership type');
@@ -100,7 +93,10 @@ export function SignupModals({
         title="Add New Sign-up"
       >
         <SignupForm
-          onSubmit={addSignup}
+          onSubmit={async (data) => {
+            await addSignup(data);
+            closeModal('addSignup');
+          }}
           onCancel={() => closeModal('addSignup')}
           membershipTypes={membershipTypes}
         />
@@ -112,11 +108,13 @@ export function SignupModals({
       >
         <SignupForm
           signup={selectedSignup}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (!selectedSignup) {
               return;
             }
-            editSignup(selectedSignup.id, data);
+            await editSignup(selectedSignup.id, data);
+            closeModal('editSignup');
+            setSelectedSignup(null);
           }}
           onCancel={() => {
             closeModal('editSignup');

@@ -40,6 +40,7 @@ describe('ProfileSection', () => {
     mockUseAuth.mockReturnValue({
       // biome-ignore lint/suspicious/noExplicitAny: Test mock requires any type
       user: mockUser as any,
+      isOwner: false,
       loading: false,
       signOut: jest.fn(),
     });
@@ -58,6 +59,7 @@ describe('ProfileSection', () => {
     it('should not render while loading', () => {
       mockUseAuth.mockReturnValue({
         user: null,
+        isOwner: false,
         loading: true,
         signOut: jest.fn(),
       });
@@ -69,6 +71,7 @@ describe('ProfileSection', () => {
     it('should not render when no user is logged in', () => {
       mockUseAuth.mockReturnValue({
         user: null,
+        isOwner: false,
         loading: false,
         signOut: jest.fn(),
       });

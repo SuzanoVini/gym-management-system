@@ -12,6 +12,7 @@ import {
   UserX,
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import ProfileSection from './ProfileSection';
 
@@ -104,8 +105,10 @@ function TabItem(props: TabItemProps) {
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebarStore();
+  const { isOwner } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const visibleTabs = isOwner ? tabs : tabs.filter((t) => t.id !== 'admin');
 
   const handleTabClick = (tabId: string, route?: string) => {
     if (route && tabId !== 'payroll') {
@@ -137,7 +140,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       <aside className="app-sidebar" data-state={isOpen ? 'expanded' : 'collapsed'}>
         <nav className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent flex flex-col">
           <div className="py-6 px-2 space-y-1.5 flex-1">
-            {tabs.map((tab) => {
+            {visibleTabs.map((tab) => {
               // Check if this is a route-based tab or a state-based tab
               const isActive = tab.route ? pathname?.startsWith(tab.route) : activeTab === tab.id;
 

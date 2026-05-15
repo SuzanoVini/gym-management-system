@@ -1,7 +1,7 @@
 'use client';
 
 import { Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
@@ -12,6 +12,7 @@ import { useSignups } from '@/hooks/useSignups';
 import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
+import { fetchSettings } from '@/lib/supabase/settings';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
@@ -22,7 +23,7 @@ import { SignupModals } from './modals/SignupModals';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function SignupsTab() {
-  const { signups, loading, error, removeSignup, refresh } = useSignups();
+  const { signups, loading, error, addSignup, editSignup, removeSignup, refresh } = useSignups();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
   const selectionTab: SelectionTabKey = 'signups';
@@ -40,6 +41,16 @@ export default function SignupsTab() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('signups'));
+  const [membershipTypes, setMembershipTypes] = useState<string[]>([]);
+
+  const refreshMembershipTypes = useCallback(async () => {
+    const types = await fetchSettings('membership_types');
+    setMembershipTypes(types);
+  }, []);
+
+  useEffect(() => {
+    void refreshMembershipTypes();
+  }, [refreshMembershipTypes]);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -513,12 +524,11 @@ export default function SignupsTab() {
               className="form-select"
             >
               <option value="all">All Types</option>
-              {/* Membership types will be loaded in SignupModals */}
-              {/* {membershipTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))} */}
+              {membershipTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -575,6 +585,10 @@ export default function SignupsTab() {
           setImportFile(null);
           setImportPreviewData([]);
         }}
+        membershipTypes={membershipTypes}
+        onMembershipTypesChange={refreshMembershipTypes}
+        addSignup={addSignup}
+        editSignup={editSignup}
       />
     </div>
   );

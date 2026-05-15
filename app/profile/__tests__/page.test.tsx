@@ -98,6 +98,7 @@ describe('ProfilePage', () => {
     mockUseAuth.mockReturnValue({
       // biome-ignore lint/suspicious/noExplicitAny: Test mock requires any type
       user: mockUser as any,
+      isOwner: false,
       loading: false,
       signOut: jest.fn(),
     });

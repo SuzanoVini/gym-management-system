@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Form, FormField } from '@/components/ui/Form';
 import { checkMemberStatus } from '@/lib/supabase/memberStatus';
-import { fetchSettings } from '@/lib/supabase/settings';
 import type { Intro, IntroFormData } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -15,12 +14,21 @@ const monthFromDate = (dateStr: string): string => {
 
 interface IntroFormProps {
   intro?: Intro | null;
-  onSubmit: (data: IntroFormData) => void;
+  onSubmit: (data: IntroFormData) => void | Promise<void>;
   loading?: boolean;
   onCancel: () => void;
+  classTypes: string[];
+  staffMembers: string[];
 }
 
-export default function IntroForm({ intro, onSubmit, loading = false, onCancel }: IntroFormProps) {
+export default function IntroForm({
+  intro,
+  onSubmit,
+  loading = false,
+  onCancel,
+  classTypes,
+  staffMembers,
+}: IntroFormProps) {
   type IntroFormValues = {
     month: string;
     date: string;
@@ -50,18 +58,7 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
   });
 
   const [memberError, setMemberError] = useState<string | null>(null);
-  const [classTypes, setClassTypes] = useState<string[]>([]);
-  const [staffMembers, setStaffMembers] = useState<string[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    Promise.all([fetchSettings('class_types'), fetchSettings('staff_members')]).then(
-      ([classes, staff]) => {
-        setClassTypes(classes);
-        setStaffMembers(staff);
-      }
-    );
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -77,6 +74,13 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
     }
     return classTypes;
   }, [classTypes, intro?.class]);
+
+  const staffOptions = useMemo(() => {
+    if (intro?.staff && !staffMembers.includes(intro.staff)) {
+      return [...staffMembers, intro.staff];
+    }
+    return staffMembers;
+  }, [staffMembers, intro?.staff]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +125,7 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
     if (formData.signed_up) {
       payload.signed_up = formData.signed_up;
     }
-    onSubmit(payload);
+    await onSubmit(payload);
   };
 
   const updateField = (
@@ -160,7 +164,6 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
               return;
             }
 
-            // biome-ignore lint/suspicious/noConfusingVoidType: async callback in setTimeout
             debounceRef.current = setTimeout(async () => {
               const status = await checkMemberStatus(trimmed);
               if (status.isCurrentMember && status.signupDate) {
@@ -253,25 +256,63 @@ export default function IntroForm({ intro, onSubmit, loading = false, onCancel }
           </datalist>
         </div>
 
-        <FormField
-          label="Class"
-          name="class"
-          type="select"
-          value={formData.class}
-          onChange={(value) => updateField('class', value)}
-          options={classOptions}
-          required
-        />
+        <div className="mb-4">
+          <label htmlFor="class" className="form-label">
+            Class<span className="text-red-500 ml-1">*</span>
+          </label>
+          <select
+            id="class"
+            value={formData.class}
+            onChange={(e) => updateField('class', e.target.value)}
+            disabled={classOptions.length === 0}
+            className={`form-select ${classOptions.length === 0 ? '!bg-gray-100 !cursor-not-allowed' : ''}`}
+            required
+          >
+            {classOptions.length === 0 ? (
+              <option value="" disabled>
+                Loading…
+              </option>
+            ) : (
+              <>
+                <option value="">Select Class</option>
+                {classOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        </div>
 
-        <FormField
-          label="Staff"
-          name="staff"
-          type="select"
-          value={formData.staff}
-          onChange={(value) => updateField('staff', value)}
-          options={staffMembers}
-          required
-        />
+        <div className="mb-4">
+          <label htmlFor="staff" className="form-label">
+            Staff<span className="text-red-500 ml-1">*</span>
+          </label>
+          <select
+            id="staff"
+            value={formData.staff}
+            onChange={(e) => updateField('staff', e.target.value)}
+            disabled={staffOptions.length === 0}
+            className={`form-select ${staffOptions.length === 0 ? '!bg-gray-100 !cursor-not-allowed' : ''}`}
+            required
+          >
+            {staffOptions.length === 0 ? (
+              <option value="" disabled>
+                Loading…
+              </option>
+            ) : (
+              <>
+                <option value="">Select Staff</option>
+                {staffOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </>
+            )}
+          </select>
+        </div>
 
         <FormField
           label="Attended"

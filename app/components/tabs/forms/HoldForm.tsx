@@ -17,7 +17,7 @@ const yearFromDate = (dateStr: string): number | undefined => {
 
 interface HoldFormProps {
   hold?: Hold | null;
-  onSubmit: (data: HoldFormData) => void;
+  onSubmit: (data: HoldFormData) => void | Promise<void>;
   onCancel: () => void;
   loading?: boolean;
   holdReasons: string[];
@@ -60,10 +60,10 @@ export function HoldForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const yearDerived = formData.start ? yearFromDate(formData.start as string) : undefined;
-    onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
+    await onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
 
   const showMonthFallback = !formData.start;
@@ -145,11 +145,17 @@ export function HoldForm({
           className="form-select"
         >
           <option value="">Select reason</option>
-          {holdReasons.map((reason) => (
-            <option key={reason} value={reason}>
-              {reason}
+          {holdReasons.length === 0 ? (
+            <option value="" disabled>
+              Loading…
             </option>
-          ))}
+          ) : (
+            holdReasons.map((reason) => (
+              <option key={reason} value={reason}>
+                {reason}
+              </option>
+            ))
+          )}
         </select>
       </div>
       <div>
