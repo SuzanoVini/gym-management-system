@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { errorHandler } from '@/lib/errorHandler';
 import { supabase } from '@/lib/supabase/client';
 import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
+import { checkMemberStatus } from '@/lib/supabase/memberStatus';
 import { createSignup, deleteSignup, fetchSignups, updateSignup } from '@/lib/supabase/signups';
 import { signupSchema, validate } from '@/lib/validations';
 import type { Signup, SignupFormData } from '@/types';
@@ -39,14 +40,26 @@ export const useSignups = () => {
       }
 
       try {
-        const { data: dup } = await supabase
+        // 1. Exact-date duplicate guard
+        const { data: exactDup } = await supabase
           .from('signups')
           .select('id')
           .ilike('name', validation.data.name.trim())
+          .eq('membership_date', validation.data.membership_date ?? '')
+          .limit(1)
           .maybeSingle();
-        if (dup) {
+        if (exactDup) {
           errorHandler.notify(
-            `A signup record already exists for "${validation.data.name}".`,
+            `A signup for "${validation.data.name}" on this date already exists.`,
+            'warning'
+          );
+        }
+
+        // 2. Lifecycle check
+        const memberStatus = await checkMemberStatus(validation.data.name.trim());
+        if (memberStatus.isCurrentMember) {
+          errorHandler.notify(
+            `${validation.data.name} is already an active member (signed up ${memberStatus.signupDate}). Saving anyway.`,
             'warning'
           );
         }

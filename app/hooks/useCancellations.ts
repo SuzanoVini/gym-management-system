@@ -9,6 +9,7 @@ import {
 } from '@/lib/supabase/cancellations';
 import { supabase } from '@/lib/supabase/client';
 import { closeActiveHold } from '@/lib/supabase/holds';
+import { checkMemberStatus } from '@/lib/supabase/memberStatus';
 import { cancellationSchema, validate } from '@/lib/validations';
 import type { Cancellation, CancellationFormData } from '@/types';
 
@@ -44,14 +45,26 @@ export const useCancellations = () => {
       }
 
       try {
-        const { data: dup } = await supabase
+        // 1. Exact-date duplicate guard
+        const { data: exactDup } = await supabase
           .from('cancellations')
           .select('id')
           .ilike('name', validation.data.name.trim())
+          .eq('date', validation.data.date ?? '')
+          .limit(1)
           .maybeSingle();
-        if (dup) {
+        if (exactDup) {
           errorHandler.notify(
-            `A cancellation record already exists for "${validation.data.name}".`,
+            `A cancellation for "${validation.data.name}" on this date already exists.`,
+            'warning'
+          );
+        }
+
+        // 2. Lifecycle check
+        const memberStatus = await checkMemberStatus(validation.data.name.trim());
+        if (!memberStatus.isCurrentMember) {
+          errorHandler.notify(
+            `No active membership found for "${validation.data.name}". They may have already cancelled.`,
             'warning'
           );
         }

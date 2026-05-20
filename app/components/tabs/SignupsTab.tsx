@@ -90,10 +90,15 @@ export default function SignupsTab() {
         if (!row.name || !row.month) {
           return false;
         }
-        const isDuplicate = signups.some(
-          (s) =>
-            s.name.toLowerCase().trim() === row.name.toLowerCase().trim() && s.month === row.month
-        );
+        const isDuplicate = signups.some((s) => {
+          if (s.name.toLowerCase().trim() !== row.name.toLowerCase().trim()) {
+            return false;
+          }
+          if (s.membership_date && row.membership_date) {
+            return s.membership_date === row.membership_date;
+          }
+          return s.month === row.month && String(s.year) === String(importYear);
+        });
         return !isDuplicate;
       });
 
