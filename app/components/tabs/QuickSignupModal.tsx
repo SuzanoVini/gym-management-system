@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase/client';
-import { fetchSettings } from '@/lib/supabase/settings';
 import { createSignup } from '@/lib/supabase/signups';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import type { Intro } from '@/types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -33,7 +33,7 @@ interface Props {
 
 export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
   const todayStr = today();
-  const [membershipTypes, setMembershipTypes] = useState<string[]>([]);
+  const membershipTypes = useSettingsStore((s) => s.membershipTypes);
   const [membership, setMembership] = useState('');
   const [signupDate, setSignupDate] = useState(todayStr);
   const [firstPaymentDate, setFirstPaymentDate] = useState(todayStr);
@@ -42,10 +42,6 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [step2Failed, setStep2Failed] = useState(false);
-
-  useEffect(() => {
-    fetchSettings('membership_types').then(setMembershipTypes);
-  }, []);
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
