@@ -36,9 +36,8 @@ export const signupSchema = z.object({
   membership: z.string().min(1, 'Membership type is required'), // Now dynamic from settings
   membership_date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-    .transform((str) => (str === '' ? undefined : str))
-    .optional(),
+    .min(1, 'Sign-up date is required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   first_payment_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
@@ -58,9 +57,8 @@ export const cancellationSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
   date: z // Renamed from cancellation_date
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-    .transform((str) => (str === '' ? undefined : str))
-    .optional(),
+    .min(1, 'Cancellation date is required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   reason: z.string().min(1, 'Reason is required').max(200, 'Reason too long'), // Now dynamic from settings
   age_group: z.string().max(50, 'Age category too long').optional().or(z.literal('')),
   notes: z.string().max(500, 'Notes too long (max 500 characters)').optional().or(z.literal('')),
@@ -77,9 +75,8 @@ export const holdSchema = z
     name: z.string().min(1, 'Name is required').max(100, 'Name too long').trim(),
     start: z // Renamed from start_date
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be in YYYY-MM-DD format')
-      .transform((str) => (str === '' ? undefined : str))
-      .optional(),
+      .min(1, 'Start date is required')
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be in YYYY-MM-DD format'),
     end: z // Renamed from end_date
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be in YYYY-MM-DD format')

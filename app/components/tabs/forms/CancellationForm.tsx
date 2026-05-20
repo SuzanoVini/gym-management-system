@@ -199,7 +199,7 @@ export function CancellationForm({
         </button>
         <button
           type="submit"
-          disabled={loading || !formData.name || !formData.month}
+          disabled={loading || !formData.name || !formData.month || !formData.date}
           className="btn btn-primary"
         >
           {loading ? 'Saving...' : 'Save'}
