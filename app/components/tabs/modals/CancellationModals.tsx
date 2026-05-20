@@ -1,10 +1,11 @@
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { useCancellations } from '@/hooks/useCancellations';
 import type { CancellationCsvRecord } from '@/lib/csv';
-import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
+import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import { CancellationForm } from '../forms/CancellationForm';
 
@@ -34,29 +35,17 @@ export function CancellationModals({
   const { addCancellation, editCancellation } = useCancellations();
   const { selectedCancellation, setSelectedCancellation } = useSelectionStore();
 
-  const [cancellationReasons, setCancellationReasons] = useState<string[]>([]);
+  const cancellationReasons = useSettingsStore((s) => s.cancellationReasons);
+  const refreshSettings = useSettingsStore((s) => s.refresh);
   const [newReason, setNewReason] = useState('');
   const [editingReasonIndex, setEditingReasonIndex] = useState<number | null>(null);
-
-  const loadSettings = useCallback(async () => {
-    const reasons = await fetchSettings('cancellation_reasons');
-    if (reasons) {
-      setCancellationReasons(reasons);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (modals.settings) {
-      loadSettings();
-    }
-  }, [modals.settings, loadSettings]);
 
   const handleAddReason = async () => {
     if (newReason.trim() && !cancellationReasons.includes(newReason.trim())) {
       const updated = [...cancellationReasons, newReason.trim()].sort();
-      setCancellationReasons(updated);
       try {
         await updateSettings('cancellation_reasons', updated);
+        await refreshSettings();
         setNewReason('');
       } catch (error) {
         console.error('Error saving reason:', error);
@@ -68,9 +57,9 @@ export function CancellationModals({
   const handleDeleteReason = async (index: number) => {
     if (confirm('Are you sure you want to delete this reason?')) {
       const updated = cancellationReasons.filter((_, i) => i !== index);
-      setCancellationReasons(updated);
       try {
         await updateSettings('cancellation_reasons', updated);
+        await refreshSettings();
       } catch (error) {
         console.error('Error deleting reason:', error);
         alert('Failed to delete reason');
@@ -82,10 +71,10 @@ export function CancellationModals({
     const updated = [...cancellationReasons];
     updated[index] = newValue.trim();
     const sorted = updated.sort();
-    setCancellationReasons(sorted);
     setEditingReasonIndex(null);
     try {
       await updateSettings('cancellation_reasons', sorted);
+      await refreshSettings();
     } catch (error) {
       console.error('Error updating reason:', error);
       alert('Failed to update reason');

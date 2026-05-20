@@ -15,6 +15,7 @@ import { closeActiveHold } from '@/lib/supabase/holds';
 import { exportToCSV, formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Cancellation } from '@/types';
 import { CancellationModals } from './modals/CancellationModals';
@@ -41,6 +42,7 @@ export default function CancellationsTab() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('cancellations'));
+  const cancellationReasons = useSettingsStore((s) => s.cancellationReasons);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -76,6 +78,7 @@ export default function CancellationsTab() {
     }
   };
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: pre-existing complexity, refactor deferred
   const confirmCSVImport = async () => {
     if (!importPreviewData || importPreviewData.length === 0) {
       alert('No data to import');
@@ -519,12 +522,11 @@ export default function CancellationsTab() {
               className="form-select"
             >
               <option value="all">All Reasons</option>
-              {/* Reasons will be loaded in CancellationModals */}
-              {/* {cancellationReasons.map((reason) => (
-                  <option key={reason} value={reason}>
-                    {reason}
-                  </option>
-                ))} */}
+              {cancellationReasons.map((reason) => (
+                <option key={reason} value={reason}>
+                  {reason}
+                </option>
+              ))}
             </select>
           </div>
           <div>
