@@ -63,7 +63,10 @@ export const useSignups = () => {
             'warning'
           );
         }
-        await createSignup(validation.data);
+        const year = validation.data.membership_date
+          ? new Date(validation.data.membership_date).getFullYear()
+          : undefined;
+        await createSignup({ ...validation.data, ...(year !== undefined ? { year } : {}) });
         await markMostRecentIntroAsSignedUp(validation.data.name).catch(() => {
           // Silently ignore sync errors
         });

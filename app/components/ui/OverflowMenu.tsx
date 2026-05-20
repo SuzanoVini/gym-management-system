@@ -13,9 +13,10 @@ export interface OverflowMenuItem {
 
 interface OverflowMenuProps {
   items: OverflowMenuItem[];
+  note?: string | undefined;
 }
 
-export default function OverflowMenu({ items }: OverflowMenuProps) {
+export default function OverflowMenu({ items, note }: OverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -72,6 +73,11 @@ export default function OverflowMenu({ items }: OverflowMenuProps) {
             }}
             className="min-w-[160px] bg-white rounded-xl shadow-xl border border-gray-100 py-1 overflow-hidden"
           >
+            {note && (
+              <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-100 max-w-[220px] whitespace-pre-wrap break-words">
+                {note}
+              </div>
+            )}
             {items.map((item) => (
               <button
                 key={item.label}

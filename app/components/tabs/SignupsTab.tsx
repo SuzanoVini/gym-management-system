@@ -336,13 +336,6 @@ export default function SignupsTab() {
         ),
     },
     {
-      key: 'notes' as keyof Signup,
-      label: 'Notes',
-      render: (value: unknown, _item: Signup) => (
-        <div className="text-sm text-gray-500 max-w-xs truncate">{(value as string) || '-'}</div>
-      ),
-    },
-    {
       key: 'year' as keyof Signup,
       label: 'Year',
       render: (value: unknown) => (
@@ -354,6 +347,7 @@ export default function SignupsTab() {
       label: '',
       render: (_value: unknown, signup: Signup) => (
         <OverflowMenu
+          note={signup.notes || undefined}
           items={[
             {
               label: 'Edit',
