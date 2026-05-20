@@ -43,13 +43,18 @@ export const useHolds = () => {
 
       try {
         const sanitized = stripUndefined(validation.data) as HoldFormData;
-        const { data: dup } = await supabase
+        const { data: exactDup } = await supabase
           .from('holds')
           .select('id')
           .ilike('name', sanitized.name.trim())
+          .eq('start', sanitized.start ?? '')
+          .limit(1)
           .maybeSingle();
-        if (dup) {
-          errorHandler.notify(`A hold record already exists for "${sanitized.name}".`, 'warning');
+        if (exactDup) {
+          errorHandler.notify(
+            `A hold for "${sanitized.name}" with the same start date already exists.`,
+            'warning'
+          );
         }
         await createHold(sanitized);
         await loadHolds();

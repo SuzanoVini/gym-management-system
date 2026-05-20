@@ -5,6 +5,7 @@ import { Suspense, useState } from 'react';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import ProtectedRoute from './components/providers/ProtectedRoute';
+import { SettingsProvider } from './components/providers/SettingsProvider';
 import CancellationsTab from './components/tabs/CancellationsTab';
 import FollowUpsTab from './components/tabs/FollowUpsTab';
 import HoldsTab from './components/tabs/HoldsTab';
@@ -40,44 +41,46 @@ function HomeContent() {
 
   return (
     <ProtectedRoute>
-      <div className="app-shell" data-sidebar={isOpen ? 'expanded' : 'collapsed'}>
-        {/* Header Container */}
-        <div>
-          <Header onLogoClick={() => handleTabChange('overview')} />
-        </div>
+      <SettingsProvider>
+        <div className="app-shell" data-sidebar={isOpen ? 'expanded' : 'collapsed'}>
+          {/* Header Container */}
+          <div>
+            <Header onLogoClick={() => handleTabChange('overview')} />
+          </div>
 
-        {/* Sidebar Container */}
-        <div>
-          <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
-        </div>
+          {/* Sidebar Container */}
+          <div>
+            <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+          </div>
 
-        {/* Main Content Container */}
-        <div className="app-main">
-          {/* Main Content Area */}
-          <main className="py-6 sm:py-8">
-            <div className="max-w-full">
-              <div className="animate-fadeIn">
-                {activeTab === 'overview' && <OverviewTab />}
-                {activeTab === 'insights' && <InsightsTab />}
-                {activeTab === 'intros' && <IntrosTab />}
-                {activeTab === 'followups' && <FollowUpsTab />}
-                {activeTab === 'signups' && <SignupsTab />}
-                {activeTab === 'cancellations' && <CancellationsTab />}
-                {activeTab === 'holds' && <HoldsTab />}
+          {/* Main Content Container */}
+          <div className="app-main">
+            {/* Main Content Area */}
+            <main className="py-6 sm:py-8">
+              <div className="max-w-full">
+                <div className="animate-fadeIn">
+                  {activeTab === 'overview' && <OverviewTab />}
+                  {activeTab === 'insights' && <InsightsTab />}
+                  {activeTab === 'intros' && <IntrosTab />}
+                  {activeTab === 'followups' && <FollowUpsTab />}
+                  {activeTab === 'signups' && <SignupsTab />}
+                  {activeTab === 'cancellations' && <CancellationsTab />}
+                  {activeTab === 'holds' && <HoldsTab />}
+                </div>
               </div>
-            </div>
-          </main>
+            </main>
 
-          {/* Footer */}
-          <footer className="bg-white/60 backdrop-blur-md border-t border-slate-200/60 mt-12">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <p className="text-center text-sm text-slate-600 font-medium">
-                &copy; {new Date().getFullYear()} Gracie Barra Kitsilano. All rights reserved.
-              </p>
-            </div>
-          </footer>
+            {/* Footer */}
+            <footer className="bg-white/60 backdrop-blur-md border-t border-slate-200/60 mt-12">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <p className="text-center text-sm text-slate-600 font-medium">
+                  &copy; {new Date().getFullYear()} Gracie Barra Kitsilano. All rights reserved.
+                </p>
+              </div>
+            </footer>
+          </div>
         </div>
-      </div>
+      </SettingsProvider>
     </ProtectedRoute>
   );
 }

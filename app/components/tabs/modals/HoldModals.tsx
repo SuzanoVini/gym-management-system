@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import type { HoldCsvRecord } from '@/lib/csv';
 import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { HoldFormData } from '@/types';
 import { HoldForm } from '../forms/HoldForm';
@@ -21,8 +22,6 @@ interface HoldModalsProps {
   importYear: number;
   onImportYearChange: (year: number) => void;
   onImportClose: () => void;
-  holdReasons: string[];
-  onHoldReasonsChange: () => void | Promise<void>;
   addHold: (hold: HoldFormData) => Promise<void>;
   editHold: (id: string, updates: Partial<HoldFormData>) => Promise<void>;
 }
@@ -33,13 +32,13 @@ export function HoldModals({
   importYear,
   onImportYearChange,
   onImportClose,
-  holdReasons,
-  onHoldReasonsChange,
   addHold,
   editHold,
 }: HoldModalsProps) {
   const { modals, closeModal } = useUIStore();
   const { selectedHold, setSelectedHold } = useSelectionStore();
+  const holdReasons = useSettingsStore((s) => s.holdReasons);
+  const refreshSettings = useSettingsStore((s) => s.refresh);
 
   const [newReason, setNewReason] = useState('');
   const [editingReasonIndex, setEditingReasonIndex] = useState<number | null>(null);
@@ -49,7 +48,7 @@ export function HoldModals({
       const updated = [...holdReasons, newReason.trim()].sort();
       try {
         await updateSettings('hold_reasons', updated);
-        await onHoldReasonsChange();
+        await refreshSettings();
         setNewReason('');
       } catch (error) {
         console.error('Error saving reason:', error);
@@ -63,7 +62,7 @@ export function HoldModals({
       const updated = holdReasons.filter((_, i) => i !== index);
       try {
         await updateSettings('hold_reasons', updated);
-        await onHoldReasonsChange();
+        await refreshSettings();
       } catch (error) {
         console.error('Error deleting reason:', error);
         alert('Failed to delete reason');
@@ -75,10 +74,10 @@ export function HoldModals({
     const updated = [...holdReasons];
     updated[index] = newValue.trim();
     const sorted = updated.sort();
-    setEditingReasonIndex(null);
     try {
       await updateSettings('hold_reasons', sorted);
-      await onHoldReasonsChange();
+      await refreshSettings();
+      setEditingReasonIndex(null);
     } catch (error) {
       console.error('Error updating reason:', error);
       alert('Failed to update reason');

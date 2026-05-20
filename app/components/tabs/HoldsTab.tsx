@@ -1,7 +1,7 @@
 'use client';
 
 import { Download, Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
@@ -11,10 +11,10 @@ import { useHolds } from '@/hooks/useHolds';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { type HoldCsvRecord, parseHoldsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
-import { fetchSettings } from '@/lib/supabase/settings';
 import { exportToCSV, formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Hold } from '@/types';
 import { HoldModals } from './modals/HoldModals';
@@ -40,16 +40,7 @@ export default function HoldsTab() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('holds'));
-  const [holdReasons, setHoldReasons] = useState<string[]>([]);
-
-  const refreshHoldReasons = useCallback(async () => {
-    const reasons = await fetchSettings('hold_reasons');
-    setHoldReasons(reasons);
-  }, []);
-
-  useEffect(() => {
-    void refreshHoldReasons();
-  }, [refreshHoldReasons]);
+  const holdReasons = useSettingsStore((s) => s.holdReasons);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -621,8 +612,6 @@ export default function HoldsTab() {
           setImportFile(null);
           setImportPreviewData([]);
         }}
-        holdReasons={holdReasons}
-        onHoldReasonsChange={refreshHoldReasons}
         addHold={addHold}
         editHold={editHold}
       />

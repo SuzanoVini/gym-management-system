@@ -198,7 +198,13 @@ export function SignupForm({
         </button>
         <button
           type="submit"
-          disabled={loading || !formData.name || !formData.month || !formData.membership}
+          disabled={
+            loading ||
+            !formData.name ||
+            !formData.month ||
+            !formData.membership ||
+            !formData.membership_date
+          }
           className="btn btn-primary"
         >
           {loading ? 'Saving...' : 'Save'}

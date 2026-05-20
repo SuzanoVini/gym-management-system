@@ -178,7 +178,7 @@ export function HoldForm({
         </button>
         <button
           type="submit"
-          disabled={loading || !formData.name || !formData.month}
+          disabled={loading || !formData.name || !formData.month || !formData.start}
           className="btn btn-primary"
         >
           {loading ? 'Saving...' : 'Save'}

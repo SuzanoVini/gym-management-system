@@ -7,15 +7,16 @@ import { errorHandler } from '@/lib/errorHandler';
 import { updateSystemNameInMappings } from '@/lib/supabase/classMappings';
 import { supabase } from '@/lib/supabase/client';
 import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSettingsChange?: () => void;
 }
 
-export default function SettingsModal({ isOpen, onClose, onSettingsChange }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const { isOwner } = useAuth();
+  const refreshSettings = useSettingsStore((s) => s.refresh);
   const [classTypes, setClassTypes] = useState<string[]>([]);
   const [staffMembers, setStaffMembers] = useState<string[]>([]);
   const [newClassType, setNewClassType] = useState('');
@@ -60,7 +61,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }: Set
       await updateSettings('class_types', updated);
       setClassTypes(updated);
       setNewClassType('');
-      onSettingsChange?.();
+      void refreshSettings();
       errorHandler.notify('Class type added successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'addClassType');
@@ -80,7 +81,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }: Set
       await updateSettings('staff_members', updated);
       setStaffMembers(updated);
       setNewStaffMember('');
-      onSettingsChange?.();
+      void refreshSettings();
       errorHandler.notify('Staff member added successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'addStaffMember');
@@ -118,7 +119,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }: Set
       }
 
       await updateSystemNameInMappings(original, newName);
-      onSettingsChange?.();
+      void refreshSettings();
       errorHandler.notify(`Class renamed to "${newName}"`, 'success');
       setEditingClass(null);
     } catch (err) {
@@ -156,7 +157,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }: Set
         }
       }
 
-      onSettingsChange?.();
+      void refreshSettings();
       errorHandler.notify(`Staff renamed to "${newName}"`, 'success');
       setEditingStaff(null);
     } catch (err) {
@@ -172,7 +173,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }: Set
       const updated = classTypes.filter((ct) => ct !== classType);
       await updateSettings('class_types', updated);
       setClassTypes(updated);
-      onSettingsChange?.();
+      void refreshSettings();
       errorHandler.notify('Class type removed successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'removeClassType');
@@ -187,7 +188,7 @@ export default function SettingsModal({ isOpen, onClose, onSettingsChange }: Set
       const updated = staffMembers.filter((sm) => sm !== staffMember);
       await updateSettings('staff_members', updated);
       setStaffMembers(updated);
-      onSettingsChange?.();
+      void refreshSettings();
       errorHandler.notify('Staff member removed successfully', 'success');
     } catch (err) {
       errorHandler.handle(err, 'removeStaffMember');

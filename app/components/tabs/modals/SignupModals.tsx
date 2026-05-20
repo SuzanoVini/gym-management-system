@@ -4,6 +4,7 @@ import Modal from '@/components/ui/Modal';
 import type { SignupCsvRecord } from '@/lib/csv';
 import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { SignupFormData } from '@/types';
 import { SignupForm } from '../forms/SignupForm';
@@ -21,8 +22,6 @@ interface SignupModalsProps {
   importYear: number;
   onImportYearChange: (year: number) => void;
   onImportClose: () => void;
-  membershipTypes: string[];
-  onMembershipTypesChange: () => void | Promise<void>;
   addSignup: (signup: SignupFormData) => Promise<void>;
   editSignup: (id: string, updates: Partial<SignupFormData>) => Promise<void>;
 }
@@ -33,13 +32,13 @@ export function SignupModals({
   importYear,
   onImportYearChange,
   onImportClose,
-  membershipTypes,
-  onMembershipTypesChange,
   addSignup,
   editSignup,
 }: SignupModalsProps) {
   const { modals, closeModal } = useUIStore();
   const { selectedSignup, setSelectedSignup } = useSelectionStore();
+  const membershipTypes = useSettingsStore((s) => s.membershipTypes);
+  const refreshSettings = useSettingsStore((s) => s.refresh);
 
   const [newMembershipType, setNewMembershipType] = useState('');
   const [editingMembershipIndex, setEditingMembershipIndex] = useState<number | null>(null);
@@ -49,7 +48,7 @@ export function SignupModals({
       const updated = [...membershipTypes, newMembershipType.trim()].sort();
       try {
         await updateSettings('membership_types', updated);
-        await onMembershipTypesChange();
+        await refreshSettings();
         setNewMembershipType('');
       } catch (error) {
         console.error('Error saving membership type:', error);
@@ -63,7 +62,7 @@ export function SignupModals({
       const updated = membershipTypes.filter((_, i) => i !== index);
       try {
         await updateSettings('membership_types', updated);
-        await onMembershipTypesChange();
+        await refreshSettings();
       } catch (error) {
         console.error('Error deleting membership type:', error);
         alert('Failed to delete membership type');
@@ -75,10 +74,10 @@ export function SignupModals({
     const updated = [...membershipTypes];
     updated[index] = newValue.trim();
     const sorted = updated.sort();
-    setEditingMembershipIndex(null);
     try {
       await updateSettings('membership_types', sorted);
-      await onMembershipTypesChange();
+      await refreshSettings();
+      setEditingMembershipIndex(null);
     } catch (error) {
       console.error('Error updating membership type:', error);
       alert('Failed to update membership type');

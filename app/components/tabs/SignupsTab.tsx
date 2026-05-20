@@ -1,7 +1,7 @@
 'use client';
 
 import { Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
@@ -12,10 +12,10 @@ import { useSignups } from '@/hooks/useSignups';
 import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
-import { fetchSettings } from '@/lib/supabase/settings';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Signup } from '@/types';
 import { SignupModals } from './modals/SignupModals';
@@ -41,16 +41,7 @@ export default function SignupsTab() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('signups'));
-  const [membershipTypes, setMembershipTypes] = useState<string[]>([]);
-
-  const refreshMembershipTypes = useCallback(async () => {
-    const types = await fetchSettings('membership_types');
-    setMembershipTypes(types);
-  }, []);
-
-  useEffect(() => {
-    void refreshMembershipTypes();
-  }, [refreshMembershipTypes]);
+  const membershipTypes = useSettingsStore((s) => s.membershipTypes);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -86,6 +77,7 @@ export default function SignupsTab() {
     }
   };
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: pre-existing complexity, refactor deferred
   const confirmCSVImport = async () => {
     if (!importPreviewData || importPreviewData.length === 0) {
       alert('No data to import');
@@ -98,10 +90,15 @@ export default function SignupsTab() {
         if (!row.name || !row.month) {
           return false;
         }
-        const isDuplicate = signups.some(
-          (s) =>
-            s.name.toLowerCase().trim() === row.name.toLowerCase().trim() && s.month === row.month
-        );
+        const isDuplicate = signups.some((s) => {
+          if (s.name.toLowerCase().trim() !== row.name.toLowerCase().trim()) {
+            return false;
+          }
+          if (s.membership_date && row.membership_date) {
+            return s.membership_date === row.membership_date;
+          }
+          return s.month === row.month && String(s.year) === String(importYear);
+        });
         return !isDuplicate;
       });
 
@@ -585,8 +582,6 @@ export default function SignupsTab() {
           setImportFile(null);
           setImportPreviewData([]);
         }}
-        membershipTypes={membershipTypes}
-        onMembershipTypesChange={refreshMembershipTypes}
         addSignup={addSignup}
         editSignup={editSignup}
       />

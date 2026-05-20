@@ -12,7 +12,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
 import QuickSignupModal from '@/components/tabs/QuickSignupModal';
 import CopyButton from '@/components/ui/CopyButton';
@@ -28,10 +28,10 @@ import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
-import { fetchSettings } from '@/lib/supabase/settings';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Intro } from '@/types';
 import IntroForm from './forms/IntroForm';
@@ -68,23 +68,10 @@ export default function IntrosTab() {
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('intros'));
-  const [classTypes, setClassTypes] = useState<string[]>([]);
-  const [staffMembers, setStaffMembers] = useState<string[]>([]);
+  const classTypes = useSettingsStore((s) => s.classTypes);
+  const staffMembers = useSettingsStore((s) => s.staffMembers);
   const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
   const [pendingSignupIntro, setPendingSignupIntro] = useState<Intro | null>(null);
-
-  const refreshSettings = useCallback(async () => {
-    const [classes, staff] = await Promise.all([
-      fetchSettings('class_types'),
-      fetchSettings('staff_members'),
-    ]);
-    setClassTypes(classes);
-    setStaffMembers(staff);
-  }, []);
-
-  useEffect(() => {
-    void refreshSettings();
-  }, [refreshSettings]);
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -747,11 +734,7 @@ export default function IntrosTab() {
         intro={selectedIntro}
       />
 
-      <SettingsModal
-        isOpen={modals.settings}
-        onClose={() => closeModal('settings')}
-        onSettingsChange={refreshSettings}
-      />
+      <SettingsModal isOpen={modals.settings} onClose={() => closeModal('settings')} />
 
       {resolvingIntro && (
         <ClassResolutionPopover
