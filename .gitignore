@@ -82,3 +82,6 @@ pickup-route*/
 /playwright-report/
 /test-results/
 /.env.test.local
+
+# Supabase
+supabase/migrations/RUN_IN_ORDER.md
