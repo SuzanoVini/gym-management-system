@@ -1,12 +1,12 @@
 import { Edit2, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { useCancellations } from '@/hooks/useCancellations';
 import type { CancellationCsvRecord } from '@/lib/csv';
 import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
+import type { CancellationFormData } from '@/types';
 import { CancellationForm } from '../forms/CancellationForm';
 
 const CancellationModalIcons = {
@@ -17,6 +17,8 @@ const CancellationModalIcons = {
 };
 
 interface CancellationModalsProps {
+  addCancellation: (data: CancellationFormData) => Promise<void>;
+  editCancellation: (id: string, updates: Partial<CancellationFormData>) => Promise<void>;
   importPreviewData: CancellationCsvRecord[];
   confirmCSVImport: () => Promise<void>;
   importYear: number;
@@ -25,6 +27,8 @@ interface CancellationModalsProps {
 }
 
 export function CancellationModals({
+  addCancellation,
+  editCancellation,
   importPreviewData,
   confirmCSVImport,
   importYear,
@@ -32,7 +36,6 @@ export function CancellationModals({
   onImportClose,
 }: CancellationModalsProps) {
   const { modals, closeModal } = useUIStore();
-  const { addCancellation, editCancellation } = useCancellations();
   const { selectedCancellation, setSelectedCancellation } = useSelectionStore();
 
   const cancellationReasons = useSettingsStore((s) => s.cancellationReasons);
@@ -89,7 +92,10 @@ export function CancellationModals({
         title="Add New Cancellation"
       >
         <CancellationForm
-          onSubmit={addCancellation}
+          onSubmit={async (data) => {
+            await addCancellation(data);
+            closeModal('addCancellation');
+          }}
           onCancel={() => closeModal('addCancellation')}
           cancellationReasons={cancellationReasons}
         />
@@ -101,11 +107,13 @@ export function CancellationModals({
       >
         <CancellationForm
           cancellation={selectedCancellation}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (!selectedCancellation) {
               return;
             }
-            editCancellation(selectedCancellation.id, data);
+            await editCancellation(selectedCancellation.id, data);
+            closeModal('editCancellation');
+            setSelectedCancellation(null);
           }}
           onCancel={() => {
             closeModal('editCancellation');

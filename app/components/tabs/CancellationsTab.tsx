@@ -24,7 +24,15 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const AGE_GROUPS = ['3-6 YO', '7-9 YO', '10-15 YO', 'Adult'];
 
 export default function CancellationsTab() {
-  const { cancellations, loading, error, removeCancellation, refresh } = useCancellations();
+  const {
+    cancellations,
+    loading,
+    error,
+    addCancellation,
+    editCancellation,
+    removeCancellation,
+    refresh,
+  } = useCancellations();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
   const selectionTab: SelectionTabKey = 'cancellations';
@@ -595,6 +603,8 @@ export default function CancellationsTab() {
       </div>
 
       <CancellationModals
+        addCancellation={addCancellation}
+        editCancellation={editCancellation}
         importPreviewData={importPreviewData}
         confirmCSVImport={confirmCSVImport}
         importYear={importYear}
