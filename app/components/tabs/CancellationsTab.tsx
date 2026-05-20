@@ -343,13 +343,6 @@ export default function CancellationsTab() {
       ),
     },
     {
-      key: 'notes' as keyof Cancellation,
-      label: 'Notes',
-      render: (value: unknown, _item: Cancellation) => (
-        <div className="text-sm text-gray-500 max-w-xs truncate">{(value as string) || '-'}</div>
-      ),
-    },
-    {
       key: 'year' as keyof Cancellation,
       label: 'Year',
       render: (value: unknown) => (
@@ -361,6 +354,7 @@ export default function CancellationsTab() {
       label: '',
       render: (_value: unknown, cancellation: Cancellation) => (
         <OverflowMenu
+          note={cancellation.notes || undefined}
           items={[
             {
               label: 'Edit',
