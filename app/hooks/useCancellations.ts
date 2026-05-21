@@ -68,12 +68,13 @@ export const useCancellations = () => {
             'warning'
           );
         }
-        await createCancellation(validation.data);
-        if (validation.data.date) {
-          await closeActiveHold(validation.data.name, validation.data.date).catch(() => {
-            // Silently ignore sync errors
-          });
-        }
+        await createCancellation({
+          ...validation.data,
+          year: new Date(validation.data.date).getFullYear(),
+        });
+        await closeActiveHold(validation.data.name, validation.data.date).catch(() => {
+          // Silently ignore sync errors
+        });
         await loadCancellations();
         errorHandler.notify('Cancellation added successfully', 'success');
       } catch (err) {
