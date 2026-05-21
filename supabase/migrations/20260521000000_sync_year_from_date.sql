@@ -6,7 +6,7 @@ RETURNS trigger AS $$
 BEGIN
   IF TG_TABLE_NAME = 'holds' THEN
     NEW.year := CASE
-      WHEN NEW.start IS NOT NULL THEN EXTRACT(YEAR FROM NEW.start::date)::integer
+      WHEN NEW.start_date IS NOT NULL THEN EXTRACT(YEAR FROM NEW.start_date::date)::integer
       ELSE NULL
     END;
   ELSIF TG_TABLE_NAME = 'signups' THEN
@@ -41,7 +41,7 @@ CREATE TRIGGER sync_year_intros
   FOR EACH ROW EXECUTE FUNCTION derive_year_from_date();
 
 -- Backfill existing rows that were saved before year tracking was hardened.
-UPDATE holds        SET year = EXTRACT(YEAR FROM start::date)::integer           WHERE start IS NOT NULL;
+UPDATE holds        SET year = EXTRACT(YEAR FROM start_date::date)::integer        WHERE start_date IS NOT NULL;
 UPDATE signups      SET year = EXTRACT(YEAR FROM membership_date::date)::integer  WHERE membership_date IS NOT NULL;
-UPDATE cancellations SET year = EXTRACT(YEAR FROM date::date)::integer            WHERE date IS NOT NULL;
-UPDATE intros       SET year = EXTRACT(YEAR FROM date::date)::integer             WHERE date IS NOT NULL;
+UPDATE cancellations SET year = EXTRACT(YEAR FROM "date"::date)::integer          WHERE "date" IS NOT NULL;
+UPDATE intros       SET year = EXTRACT(YEAR FROM "date"::date)::integer           WHERE "date" IS NOT NULL;
