@@ -56,7 +56,10 @@ export const useHolds = () => {
             'warning'
           );
         }
-        await createHold(sanitized);
+        await createHold({
+          ...sanitized,
+          year: new Date(validation.data.start).getFullYear(),
+        });
         await loadHolds();
         errorHandler.notify('Hold added successfully', 'success');
       } catch (err) {
