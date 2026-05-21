@@ -223,10 +223,11 @@ export interface Database {
           updated_at: string;
           month: string;
           name: string;
-          start_date: string | null;
-          end_date: string | null;
+          start: string | null;
+          end: string | null;
           reason: string | null;
           fee: string | null;
+          year: number | null;
           created_by: string | null;
         };
         Insert: {
@@ -235,10 +236,11 @@ export interface Database {
           updated_at?: string;
           month: string;
           name: string;
-          start_date?: string | null;
-          end_date?: string | null;
+          start?: string | null;
+          end?: string | null;
           reason?: string | null;
           fee?: string | null;
+          year?: number | null;
           created_by?: string | null;
         };
         Update: {
@@ -247,10 +249,11 @@ export interface Database {
           updated_at?: string;
           month?: string;
           name?: string;
-          start_date?: string | null;
-          end_date?: string | null;
+          start?: string | null;
+          end?: string | null;
           reason?: string | null;
           fee?: string | null;
+          year?: number | null;
           created_by?: string | null;
         };
       };
