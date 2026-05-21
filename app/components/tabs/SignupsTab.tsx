@@ -1,7 +1,8 @@
 'use client';
 
-import { Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
+import { Edit2, FileText, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
@@ -42,6 +43,7 @@ export default function SignupsTab() {
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('signups'));
   const membershipTypes = useSettingsStore((s) => s.membershipTypes);
+  const [viewingNote, setViewingNote] = useState<string | null>(null);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -347,8 +349,16 @@ export default function SignupsTab() {
       label: '',
       render: (_value: unknown, signup: Signup) => (
         <OverflowMenu
-          note={signup.notes || undefined}
           items={[
+            ...(signup.notes
+              ? [
+                  {
+                    label: 'Notes',
+                    icon: FileText,
+                    onClick: () => setViewingNote(signup.notes ?? ''),
+                  },
+                ]
+              : []),
             {
               label: 'Edit',
               icon: Edit2,
@@ -566,6 +576,15 @@ export default function SignupsTab() {
           />
         </div>
       </div>
+
+      <Modal isOpen={viewingNote !== null} onClose={() => setViewingNote(null)} title="Notes">
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingNote}</p>
+        <div className="mt-6 flex justify-end">
+          <button type="button" onClick={() => setViewingNote(null)} className="btn btn-tertiary">
+            Close
+          </button>
+        </div>
+      </Modal>
 
       <SignupModals
         importPreviewData={importPreviewData}

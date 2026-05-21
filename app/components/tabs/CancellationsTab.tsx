@@ -1,7 +1,8 @@
 'use client';
 
-import { Download, Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
+import { Download, Edit2, FileText, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
@@ -51,6 +52,7 @@ export default function CancellationsTab() {
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('cancellations'));
   const cancellationReasons = useSettingsStore((s) => s.cancellationReasons);
+  const [viewingNote, setViewingNote] = useState<string | null>(null);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -354,8 +356,16 @@ export default function CancellationsTab() {
       label: '',
       render: (_value: unknown, cancellation: Cancellation) => (
         <OverflowMenu
-          note={cancellation.notes || undefined}
           items={[
+            ...(cancellation.notes
+              ? [
+                  {
+                    label: 'Notes',
+                    icon: FileText,
+                    onClick: () => setViewingNote(cancellation.notes ?? ''),
+                  },
+                ]
+              : []),
             {
               label: 'Edit',
               icon: Edit2,
@@ -595,6 +605,15 @@ export default function CancellationsTab() {
           />
         </div>
       </div>
+
+      <Modal isOpen={viewingNote !== null} onClose={() => setViewingNote(null)} title="Notes">
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">{viewingNote}</p>
+        <div className="mt-6 flex justify-end">
+          <button type="button" onClick={() => setViewingNote(null)} className="btn btn-tertiary">
+            Close
+          </button>
+        </div>
+      </Modal>
 
       <CancellationModals
         addCancellation={addCancellation}
