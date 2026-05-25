@@ -211,6 +211,28 @@ export const fetchFollowUpNotes = async (introId: string) => {
   return data;
 };
 
+export const updateFollowUpNote = async (id: string, note: string) => {
+  const { data, error } = await supabase
+    .from('follow_up_notes')
+    .update({ note })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+  return data;
+};
+
+export const deleteFollowUpNote = async (id: string) => {
+  const { error } = await supabase.from('follow_up_notes').delete().eq('id', id);
+
+  if (error) {
+    throw error;
+  }
+};
+
 // REAL-TIME SUBSCRIPTIONS
 export const subscribeToIntros = (callback: (payload: unknown) => void) => {
   return supabase

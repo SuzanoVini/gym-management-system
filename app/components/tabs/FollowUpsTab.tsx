@@ -2,6 +2,7 @@
 
 import { Download } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import NotesManagerModal from '@/components/tabs/modals/NotesManagerModal';
 import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
 import PaginationBar from '@/components/ui/PaginationBar';
 import { type FollowUpRow, useFollowUps } from '@/hooks/useFollowUps';
@@ -105,6 +106,7 @@ export default function FollowUpsTab() {
     useFollowUps();
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [page, setPage] = useState(1);
+  const [selectedIntroForNotes, setSelectedIntroForNotes] = useState<FollowUpRow | null>(null);
 
   const handleNoteQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNoteQuery(e.target.value);
@@ -205,8 +207,14 @@ export default function FollowUpsTab() {
                     <td className="px-4 py-3 text-gray-600">{row.staff}</td>
                     <td className="px-4 py-3">{dueBadge(row)}</td>
                     <td className="px-4 py-3">{due2Badge(row)}</td>
-                    <td className="px-4 py-3 text-gray-500 italic max-w-[200px] truncate">
-                      {preview || <span className="text-gray-300">No notes</span>}
+                    <td className="px-4 py-3 max-w-[200px]">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedIntroForNotes(row)}
+                        className="text-left text-gray-500 italic truncate w-full hover:text-blue-600 hover:underline transition-colors"
+                      >
+                        {preview || <span className="text-gray-300">No notes</span>}
+                      </button>
                     </td>
                     <td className="px-4 py-3">
                       <FollowUpCheckButton intro={row} onUpdate={silentRefresh} />
@@ -230,6 +238,13 @@ export default function FollowUpsTab() {
         endIndex={endIndex}
         onPageChange={setPage}
         onItemsPerPageChange={handleItemsPerPageChange}
+      />
+
+      <NotesManagerModal
+        isOpen={!!selectedIntroForNotes}
+        onClose={() => setSelectedIntroForNotes(null)}
+        intro={selectedIntroForNotes}
+        onChanged={silentRefresh}
       />
     </div>
   );

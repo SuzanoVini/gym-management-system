@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   Edit2,
+  List,
   Mail,
   MessageSquare,
   Phone,
@@ -36,6 +37,7 @@ import { useUIStore } from '@/store/useUIStore';
 import type { Intro } from '@/types';
 import IntroForm from './forms/IntroForm';
 import FollowUpModal from './modals/FollowUpModal';
+import NotesManagerModal from './modals/NotesManagerModal';
 import SettingsModal from './modals/SettingsModal';
 
 function formatFormerMemberDate(iso: string): string {
@@ -72,6 +74,7 @@ export default function IntrosTab() {
   const staffMembers = useSettingsStore((s) => s.staffMembers);
   const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
   const [pendingSignupIntro, setPendingSignupIntro] = useState<Intro | null>(null);
+  const [selectedIntroForNotes, setSelectedIntroForNotes] = useState<Intro | null>(null);
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -463,9 +466,17 @@ export default function IntrosTab() {
           <OverflowMenu
             items={[
               {
-                label: 'Add Note',
+                label: 'Quick Note',
                 icon: MessageSquare,
                 onClick: () => handleFollowUpClick(intro),
+              },
+              {
+                label: 'Manage Notes',
+                icon: List,
+                onClick: () => {
+                  setSelectedIntroForNotes(intro);
+                  openModal('notesManager');
+                },
               },
               {
                 label: 'Edit',
@@ -735,6 +746,16 @@ export default function IntrosTab() {
       />
 
       <SettingsModal isOpen={modals.settings} onClose={() => closeModal('settings')} />
+
+      <NotesManagerModal
+        isOpen={modals.notesManager}
+        onClose={() => {
+          closeModal('notesManager');
+          setSelectedIntroForNotes(null);
+        }}
+        intro={selectedIntroForNotes}
+        onChanged={silentRefresh}
+      />
 
       {resolvingIntro && (
         <ClassResolutionPopover
