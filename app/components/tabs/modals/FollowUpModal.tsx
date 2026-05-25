@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, FormField } from '@/components/ui/Form';
+import { FormField } from '@/components/ui/Form';
 import Modal from '@/components/ui/Modal';
 import { errorHandler } from '@/lib/errorHandler';
 import { createFollowUpNote } from '@/lib/supabase/intros';
+import { resolveStaffName } from '@/lib/supabase/profiles';
 import type { Intro } from '@/types';
 
 interface FollowUpModalProps {
@@ -15,7 +16,6 @@ interface FollowUpModalProps {
 
 export default function FollowUpModal({ isOpen, onClose, intro }: FollowUpModalProps) {
   const [note, setNote] = useState('');
-  const [staffName, setStaffName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,14 +27,14 @@ export default function FollowUpModal({ isOpen, onClose, intro }: FollowUpModalP
 
     try {
       setLoading(true);
+      const staffName = await resolveStaffName();
       await createFollowUpNote({
         intro_id: intro.id,
         note: note.trim(),
-        staff_name: staffName.trim() || 'Unknown',
+        staff_name: staffName,
       });
 
       setNote('');
-      setStaffName('');
       onClose();
       errorHandler.notify('Follow-up note added successfully', 'success');
     } catch (err) {
@@ -47,29 +47,19 @@ export default function FollowUpModal({ isOpen, onClose, intro }: FollowUpModalP
   const handleClose = () => {
     if (!loading) {
       setNote('');
-      setStaffName('');
       onClose();
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Add Follow-up Note" size="md">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Quick Note" size="md">
       <div className="mb-4">
         <p className="text-sm text-gray-600">
-          Adding follow-up for: <span className="font-medium">{intro?.name}</span>
+          Adding note for: <span className="font-medium">{intro?.name}</span>
         </p>
       </div>
 
-      <Form onSubmit={handleSubmit} loading={loading}>
-        <FormField
-          label="Staff Name"
-          name="staffName"
-          value={staffName}
-          onChange={(value) => setStaffName(value as string)}
-          placeholder="Enter your name"
-          required
-        />
-
+      <form onSubmit={handleSubmit} className="space-y-4">
         <FormField
           label="Follow-up Note"
           name="note"
@@ -97,7 +87,7 @@ export default function FollowUpModal({ isOpen, onClose, intro }: FollowUpModalP
             {loading ? 'Adding...' : 'Add Note'}
           </button>
         </div>
-      </Form>
+      </form>
     </Modal>
   );
 }

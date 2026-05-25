@@ -333,3 +333,16 @@ export const subscribeToProfile = (userId: string, callback: (payload: any) => v
     )
     .subscribe();
 };
+
+export async function resolveStaffName(): Promise<string> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
+      return 'Unknown';
+    }
+    const profile = await fetchUserProfile(data.user.id);
+    return profile?.full_name || 'Unknown';
+  } catch {
+    return 'Unknown';
+  }
+}

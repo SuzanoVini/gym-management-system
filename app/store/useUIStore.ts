@@ -18,6 +18,7 @@ interface UIState {
     addSignup: boolean;
     editSignup: boolean;
     importPreview: boolean;
+    notesManager: boolean;
   };
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -41,6 +42,7 @@ const initialState = {
     addSignup: false,
     editSignup: false,
     importPreview: false,
+    notesManager: false,
   },
 };
 
