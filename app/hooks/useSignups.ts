@@ -1,10 +1,17 @@
 // hooks/useSignups.ts
 import { useCallback, useEffect, useState } from 'react';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { errorHandler } from '@/lib/errorHandler';
 import { supabase } from '@/lib/supabase/client';
 import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
 import { checkMemberStatus } from '@/lib/supabase/memberStatus';
-import { createSignup, deleteSignup, fetchSignups, updateSignup } from '@/lib/supabase/signups';
+import {
+  createSignup,
+  deleteSignup,
+  fetchSignups,
+  subscribeToSignups,
+  updateSignup,
+} from '@/lib/supabase/signups';
 import { signupSchema, validate } from '@/lib/validations';
 import type { Signup, SignupFormData } from '@/types';
 
@@ -25,6 +32,15 @@ export const useSignups = () => {
       errorHandler.handle(error, 'loadSignups');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await fetchSignups();
+      setSignups(data);
+    } catch (err) {
+      errorHandler.handle(err, 'useSignups.silentRefresh');
     }
   }, []);
 
@@ -124,11 +140,14 @@ export const useSignups = () => {
     loadSignups();
   }, [loadSignups]);
 
+  useRealtimeRefresh(subscribeToSignups, silentRefresh);
+
   return {
     signups,
     loading,
     error,
     refresh: loadSignups,
+    silentRefresh,
     addSignup,
     editSignup,
     removeSignup,

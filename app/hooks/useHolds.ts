@@ -1,8 +1,15 @@
 // hooks/useHolds.ts
 import { useCallback, useEffect, useState } from 'react';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { errorHandler } from '@/lib/errorHandler';
 import { supabase } from '@/lib/supabase/client';
-import { createHold, deleteHold, fetchHolds, updateHold } from '@/lib/supabase/holds';
+import {
+  createHold,
+  deleteHold,
+  fetchHolds,
+  subscribeToHolds,
+  updateHold,
+} from '@/lib/supabase/holds';
 import { holdSchema, validate } from '@/lib/validations';
 import type { Hold, HoldFormData } from '@/types';
 
@@ -27,6 +34,15 @@ export const useHolds = () => {
       errorHandler.handle(error, 'loadHolds');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await fetchHolds();
+      setHolds(data);
+    } catch (err) {
+      errorHandler.handle(err, 'useHolds.silentRefresh');
     }
   }, []);
 
@@ -110,11 +126,14 @@ export const useHolds = () => {
     loadHolds();
   }, [loadHolds]);
 
+  useRealtimeRefresh(subscribeToHolds, silentRefresh);
+
   return {
     holds,
     loading,
     error,
     refresh: loadHolds,
+    silentRefresh,
     addHold,
     editHold,
     removeHold,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { errorHandler } from '@/lib/errorHandler';
-import { fetchLastMemberSyncAt, fetchMembers } from '@/lib/supabase/members';
+import { fetchLastMemberSyncAt, fetchMembers, subscribeToMembers } from '@/lib/supabase/members';
 import type { Member } from '@/types';
 
 export const useMembers = () => {
@@ -25,9 +26,21 @@ export const useMembers = () => {
     }
   }, []);
 
+  const silentRefresh = useCallback(async () => {
+    try {
+      const [memberRows, syncAt] = await Promise.all([fetchMembers(), fetchLastMemberSyncAt()]);
+      setMembers(memberRows);
+      setLastSyncAt(syncAt);
+    } catch (err) {
+      errorHandler.handle(err, 'useMembers.silentRefresh');
+    }
+  }, []);
+
   useEffect(() => {
     loadMembers();
   }, [loadMembers]);
+
+  useRealtimeRefresh(subscribeToMembers, silentRefresh);
 
   return { members, lastSyncAt, loading, error, refresh: loadMembers };
 };

@@ -1,10 +1,12 @@
 // hooks/useCancellations.ts
 import { useCallback, useEffect, useState } from 'react';
+import { useRealtimeRefresh } from '@/hooks/useRealtimeRefresh';
 import { errorHandler } from '@/lib/errorHandler';
 import {
   createCancellation,
   deleteCancellation,
   fetchCancellations,
+  subscribeToCancellations,
   updateCancellation,
 } from '@/lib/supabase/cancellations';
 import { supabase } from '@/lib/supabase/client';
@@ -30,6 +32,15 @@ export const useCancellations = () => {
       errorHandler.handle(error, 'loadCancellations');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await fetchCancellations();
+      setCancellations(data);
+    } catch (err) {
+      errorHandler.handle(err, 'useCancellations.silentRefresh');
     }
   }, []);
 
@@ -124,11 +135,14 @@ export const useCancellations = () => {
     loadCancellations();
   }, [loadCancellations]);
 
+  useRealtimeRefresh(subscribeToCancellations, silentRefresh);
+
   return {
     cancellations,
     loading,
     error,
     refresh: loadCancellations,
+    silentRefresh,
     addCancellation,
     editCancellation,
     removeCancellation,

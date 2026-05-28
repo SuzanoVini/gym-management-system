@@ -29,6 +29,13 @@ export const fetchLastMemberSyncAt = async (): Promise<string | null> => {
   return data?.last_sync_at ?? null;
 };
 
+export const subscribeToMembers = (callback: (payload: unknown) => void) => {
+  return supabase
+    .channel('members-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, callback)
+    .subscribe();
+};
+
 export const upsertMembers = async (
   client: SupabaseClient,
   rows: MemberImportRow[],

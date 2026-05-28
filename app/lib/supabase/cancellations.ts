@@ -50,3 +50,10 @@ export const deleteCancellation = async (id: string) => {
     throw error;
   }
 };
+
+export const subscribeToCancellations = (callback: (payload: unknown) => void) => {
+  return supabase
+    .channel('cancellations-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'cancellations' }, callback)
+    .subscribe();
+};
