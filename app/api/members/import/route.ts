@@ -39,34 +39,21 @@ function mapCsvRow(row: ZpCsvRow, currentNames: Set<string>): MemberImportRow | 
 
   const mbrStatus = row['Mbr. Status']?.trim();
 
-  if (mbrStatus === 'NOT STARTED') {
-    // ZP auto-renewal artifact — skip if a CURRENT row exists for this member in the same batch
-    if (currentNames.has(name.toLowerCase())) {
-      return null;
-    }
-    // No CURRENT counterpart → genuinely new member, import as Active
-  } else if (mbrStatus === 'HOLD') {
-    return {
-      name,
-      status: 'On Hold',
-      email: row.Email?.trim() || undefined,
-      phone: row.Phone?.trim() || undefined,
-      membership_type: row['Membership Label']?.trim() || undefined,
-      join_date: row['Signup Date']?.trim() || undefined,
-    };
-  } else if (mbrStatus !== 'CURRENT') {
-    // CANCELLED, EXPIRED, etc. → keep in DB as Inactive so history is preserved
-    return {
-      name,
-      status: 'Inactive',
-      email: row.Email?.trim() || undefined,
-      phone: row.Phone?.trim() || undefined,
-      membership_type: row['Membership Label']?.trim() || undefined,
-      join_date: row['Signup Date']?.trim() || undefined,
-    };
+  // ZP auto-renewal artifact: NOT STARTED paired with a CURRENT row = skip
+  if (mbrStatus === 'NOT STARTED' && currentNames.has(name.toLowerCase())) {
+    return null;
   }
 
-  const mapped: MemberImportRow = { name, status: 'Active' };
+  let status: MemberImportRow['status'];
+  if (mbrStatus === 'CURRENT' || mbrStatus === 'NOT STARTED') {
+    status = 'Active';
+  } else if (mbrStatus === 'HOLD') {
+    status = 'On Hold';
+  } else {
+    status = 'Inactive';
+  }
+
+  const mapped: MemberImportRow = { name, status };
   const email = row.Email?.trim();
   if (email) {
     mapped.email = email;
