@@ -56,15 +56,28 @@ export const markStaleMembers = async (
   client: SupabaseClient,
   syncTime: string
 ): Promise<number> => {
-  const { data, error } = await client
-    .from('members')
-    .update({ status: 'Inactive' })
-    .or(`last_sync_at.is.null,last_sync_at.neq.${syncTime}`)
-    .neq('status', 'Inactive')
-    .select('id');
+  // .or() passes a raw string to PostgREST — colons in ISO timestamps break the filter parser.
+  // Use two separate queries (mutually exclusive predicates) to avoid the encoding issue.
+  const [{ data: nullRows, error: e1 }, { data: oldRows, error: e2 }] = await Promise.all([
+    client
+      .from('members')
+      .update({ status: 'Inactive' })
+      .is('last_sync_at', null)
+      .neq('status', 'Inactive')
+      .select('id'),
+    client
+      .from('members')
+      .update({ status: 'Inactive' })
+      .lt('last_sync_at', syncTime)
+      .neq('status', 'Inactive')
+      .select('id'),
+  ]);
 
-  if (error) {
-    throw error;
+  if (e1) {
+    throw e1;
   }
-  return data?.length ?? 0;
+  if (e2) {
+    throw e2;
+  }
+  return (nullRows?.length ?? 0) + (oldRows?.length ?? 0);
 };
