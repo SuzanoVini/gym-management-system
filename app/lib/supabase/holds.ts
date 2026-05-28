@@ -47,6 +47,13 @@ export const deleteHold = async (id: string) => {
   }
 };
 
+export const subscribeToHolds = (callback: (payload: unknown) => void) => {
+  return supabase
+    .channel('holds-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'holds' }, callback)
+    .subscribe();
+};
+
 export const closeActiveHold = async (name: string, cancellationDate: string): Promise<void> => {
   const { data: hold } = await supabase
     .from('holds')
