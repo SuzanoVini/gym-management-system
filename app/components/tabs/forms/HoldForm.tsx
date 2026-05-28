@@ -15,6 +15,17 @@ const yearFromDate = (dateStr: string): number | undefined => {
   return Number.isNaN(y) || y < 2000 ? undefined : y;
 };
 
+function toHoldFormData(data: Hold | HoldFormData): HoldFormData {
+  const {
+    id: _id,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    name_normalized: _nameNormalized,
+    ...writable
+  } = data as Hold & HoldFormData;
+  return writable;
+}
+
 interface HoldFormProps {
   hold?: Hold | null;
   onSubmit: (data: HoldFormData) => void | Promise<void>;
@@ -63,7 +74,8 @@ export function HoldForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const yearDerived = formData.start ? yearFromDate(formData.start as string) : undefined;
-    await onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
+    const writable = toHoldFormData(formData);
+    await onSubmit({ ...writable, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
 
   const showMonthFallback = !formData.start;

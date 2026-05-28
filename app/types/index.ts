@@ -64,6 +64,8 @@ export interface Cancellation extends BaseRecord {
   notes?: string;
   year?: number;
   created_by?: string;
+  source?: 'manual' | 'cron';
+  name_normalized?: string;
   // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
   [key: string]: any;
 }
@@ -80,6 +82,24 @@ export interface Hold extends BaseRecord {
   fee?: string;
   year?: number;
   created_by?: string;
+  source?: 'manual' | 'cron';
+  hold_status?: string;
+  name_normalized?: string;
+}
+
+/**
+ * Member record - synced from Zen Planner CSV exports
+ */
+export interface Member extends BaseRecord {
+  name: string;
+  name_normalized?: string;
+  birth_date?: string;
+  email?: string;
+  phone?: string;
+  membership_type?: string;
+  status?: 'Active' | 'On Hold' | 'Inactive';
+  join_date?: string;
+  last_sync_at?: string;
 }
 
 /**
@@ -226,12 +246,20 @@ export type SignupFormData = Omit<Signup, 'id' | 'created_at' | 'updated_at'>;
 /**
  * Form data for creating/updating a cancellation
  */
-export type CancellationFormData = Omit<Cancellation, 'id' | 'created_at' | 'updated_at'>;
+export type CancellationFormData = Omit<
+  Cancellation,
+  'id' | 'created_at' | 'updated_at' | 'name_normalized'
+>;
 
 /**
  * Form data for creating/updating a hold
  */
-export type HoldFormData = Omit<Hold, 'id' | 'created_at' | 'updated_at'>;
+export type HoldFormData = Omit<Hold, 'id' | 'created_at' | 'updated_at' | 'name_normalized'>;
+
+/**
+ * Member CSV import row - generated fields are excluded from writes
+ */
+export type MemberImportRow = Omit<Member, 'id' | 'created_at' | 'updated_at' | 'name_normalized'>;
 
 /**
  * Form data for creating/updating a class history entry

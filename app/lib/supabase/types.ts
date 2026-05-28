@@ -188,6 +188,8 @@ export interface Database {
           notes: string | null;
           year: number | null;
           created_by: string | null;
+          source: 'manual' | 'cron' | null;
+          name_normalized: string | null;
         };
         Insert: {
           id?: string;
@@ -201,6 +203,7 @@ export interface Database {
           notes?: string | null;
           year?: number | null;
           created_by?: string | null;
+          source?: 'manual' | 'cron' | null;
         };
         Update: {
           id?: string;
@@ -214,6 +217,7 @@ export interface Database {
           notes?: string | null;
           year?: number | null;
           created_by?: string | null;
+          source?: 'manual' | 'cron' | null;
         };
       };
       holds: {
@@ -229,6 +233,9 @@ export interface Database {
           fee: string | null;
           year: number | null;
           created_by: string | null;
+          source: 'manual' | 'cron' | null;
+          hold_status: string | null;
+          name_normalized: string | null;
         };
         Insert: {
           id?: string;
@@ -242,6 +249,8 @@ export interface Database {
           fee?: string | null;
           year?: number | null;
           created_by?: string | null;
+          source?: 'manual' | 'cron' | null;
+          hold_status?: string | null;
         };
         Update: {
           id?: string;
@@ -255,6 +264,50 @@ export interface Database {
           fee?: string | null;
           year?: number | null;
           created_by?: string | null;
+          source?: 'manual' | 'cron' | null;
+          hold_status?: string | null;
+        };
+      };
+      members: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          name: string;
+          name_normalized: string | null;
+          birth_date: string | null;
+          email: string | null;
+          phone: string | null;
+          membership_type: string | null;
+          status: 'Active' | 'On Hold' | 'Inactive' | null;
+          join_date: string | null;
+          last_sync_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          name: string;
+          birth_date?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          membership_type?: string | null;
+          status?: 'Active' | 'On Hold' | 'Inactive' | null;
+          join_date?: string | null;
+          last_sync_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          name?: string;
+          birth_date?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          membership_type?: string | null;
+          status?: 'Active' | 'On Hold' | 'Inactive' | null;
+          join_date?: string | null;
+          last_sync_at?: string | null;
         };
       };
       settings: {

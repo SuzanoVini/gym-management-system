@@ -17,6 +17,17 @@ const yearFromDate = (dateStr: string): number | undefined => {
   return Number.isNaN(y) || y < 2000 ? undefined : y;
 };
 
+function toCancellationFormData(data: Cancellation | CancellationFormData): CancellationFormData {
+  const {
+    id: _id,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    name_normalized: _nameNormalized,
+    ...writable
+  } = data;
+  return writable;
+}
+
 interface CancellationFormProps {
   cancellation?: Cancellation | null;
   onSubmit: (data: CancellationFormData) => void;
@@ -79,7 +90,8 @@ export function CancellationForm({
     }
 
     const yearDerived = formData.date ? yearFromDate(formData.date as string) : undefined;
-    onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
+    const writable = toCancellationFormData(formData);
+    onSubmit({ ...writable, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
   };
 
   const showMonthFallback = !formData.date;

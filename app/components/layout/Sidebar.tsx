@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BookUser,
   CheckSquare,
   Clock,
   DollarSign,
@@ -24,6 +25,7 @@ const tabs = [
   { id: 'signups', label: 'Sign-ups', icon: UserCheck },
   { id: 'cancellations', label: 'Cancellations', icon: UserX },
   { id: 'holds', label: 'Holds', icon: Clock },
+  { id: 'members', label: 'Members', icon: BookUser },
   { id: 'payroll', label: 'Payroll', icon: DollarSign, route: '/payroll' },
   { id: 'admin', label: 'Users', icon: ShieldCheck, route: '/admin' },
 ];

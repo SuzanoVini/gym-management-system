@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
+import type { Cancellation, Hold, Insight, Intro, Member, Signup } from '@/types';
 
 const MONTHLY_MEMBERSHIP_REVENUE = 180;
 const SIGNUP_PACKAGE_REVENUE = 200;
@@ -12,6 +12,7 @@ interface UseInsightsProps {
   cancellations: Cancellation[];
   holds: Hold[];
   rawHolds?: Hold[]; // Unfiltered holds for return-rate calculation (hold relevance is by end date, not created_at)
+  members?: Member[];
 }
 
 export const useInsights = ({
@@ -594,6 +595,73 @@ The 60-day window is critical — after that, habits change and re-engagement be
           'Invite them to a free community event or open house',
         ],
         category: 'retention',
+      });
+    }
+
+    // NEW-1: Long holds - churn risk
+    const holdsSource = rawHolds ?? holds;
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const longHolds = holdsSource.filter((h) => {
+      if (!h.start) {
+        return false;
+      }
+      const start = new Date(h.start);
+      const end = h.end ? new Date(h.end) : null;
+      return start <= thirtyDaysAgo && (!end || end >= now);
+    });
+
+    if (longHolds.length > 0) {
+      const names = longHolds
+        .slice(0, 3)
+        .map((h) => h.name)
+        .join(', ');
+      const extra = longHolds.length > 3 ? ` +${longHolds.length - 3} more` : '';
+      const recoveredCount = Math.ceil(longHolds.length / 2);
+
+      generatedInsights.push({
+        id: 'long-holds-churn-risk',
+        title: `${longHolds.length} member${longHolds.length === 1 ? '' : 's'} on hold for 30+ days - churn risk`,
+        message: `${names}${extra}\n\nMembers on extended holds often don't return. A proactive check-in now significantly improves return rates.`,
+        icon: 'Clock',
+        color: 'red',
+        priority: 'high',
+        impact: `Recovering 50% = ${recoveredCount} members = $${(recoveredCount * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()}/month`,
+        actions: [
+          'Reach out personally to each member on extended hold',
+          'Offer a re-activation session or open house invite',
+          'Check if their hold reason has resolved',
+          'Make it easy to return - no re-activation fees',
+        ],
+        category: 'retention',
+      });
+    }
+
+    // NEW-2: Stale intros - 60+ days, no signup
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    const staleIntros60 = activeIntros.filter((intro) => {
+      if (!intro.date) {
+        return false;
+      }
+      return intro.signed_up !== 'Yes' && new Date(intro.date) <= sixtyDaysAgo;
+    });
+
+    if (staleIntros60.length > 0) {
+      const possibleSignups = Math.max(1, Math.ceil(staleIntros60.length * 0.05));
+      generatedInsights.push({
+        id: 'intros-60-days-no-signup',
+        title: `${staleIntros60.length} intro${staleIntros60.length === 1 ? '' : 's'} from 60+ days ago haven't signed up`,
+        message: `${staleIntros60.length} active intros attended 60+ days ago with no signup.\n\nConversion drops under 5% after 60 days - a final personal outreach is worth attempting before closing these leads.`,
+        icon: 'Clock',
+        color: 'orange',
+        priority: 'medium',
+        impact: `Even 5% conversion = ${possibleSignups} signup${possibleSignups === 1 ? '' : 's'}`,
+        actions: [
+          'Send a personal message to each person',
+          'Mention any new programs, schedule changes, or promotions',
+          'Offer a free return visit before deciding',
+          'Mark as Completed/Cancelled after outreach to keep the list clean',
+        ],
+        category: 'conversion',
       });
     }
 
