@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
   const { upserted, errors: upsertErrors } = await upsertMembers(supabase, valid, syncTime);
 
   let markedInactive = 0;
-  if (upsertErrors.length === 0) {
+  if (upsertErrors.length === 0 && valid.length > 0) {
     try {
       markedInactive = await markStaleMembers(supabase, syncTime);
     } catch (err) {
