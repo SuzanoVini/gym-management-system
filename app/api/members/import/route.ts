@@ -45,6 +45,15 @@ function mapCsvRow(row: ZpCsvRow, currentNames: Set<string>): MemberImportRow | 
       return null;
     }
     // No CURRENT counterpart → genuinely new member, import as Active
+  } else if (mbrStatus === 'HOLD') {
+    return {
+      name,
+      status: 'On Hold',
+      email: row.Email?.trim() || undefined,
+      phone: row.Phone?.trim() || undefined,
+      membership_type: row['Membership Label']?.trim() || undefined,
+      join_date: row['Signup Date']?.trim() || undefined,
+    };
   } else if (mbrStatus !== 'CURRENT') {
     // CANCELLED, EXPIRED, etc. → keep in DB as Inactive so history is preserved
     return {
