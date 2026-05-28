@@ -8,41 +8,56 @@ import type { MemberImportRow } from '@/types';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 interface ZpCsvRow {
-  Name?: string;
-  'Birth Date'?: string;
+  'First Name'?: string;
+  'Last Name'?: string;
   Email?: string;
   Phone?: string;
-  'Membership Type'?: string;
-  Status?: string;
-  'Join Date'?: string;
+  'Signup Date'?: string;
+  'Membership Label'?: string;
+  'Mbr. Status'?: string;
   [key: string]: string | undefined;
 }
 
-type MemberStatus = 'Active' | 'On Hold' | 'Inactive';
-
-function normalizeStatus(raw: string | undefined): MemberStatus {
-  const status = raw?.trim();
-  if (status === 'Active' || status === 'On Hold' || status === 'Inactive') {
-    return status;
+function buildCurrentNames(rows: ZpCsvRow[]): Set<string> {
+  const set = new Set<string>();
+  for (const row of rows) {
+    if (row['Mbr. Status']?.trim() === 'CURRENT') {
+      const name = `${row['First Name']?.trim() ?? ''} ${row['Last Name']?.trim() ?? ''}`.trim();
+      if (name) {
+        set.add(name.toLowerCase());
+      }
+    }
   }
-  return 'Active';
+  return set;
 }
 
-function mapCsvRow(row: ZpCsvRow): MemberImportRow | null {
-  const name = row.Name?.trim();
+function mapCsvRow(row: ZpCsvRow, currentNames: Set<string>): MemberImportRow | null {
+  const name = `${row['First Name']?.trim() ?? ''} ${row['Last Name']?.trim() ?? ''}`.trim();
   if (!name) {
     return null;
   }
 
-  const mapped: MemberImportRow = {
-    name,
-    status: normalizeStatus(row.Status),
-  };
+  const mbrStatus = row['Mbr. Status']?.trim();
 
-  const birthDate = row['Birth Date']?.trim();
-  if (birthDate) {
-    mapped.birth_date = birthDate;
+  if (mbrStatus === 'NOT STARTED') {
+    // ZP auto-renewal artifact — skip if a CURRENT row exists for this member in the same batch
+    if (currentNames.has(name.toLowerCase())) {
+      return null;
+    }
+    // No CURRENT counterpart → genuinely new member, import as Active
+  } else if (mbrStatus !== 'CURRENT') {
+    // CANCELLED, EXPIRED, etc. → keep in DB as Inactive so history is preserved
+    return {
+      name,
+      status: 'Inactive',
+      email: row.Email?.trim() || undefined,
+      phone: row.Phone?.trim() || undefined,
+      membership_type: row['Membership Label']?.trim() || undefined,
+      join_date: row['Signup Date']?.trim() || undefined,
+    };
   }
+
+  const mapped: MemberImportRow = { name, status: 'Active' };
   const email = row.Email?.trim();
   if (email) {
     mapped.email = email;
@@ -51,11 +66,11 @@ function mapCsvRow(row: ZpCsvRow): MemberImportRow | null {
   if (phone) {
     mapped.phone = phone;
   }
-  const membershipType = row['Membership Type']?.trim();
+  const membershipType = row['Membership Label']?.trim();
   if (membershipType) {
     mapped.membership_type = membershipType;
   }
-  const joinDate = row['Join Date']?.trim();
+  const joinDate = row['Signup Date']?.trim();
   if (joinDate) {
     mapped.join_date = joinDate;
   }
@@ -106,7 +121,8 @@ export async function POST(req: NextRequest) {
   }
 
   const syncTime = new Date().toISOString();
-  const mapped = rows.map(mapCsvRow);
+  const currentNames = buildCurrentNames(rows);
+  const mapped = rows.map((row) => mapCsvRow(row, currentNames));
   const valid = mapped.filter((row): row is MemberImportRow => row !== null);
   const skippedCount = mapped.length - valid.length;
 
