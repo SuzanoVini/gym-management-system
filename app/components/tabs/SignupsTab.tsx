@@ -9,6 +9,7 @@ import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useImportUndo } from '@/hooks/useImportUndo';
+import { useIntros } from '@/hooks/useIntros';
 import { useSignups } from '@/hooks/useSignups';
 import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
@@ -23,8 +24,13 @@ import { SignupModals } from './modals/SignupModals';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+function daysBetween(from: string, to: string): number {
+  return Math.round((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function SignupsTab() {
   const { signups, loading, error, addSignup, editSignup, removeSignup, refresh } = useSignups();
+  const { intros } = useIntros();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
   const selectionTab: SelectionTabKey = 'signups';
@@ -284,17 +290,36 @@ export default function SignupsTab() {
     {
       key: 'name' as keyof Signup,
       label: 'Name',
-      render: (value: unknown, _item: Signup) => {
+      render: (value: unknown, signup: Signup) => {
         const full = (value as string) || '';
         const parts = full.trim().split(' ');
         const display =
           parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
-        return display !== full ? (
-          <Tooltip content={full}>
-            <div className="font-medium text-gray-900 cursor-default">{display}</div>
-          </Tooltip>
-        ) : (
-          <div className="font-medium text-gray-900">{full}</div>
+        const intro = intros.find(
+          (i) => i.name.toLowerCase().trim() === signup.name.toLowerCase().trim()
+        );
+        const conversionDays =
+          intro?.date && signup.membership_date
+            ? daysBetween(intro.date, signup.membership_date)
+            : null;
+        const nameNode =
+          display !== full ? (
+            <Tooltip content={full}>
+              <div className="font-medium text-gray-900 cursor-default">{display}</div>
+            </Tooltip>
+          ) : (
+            <div className="font-medium text-gray-900">{full}</div>
+          );
+
+        return (
+          <div>
+            {nameNode}
+            {conversionDays !== null && conversionDays >= 0 && conversionDays <= 365 && (
+              <span className="inline-block bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full mt-1">
+                Intro to signup in {conversionDays} day{conversionDays === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
         );
       },
     },

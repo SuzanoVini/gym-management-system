@@ -11,6 +11,7 @@ import FollowUpsTab from './components/tabs/FollowUpsTab';
 import HoldsTab from './components/tabs/HoldsTab';
 import InsightsTab from './components/tabs/InsightsTab';
 import IntrosTab from './components/tabs/IntrosTab';
+import MembersTab from './components/tabs/MembersTab';
 import OverviewTab from './components/tabs/OverviewTab';
 import SignupsTab from './components/tabs/SignupsTab';
 import { useSidebarStore } from './store/useSidebarStore';
@@ -23,6 +24,7 @@ const VALID_TABS = [
   'signups',
   'cancellations',
   'holds',
+  'members',
 ];
 
 function HomeContent() {
@@ -66,6 +68,7 @@ function HomeContent() {
                   {activeTab === 'signups' && <SignupsTab />}
                   {activeTab === 'cancellations' && <CancellationsTab />}
                   {activeTab === 'holds' && <HoldsTab />}
+                  {activeTab === 'members' && <MembersTab />}
                 </div>
               </div>
             </main>

@@ -10,6 +10,8 @@ import Tooltip from '@/components/ui/Tooltip';
 import YearFilter from '@/components/ui/YearFilter';
 import { useCancellations } from '@/hooks/useCancellations';
 import { useImportUndo } from '@/hooks/useImportUndo';
+import { useIntros } from '@/hooks/useIntros';
+import { useMembers } from '@/hooks/useMembers';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { closeActiveHold } from '@/lib/supabase/holds';
@@ -24,6 +26,12 @@ import { CancellationModals } from './modals/CancellationModals';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const AGE_GROUPS = ['3-6 YO', '7-9 YO', '10-15 YO', 'Adult'];
 
+function monthsBetween(from: string, to: string): number {
+  const start = new Date(from);
+  const end = new Date(to);
+  return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+}
+
 export default function CancellationsTab() {
   const {
     cancellations,
@@ -34,6 +42,8 @@ export default function CancellationsTab() {
     removeCancellation,
     refresh,
   } = useCancellations();
+  const { members } = useMembers();
+  const { intros } = useIntros();
   const { openModal, closeModal } = useUIStore();
   const { filters, setFilters } = useFilterStore();
   const selectionTab: SelectionTabKey = 'cancellations';
@@ -309,17 +319,54 @@ export default function CancellationsTab() {
     {
       key: 'name' as keyof Cancellation,
       label: 'Name',
-      render: (value: unknown, _item: Cancellation) => {
+      // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Name cell combines truncation, tooltip, and cron-only enrichment badges.
+      render: (value: unknown, cancellation: Cancellation) => {
         const full = (value as string) || '';
         const parts = full.trim().split(' ');
         const display =
           parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
-        return display !== full ? (
-          <Tooltip content={full}>
-            <div className="font-medium text-gray-900 cursor-default">{display}</div>
-          </Tooltip>
-        ) : (
-          <div className="font-medium text-gray-900">{full}</div>
+        const member = members.find(
+          (m) => m.name.toLowerCase().trim() === cancellation.name.toLowerCase().trim()
+        );
+        const intro = intros.find(
+          (i) => i.name.toLowerCase().trim() === cancellation.name.toLowerCase().trim()
+        );
+        const durationMonths =
+          member?.join_date && cancellation.date
+            ? monthsBetween(member.join_date, cancellation.date)
+            : 0;
+        const introDate = intro?.date ? new Date(intro.date) : null;
+        const introLabel =
+          introDate && !Number.isNaN(introDate.getTime())
+            ? `${introDate.toLocaleString('default', { month: 'short' })} ${introDate.getFullYear()}`
+            : null;
+        const nameNode =
+          display !== full ? (
+            <Tooltip content={full}>
+              <div className="font-medium text-gray-900 cursor-default">{display}</div>
+            </Tooltip>
+          ) : (
+            <div className="font-medium text-gray-900">{full}</div>
+          );
+
+        return (
+          <div>
+            {nameNode}
+            {cancellation.source === 'cron' && (
+              <div className="flex gap-1 mt-1 flex-wrap">
+                {durationMonths > 0 && (
+                  <span className="inline-block bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full">
+                    Member {durationMonths} month{durationMonths === 1 ? '' : 's'}
+                  </span>
+                )}
+                {introLabel && (
+                  <span className="inline-block bg-purple-50 text-purple-700 text-[10px] px-2 py-0.5 rounded-full">
+                    From intro {introLabel}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         );
       },
     },

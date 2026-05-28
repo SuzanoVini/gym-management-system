@@ -18,7 +18,31 @@ export async function getZenPlannerBookingEmails() {
   const res = await gmail.users.messages.list({
     userId: 'me',
     q: 'from:messages-noreply@zenplanner.com subject:"New Appointment Scheduled"',
-    maxResults: 20,
+    maxResults: 50,
+  });
+
+  return res.data.messages ?? [];
+}
+
+export async function getZenPlannerCancellationEmails() {
+  const gmail = google.gmail({ version: 'v1', auth: getOAuth2Client() });
+
+  const res = await gmail.users.messages.list({
+    userId: 'me',
+    q: 'from:messages-noreply@zenplanner.com subject:"A Membership Was Cancelled"',
+    maxResults: 50,
+  });
+
+  return res.data.messages ?? [];
+}
+
+export async function getZenPlannerHoldEmails() {
+  const gmail = google.gmail({ version: 'v1', auth: getOAuth2Client() });
+
+  const res = await gmail.users.messages.list({
+    userId: 'me',
+    q: 'from:messages-noreply@zenplanner.com subject:"A Membership Was Placed on Hold"',
+    maxResults: 50,
   });
 
   return res.data.messages ?? [];
