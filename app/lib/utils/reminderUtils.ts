@@ -34,7 +34,10 @@ export function getVancouverDate(d = new Date()): { year: number; month: number;
 
 // Convert a YYYY-MM-DD date-input value to a UTC ISO string (midnight America/Vancouver)
 export function dateInputToUTCTimestamp(dateString: string): string {
-  const [year, month, day] = dateString.split('-').map(Number);
+  const [y, m, d] = dateString.split('-');
+  const year = Number(y);
+  const month = Number(m);
+  const day = Number(d);
   // Probe noon UTC on that day to find the Vancouver UTC offset (DST-safe)
   const probe = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
   const fmt = new Intl.DateTimeFormat('en', {
@@ -43,7 +46,9 @@ export function dateInputToUTCTimestamp(dateString: string): string {
   });
   const tzPart = fmt.formatToParts(probe).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-7';
   const match = tzPart.match(/GMT([+-])(\d+)/);
-  const offsetHours = match ? Number.parseInt(match[2], 10) * (match[1] === '+' ? 1 : -1) : -7;
+  const offsetHours = match
+    ? Number.parseInt(match[2] ?? '7', 10) * (match[1] === '+' ? 1 : -1)
+    : -7;
   // midnight Vancouver = UTC midnight - offset
   return new Date(Date.UTC(year, month - 1, day, -offsetHours, 0, 0, 0)).toISOString();
 }
@@ -113,7 +118,8 @@ export function detectReminderDate(text: string, now = new Date()): Date | null 
     /(?:call(?:ing)?(?:\s+back)?|follow(?:\s*up)?|try(?:\s+again)?|reach(?:\s+out)?|contact(?:\s+again)?|check(?:\s+back)?)\s+in\s+(\d+|an?)\s+(day|week|month)s?/
   );
   if (relMatch) {
-    const n = relMatch[1] === 'a' || relMatch[1] === 'an' ? 1 : Number.parseInt(relMatch[1], 10);
+    const qty = relMatch[1] ?? '';
+    const n = qty === 'a' || qty === 'an' ? 1 : Number.parseInt(qty, 10);
     const unit = relMatch[2];
     const d = new Date(todayLocal);
     if (unit === 'day') {
@@ -134,10 +140,12 @@ export function detectReminderDate(text: string, now = new Date()): Date | null 
     new RegExp(`(?:not\\s+ready\\s+until|after|until)\\s+(${MONTH_PATTERN})`)
   );
   if (monthCtxMatch) {
-    const mIdx = MONTH_NAMES.indexOf(monthCtxMatch[1]);
-    const d = new Date(year, mIdx, 1);
-    if (!isStale(d)) {
-      return d;
+    const mIdx = MONTH_NAMES.indexOf(monthCtxMatch[1] ?? '');
+    if (mIdx >= 0) {
+      const d = new Date(year, mIdx, 1);
+      if (!isStale(d)) {
+        return d;
+      }
     }
   }
 
@@ -155,11 +163,13 @@ export function detectReminderDate(text: string, now = new Date()): Date | null 
         targetYear++;
       }
     } else if (!endOfMonth[1]) {
-      targetMonth = MONTH_NAMES.indexOf(endOfMonth[2]);
+      targetMonth = MONTH_NAMES.indexOf(endOfMonth[2] ?? '');
     }
-    const lastDay = new Date(targetYear, targetMonth + 1, 0);
-    if (!isStale(lastDay)) {
-      return lastDay;
+    if (targetMonth >= 0) {
+      const lastDay = new Date(targetYear, targetMonth + 1, 0);
+      if (!isStale(lastDay)) {
+        return lastDay;
+      }
     }
   }
 
@@ -177,11 +187,13 @@ export function detectReminderDate(text: string, now = new Date()): Date | null 
         targetYear++;
       }
     } else {
-      targetMonth = MONTH_NAMES.indexOf(startOfMonth[2]);
+      targetMonth = MONTH_NAMES.indexOf(startOfMonth[2] ?? '');
     }
-    const d = new Date(targetYear, targetMonth, 1);
-    if (!isStale(d)) {
-      return d;
+    if (targetMonth >= 0) {
+      const d = new Date(targetYear, targetMonth, 1);
+      if (!isStale(d)) {
+        return d;
+      }
     }
   }
 
