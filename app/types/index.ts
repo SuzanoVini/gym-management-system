@@ -29,6 +29,8 @@ export interface Intro extends BaseRecord {
   last_follow_up?: string;
   followup_1_at?: string | null;
   followup_2_at?: string | null;
+  followup_reminder_at?: string | null;
+  followup_dismissed_at?: string | null;
   created_by?: string;
   // Relations
   follow_up_notes?: FollowUpNote[];

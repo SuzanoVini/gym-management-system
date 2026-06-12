@@ -33,6 +33,7 @@ const tabs = [
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  followUpBadgeCount?: number;
 }
 
 interface TabItemProps {
@@ -46,6 +47,7 @@ interface TabItemProps {
   isOpen: boolean;
   onTabClick: (tabId: string, route?: string) => void;
   onMobileClose: () => void;
+  badge?: number | undefined;
 }
 
 function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
@@ -76,7 +78,7 @@ function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
   );
 }
 
-function TabButton({ tab, isActive, isOpen, onTabClick }: TabItemProps) {
+function TabButton({ tab, isActive, isOpen, onTabClick, badge }: TabItemProps) {
   const Icon = tab.icon;
   return (
     <button
@@ -88,9 +90,16 @@ function TabButton({ tab, isActive, isOpen, onTabClick }: TabItemProps) {
       title={isOpen ? undefined : tab.label}
       aria-label={tab.label}
     >
-      <Icon
-        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 group-hover:rotate-3'} transition-all duration-250`}
-      />
+      <span className="relative inline-flex">
+        <Icon
+          className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 group-hover:rotate-3'} transition-all duration-250`}
+        />
+        {badge != null && badge > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
       {isOpen && (
         <span className="whitespace-nowrap truncate font-medium tracking-wide">{tab.label}</span>
       )}
@@ -105,7 +114,7 @@ function TabItem(props: TabItemProps) {
   return <TabButton {...props} />;
 }
 
-export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, followUpBadgeCount = 0 }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebarStore();
   const { isOwner } = useAuth();
   const router = useRouter();
@@ -154,6 +163,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   isOpen={isOpen}
                   onTabClick={handleTabClick}
                   onMobileClose={closeSidebar}
+                  badge={tab.id === 'followups' ? followUpBadgeCount : undefined}
                 />
               );
             })}

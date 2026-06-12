@@ -3,6 +3,7 @@
 import { format } from 'date-fns';
 import { Upload, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useCancellations } from '@/hooks/useCancellations';
 import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
@@ -511,9 +512,11 @@ export default function MembersTab() {
         </div>
       )}
 
-      {selectedMember && (
-        <JourneyPanel member={selectedMember} onClose={() => setSelectedMember(null)} />
-      )}
+      {selectedMember &&
+        createPortal(
+          <JourneyPanel member={selectedMember} onClose={() => setSelectedMember(null)} />,
+          document.body
+        )}
     </div>
   );
 }

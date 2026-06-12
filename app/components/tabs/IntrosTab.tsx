@@ -17,7 +17,8 @@ import { useMemo, useRef, useState } from 'react';
 import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
 import QuickSignupModal from '@/components/tabs/QuickSignupModal';
 import CopyButton from '@/components/ui/CopyButton';
-import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
+import DismissUndoToast from '@/components/ui/DismissUndoToast';
+import FollowUpCheckButton, { type FollowUpIntro } from '@/components/ui/FollowUpCheckButton';
 import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
@@ -29,6 +30,7 @@ import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
+import { undoDismissFollowUp } from '@/lib/supabase/intros';
 import { formatDate } from '@/lib/supabase/utils';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
@@ -75,6 +77,17 @@ export default function IntrosTab() {
   const [resolvingIntro, setResolvingIntro] = useState<Intro | null>(null);
   const [pendingSignupIntro, setPendingSignupIntro] = useState<Intro | null>(null);
   const [selectedIntroForNotes, setSelectedIntroForNotes] = useState<Intro | null>(null);
+  const [dismissedForUndo, setDismissedForUndo] = useState<FollowUpIntro | null>(null);
+
+  const handleUndoDismiss = async () => {
+    if (!dismissedForUndo) {
+      return;
+    }
+    const { id, name, email } = dismissedForUndo;
+    setDismissedForUndo(null);
+    await undoDismissFollowUp(id, name, email);
+    await silentRefresh();
+  };
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
@@ -462,7 +475,11 @@ export default function IntrosTab() {
       label: '',
       render: (_value: unknown, intro: Intro) => (
         <div className="flex items-center gap-3">
-          <FollowUpCheckButton intro={intro} onUpdate={silentRefresh} />
+          <FollowUpCheckButton
+            intro={intro}
+            onUpdate={silentRefresh}
+            onDismissed={setDismissedForUndo}
+          />
           <OverflowMenu
             items={[
               {
@@ -767,6 +784,10 @@ export default function IntrosTab() {
             await refresh();
           }}
         />
+      )}
+
+      {dismissedForUndo && (
+        <DismissUndoToast onUndo={handleUndoDismiss} onExpire={() => setDismissedForUndo(null)} />
       )}
 
       {pendingSignupIntro && (

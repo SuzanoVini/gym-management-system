@@ -1,0 +1,3 @@
+ALTER TABLE intros
+  ADD COLUMN IF NOT EXISTS followup_reminder_at  TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS followup_dismissed_at TIMESTAMPTZ;
