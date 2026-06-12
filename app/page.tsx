@@ -14,6 +14,7 @@ import IntrosTab from './components/tabs/IntrosTab';
 import MembersTab from './components/tabs/MembersTab';
 import OverviewTab from './components/tabs/OverviewTab';
 import SignupsTab from './components/tabs/SignupsTab';
+import { useFollowUps } from './hooks/useFollowUps';
 import { useSidebarStore } from './store/useSidebarStore';
 
 const VALID_TABS = [
@@ -35,6 +36,10 @@ function HomeContent() {
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : 'overview'
   );
   const { isOpen } = useSidebarStore();
+  // Single useFollowUps instance shared by the Follow Ups tab and the sidebar
+  // badge, so actions in the tab refresh the badge immediately
+  const followUps = useFollowUps();
+  const followUpBadgeCount = followUps.overdueCount + followUps.remindersDueCount;
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
@@ -52,7 +57,11 @@ function HomeContent() {
 
           {/* Sidebar Container */}
           <div>
-            <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
+            <Sidebar
+              activeTab={activeTab}
+              setActiveTab={handleTabChange}
+              followUpBadgeCount={followUpBadgeCount}
+            />
           </div>
 
           {/* Main Content Container */}
@@ -64,7 +73,7 @@ function HomeContent() {
                   {activeTab === 'overview' && <OverviewTab />}
                   {activeTab === 'insights' && <InsightsTab />}
                   {activeTab === 'intros' && <IntrosTab />}
-                  {activeTab === 'followups' && <FollowUpsTab />}
+                  {activeTab === 'followups' && <FollowUpsTab followUps={followUps} />}
                   {activeTab === 'signups' && <SignupsTab />}
                   {activeTab === 'cancellations' && <CancellationsTab />}
                   {activeTab === 'holds' && <HoldsTab />}

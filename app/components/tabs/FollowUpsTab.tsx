@@ -6,7 +6,7 @@ import NotesManagerModal from '@/components/tabs/modals/NotesManagerModal';
 import DismissUndoToast from '@/components/ui/DismissUndoToast';
 import FollowUpCheckButton, { type FollowUpIntro } from '@/components/ui/FollowUpCheckButton';
 import PaginationBar from '@/components/ui/PaginationBar';
-import { type FollowUpRow, useFollowUps } from '@/hooks/useFollowUps';
+import type { FollowUpRow, useFollowUps } from '@/hooks/useFollowUps';
 import { clearFollowUpReminder, undoDismissFollowUp } from '@/lib/supabase/intros';
 import { normalizePersonKey, personKeyString } from '@/lib/utils/normalizePersonKey';
 import { formatReminderDate, getReminderBadgeLabel } from '@/lib/utils/reminderUtils';
@@ -108,9 +108,16 @@ function exportCsv(rows: FollowUpRow[]) {
   URL.revokeObjectURL(url);
 }
 
-export default function FollowUpsTab() {
+interface FollowUpsTabProps {
+  // Single useFollowUps instance owned by page.tsx (also feeds the sidebar
+  // badge) — calling the hook here too would mean duplicate fetches and a
+  // badge that never refreshes after actions in this tab
+  followUps: ReturnType<typeof useFollowUps>;
+}
+
+export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
   const { rows, loading, error, noteQuery, setNoteQuery, overdueCount, silentRefresh, refresh } =
-    useFollowUps();
+    followUps;
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [page, setPage] = useState(1);
   const [selectedIntroForNotes, setSelectedIntroForNotes] = useState<FollowUpRow | null>(null);
