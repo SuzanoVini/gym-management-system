@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { errorHandler } from '@/lib/errorHandler';
 import { fetchRecentIntros } from '@/lib/supabase/intros';
 import { addBusinessDays } from '@/lib/utils/businessDays';
+import { normalizePersonKey, personKeyString } from '@/lib/utils/normalizePersonKey';
+import { isReminderActive } from '@/lib/utils/reminderUtils';
 import type { Intro } from '@/types';
 
 export interface FollowUpRow extends Intro {
@@ -11,6 +13,7 @@ export interface FollowUpRow extends Intro {
   isSecondOverdue: boolean;
   isDueToday: boolean;
   tier: 1 | 2 | 3 | 4 | 5;
+  hasActiveReminder: boolean;
 }
 
 function getTier(row: Omit<FollowUpRow, 'tier'>, today: Date): 1 | 2 | 3 | 4 | 5 {
@@ -90,14 +93,46 @@ export function useFollowUps() {
   }, [today]);
 
   const rows = useMemo<FollowUpRow[]>(() => {
+    // Person-level state across all fetched intros: a person group is dismissed
+    // when ANY intro in the group has followup_dismissed_at set (handles
+    // partial best-effort writes), and the group's reminder is the earliest
+    // non-null followup_reminder_at.
+    const dismissedKeys = new Set<string>();
+    const groupReminders = new Map<string, string>();
+    for (const intro of recentIntros) {
+      const key = normalizePersonKey(intro.name, intro.email);
+      if (!key) {
+        continue;
+      }
+      const k = personKeyString(key);
+      if (intro.followup_dismissed_at) {
+        dismissedKeys.add(k);
+      }
+      if (intro.followup_reminder_at) {
+        const existing = groupReminders.get(k);
+        if (!existing || intro.followup_reminder_at < existing) {
+          groupReminders.set(k, intro.followup_reminder_at);
+        }
+      }
+    }
+
     const base = recentIntros
-      .filter(
-        (intro) =>
-          intro.attended === 'Yes' &&
-          intro.signed_up !== 'Yes' &&
-          intro.signed_up !== 'No' &&
-          !intro.followup_2_at
-      )
+      .filter((intro) => {
+        if (intro.attended !== 'Yes') {
+          return false;
+        }
+        if (intro.signed_up === 'Yes' || intro.signed_up === 'No') {
+          return false;
+        }
+        if (intro.followup_2_at) {
+          return false;
+        }
+        const key = normalizePersonKey(intro.name, intro.email);
+        if (key && dismissedKeys.has(personKeyString(key))) {
+          return false;
+        }
+        return true;
+      })
       .map((intro) => {
         const introDate = intro.date ? new Date(intro.date) : new Date(intro.created_at);
         const firstDueDate = addBusinessDays(introDate, 2);
@@ -110,6 +145,11 @@ export function useFollowUps() {
           secondDueDate.setUTCHours(0, 0, 0, 0);
         }
 
+        const key = normalizePersonKey(intro.name, intro.email);
+        const groupReminderAt =
+          (key ? groupReminders.get(personKeyString(key)) : undefined) ??
+          intro.followup_reminder_at;
+
         const partial = {
           ...intro,
           firstDueDate,
@@ -117,6 +157,7 @@ export function useFollowUps() {
           isFirstOverdue: !intro.followup_1_at && firstDueDate < today,
           isSecondOverdue: !!intro.followup_1_at && !!secondDueDate && secondDueDate < today,
           isDueToday: !intro.followup_1_at && firstDueDate.toDateString() === today.toDateString(),
+          hasActiveReminder: isReminderActive(groupReminderAt),
         };
 
         return {
@@ -147,6 +188,20 @@ export function useFollowUps() {
     [rows]
   );
 
+  // Active reminders deduplicated by person group (a person with three
+  // bookings counts as one)
+  const remindersDueCount = useMemo(() => {
+    const seen = new Set<string>();
+    for (const row of rows) {
+      if (!row.hasActiveReminder) {
+        continue;
+      }
+      const key = normalizePersonKey(row.name, row.email);
+      seen.add(key ? personKeyString(key) : row.id);
+    }
+    return seen.size;
+  }, [rows]);
+
   return {
     rows,
     loading,
@@ -154,6 +209,7 @@ export function useFollowUps() {
     noteQuery,
     setNoteQuery,
     overdueCount,
+    remindersDueCount,
     silentRefresh,
     refresh: load,
   };
