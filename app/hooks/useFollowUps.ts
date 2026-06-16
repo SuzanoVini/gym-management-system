@@ -118,7 +118,7 @@ export function useFollowUps() {
 
     const base = recentIntros
       .filter((intro) => {
-        if (intro.attended !== 'Yes') {
+        if (intro.attended !== 'Yes' && intro.attended !== 'No') {
           return false;
         }
         if (intro.signed_up === 'Yes' || intro.signed_up === 'No') {
