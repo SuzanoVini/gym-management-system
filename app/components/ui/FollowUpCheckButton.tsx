@@ -49,11 +49,13 @@ export default function FollowUpCheckButton({ intro, onUpdate, onDismissed }: Pr
   const [showReminderInput, setShowReminderInput] = useState(false);
   const [reminderDate, setReminderDate] = useState('');
   const [savingReminder, setSavingReminder] = useState(false);
+  const [localDismissed, setLocalDismissed] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const has1st = !!intro.followup_1_at;
   const has2nd = !!intro.followup_2_at;
+  const dismissed = localDismissed || !!intro.followup_dismissed_at;
 
   useEffect(() => {
     if (!open) {
@@ -86,6 +88,17 @@ export default function FollowUpCheckButton({ intro, onUpdate, onDismissed }: Pr
 
   if (intro.signed_up === 'Yes') {
     return <span className="text-gray-300 text-sm">—</span>;
+  }
+
+  if (dismissed) {
+    return (
+      <span
+        title="Not necessary"
+        className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-gray-400 text-xs font-bold select-none"
+      >
+        ✕
+      </span>
+    );
   }
 
   const icon = has2nd ? '✓' : has1st ? '①' : '☐';
@@ -135,6 +148,7 @@ export default function FollowUpCheckButton({ intro, onUpdate, onDismissed }: Pr
   const handleDismiss = () => {
     run(async () => {
       await dismissFollowUp(intro.id, intro.name, intro.email);
+      setLocalDismissed(true);
       onDismissed?.(intro);
     });
   };
