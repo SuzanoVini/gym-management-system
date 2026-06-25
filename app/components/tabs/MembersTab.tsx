@@ -71,24 +71,18 @@ function PlanBar({ label, count, total }: { label: string; count: number; total:
   );
 }
 
-function PlanSummarySection({
-  title,
-  rows,
-  total,
-}: {
-  title: string;
-  rows: [string, number][];
-  total: number;
-}) {
+function PlanSummarySection({ title, rows }: { title: string; rows: [string, number][] }) {
   if (rows.length === 0) {
     return null;
   }
+
+  const sectionTotal = rows.reduce((sum, [, count]) => sum + count, 0);
 
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h4>
       {rows.map(([label, count]) => (
-        <PlanBar key={label} label={label} count={count} total={total} />
+        <PlanBar key={label} label={label} count={count} total={sectionTotal} />
       ))}
     </div>
   );
@@ -315,6 +309,11 @@ export default function MembersTab() {
     [derivedMembers]
   );
 
+  const nonAlumniMembers = useMemo(
+    () => derivedMembers.filter((member) => member.derivedStatus !== 'Alumni'),
+    [derivedMembers]
+  );
+
   const signupsThisMonth = signups.filter(
     (signup) => signup.month === currentMonthAbbr && signup.year === currentYear
   ).length;
@@ -331,13 +330,13 @@ export default function MembersTab() {
       : 0;
 
   const planCounts = useMemo(() => {
-    const counts = activeMembers.reduce<Record<string, number>>((acc, member) => {
+    const counts = nonAlumniMembers.reduce<Record<string, number>>((acc, member) => {
       const plan = member.membership_type || 'Unknown';
       acc[plan] = (acc[plan] || 0) + 1;
       return acc;
     }, {});
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  }, [activeMembers]);
+  }, [nonAlumniMembers]);
 
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Classifies active membership plan strings into independent summary groups.
   const planSummary = useMemo(() => {
@@ -346,7 +345,7 @@ export default function MembersTab() {
     const duration = { Annual: 0, 'Semi-Annual': 0 };
     const classPacks = { 'Flex 10': 0, 'Flex 20': 0 };
 
-    for (const member of activeMembers) {
+    for (const member of nonAlumniMembers) {
       const plan = member.membership_type?.toLowerCase() ?? '';
       if (plan.includes('legacy')) {
         program.Legacy++;
@@ -385,7 +384,7 @@ export default function MembersTab() {
       duration: nonZeroEntries(duration),
       classPacks: nonZeroEntries(classPacks),
     };
-  }, [activeMembers]);
+  }, [nonAlumniMembers]);
 
   const plans = useMemo(
     () =>
@@ -519,22 +518,10 @@ export default function MembersTab() {
         <div className="section-container">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Membership Plan Breakdown</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <PlanSummarySection
-              title="Program"
-              rows={planSummary.program}
-              total={activeMembers.length}
-            />
-            <PlanSummarySection title="Age" rows={planSummary.age} total={activeMembers.length} />
-            <PlanSummarySection
-              title="Duration"
-              rows={planSummary.duration}
-              total={activeMembers.length}
-            />
-            <PlanSummarySection
-              title="Class Packs"
-              rows={planSummary.classPacks}
-              total={activeMembers.length}
-            />
+            <PlanSummarySection title="Program" rows={planSummary.program} />
+            <PlanSummarySection title="Age" rows={planSummary.age} />
+            <PlanSummarySection title="Duration" rows={planSummary.duration} />
+            <PlanSummarySection title="Class Packs" rows={planSummary.classPacks} />
           </div>
 
           <div className="mt-5 border-t pt-4">
@@ -554,7 +541,7 @@ export default function MembersTab() {
             {showPlanDetails && (
               <div className="space-y-2.5 mt-3">
                 {planCounts.map(([plan, count]) => (
-                  <PlanBar key={plan} label={plan} count={count} total={activeMembers.length} />
+                  <PlanBar key={plan} label={plan} count={count} total={nonAlumniMembers.length} />
                 ))}
               </div>
             )}
