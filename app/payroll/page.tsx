@@ -188,20 +188,8 @@ export default function PayrollPage() {
     }
 
     try {
-      // Calculate total hours including mat cleaning bonus (0.25 hrs each)
-      const matCleaningHours = (data.mat_cleaning_count || 0) * 0.25;
-      const totalHours =
-        (data.regular_hours || 0) +
-        (data.overtime_hours || 0) +
-        (data.vacation_hours || 0) +
-        (data.sick_hours || 0) +
-        matCleaningHours;
-
       // Create or update staff hours for this period
-      await createOrUpdateHours(currentPeriod.id, staffId, {
-        ...data,
-        total_hours: totalHours,
-      });
+      await createOrUpdateHours(currentPeriod.id, staffId, data);
 
       errorHandler.notify('Hours saved successfully', 'success');
       setHoursModalOpen(false);

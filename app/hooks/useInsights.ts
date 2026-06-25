@@ -43,7 +43,7 @@ export const useInsights = ({
       return intro.attended === 'Yes' && intro.signed_up !== 'Yes' && introDate >= twoWeeksAgo;
     });
 
-    if (warmLeads.length > 0) {
+    if (warmLeads.length >= 3) {
       const byStaff = warmLeads.reduce<Record<string, number>>((acc, intro) => {
         acc[intro.staff] = (acc[intro.staff] || 0) + 1;
         return acc;
@@ -82,7 +82,7 @@ export const useInsights = ({
         c.reason?.toLowerCase().includes('summer')
     );
 
-    if (travelCancels.length > 5) {
+    if (travelCancels.length > 8) {
       const lostRevenue = travelCancels.length * MONTHLY_MEMBERSHIP_REVENUE;
       const holdRecovery = Math.round(travelCancels.length * 0.6);
       const holdRevenue = holdRecovery * 29;
@@ -250,28 +250,6 @@ You're working hard to get new members, but losing them faster. Focus on retenti
         ],
         category: 'retention',
       });
-    } else if (netGrowth > 10) {
-      generatedInsights.push({
-        id: 'strong-growth',
-        title: `Strong Growth Trajectory - Net Gain of ${netGrowth} Members`,
-        message: `Excellent work! You're growing steadily.
-Signups: ${totalFilteredSignups}
-Cancellations: ${cancellations.length}
-Net growth: +${netGrowth}
-
-Now is the time to invest in scaling your success.`,
-        icon: 'TrendingUp',
-        color: 'green',
-        priority: 'medium',
-        impact: `Current trajectory: +${Math.round(netGrowth * 4)} members/year`,
-        actions: [
-          "Document what's working in your current process",
-          'Consider increasing marketing budget by 20%',
-          'Plan for capacity (space, instructors, equipment)',
-          'Maintain intro quality as you scale',
-        ],
-        category: 'growth',
-      });
     }
 
     // 6. HIGH: Conversion Rate Analysis
@@ -301,27 +279,6 @@ Gap to 40%: ${gapTo40} additional signups needed`,
           'Check pricing against local competitors',
           'Improve instructor engagement during intros',
           'Reduce friction in signup process (make it easier)',
-        ],
-        category: 'conversion',
-      });
-    } else if (conversionRate >= 50 && attendedIntros > 5) {
-      generatedInsights.push({
-        id: 'excellent-conversion',
-        title: `Excellent Conversion Rate - ${conversionRate.toFixed(1)}%`,
-        message: `Outstanding! Your intro program is highly effective.
-Current: ${conversionRate.toFixed(1)}% (${signedUpFromIntros}/${attendedIntros})
-Industry benchmark: 40-60%
-
-You're above industry average. Time to scale.`,
-        icon: 'CheckCircle',
-        color: 'green',
-        priority: 'medium',
-        impact: 'Maintain quality while increasing volume',
-        actions: [
-          'Document your successful intro process',
-          'Increase marketing spend to drive more intro traffic',
-          'Train new staff using your proven system',
-          'Consider offering intro instructor training to other gyms',
         ],
         category: 'conversion',
       });
@@ -362,28 +319,7 @@ You're above industry average. Time to scale.`,
       const signupGrowth = ((recentSignups - priorSignups) / priorSignups) * 100;
       const cancelChange = ((recentCancels - priorCancels) / priorCancels) * 100;
 
-      if (signupGrowth > 20 || cancelChange < -20) {
-        generatedInsights.push({
-          id: 'retention-momentum-positive',
-          title: 'Positive Retention Momentum — Keep It Going!',
-          message: `Last 30 days vs. prior 30 days:
-Signups: ${recentSignups} (${signupGrowth > 0 ? '+' : ''}${signupGrowth.toFixed(0)}%)
-Cancellations: ${recentCancels} (${cancelChange > 0 ? '+' : ''}${cancelChange.toFixed(0)}%)
-
-Your retention efforts are working. Double down now.`,
-          icon: 'TrendingUp',
-          color: 'green',
-          priority: 'medium',
-          impact: `Trending toward ${Math.abs(Math.round(signupGrowth / 10))} more signups next month`,
-          actions: [
-            'Document what changed in the last 30 days',
-            'Replicate the conditions driving improvement',
-            'Share wins with the team to maintain momentum',
-            'Set a stretch goal for next month',
-          ],
-          category: 'growth',
-        });
-      } else if (signupGrowth < -20 || cancelChange > 20) {
+      if (signupGrowth < -20 || cancelChange > 20) {
         generatedInsights.push({
           id: 'retention-momentum-negative',
           title: 'Declining Retention Momentum — Act Now',
@@ -506,7 +442,7 @@ Your hold program is working well as a retention tool.`,
       return intro.attended === 'Yes' && intro.signed_up !== 'Yes' && daysAgo > 30 && daysAgo <= 90;
     });
 
-    if (staleLeads.length >= 3) {
+    if (staleLeads.length >= 5) {
       generatedInsights.push({
         id: 'stale-warm-leads',
         title: `${staleLeads.length} Warm Leads Gone Cold — Last-Chance Outreach`,

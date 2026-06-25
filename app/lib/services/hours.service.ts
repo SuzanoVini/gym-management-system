@@ -8,6 +8,19 @@ import { supabase } from '../supabase/client';
  */
 const MAT_CLEANING_BONUS = 0.25;
 
+const withComputedTotalHours = (hours: StaffHoursFormData): StaffHoursFormData => {
+  const matCleaningHours = (hours.mat_cleaning_count || 0) * MAT_CLEANING_BONUS;
+  return {
+    ...hours,
+    total_hours:
+      (hours.regular_hours || 0) +
+      (hours.overtime_hours || 0) +
+      (hours.vacation_hours || 0) +
+      (hours.sick_hours || 0) +
+      matCleaningHours,
+  };
+};
+
 /**
  * Get all staff hours for a specific payroll period
  */
@@ -37,13 +50,9 @@ export const getStaffHours = async (
     .select('*')
     .eq('period_id', periodId)
     .eq('staff_id', staffId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      // No staff hours found
-      return null;
-    }
     throw error;
   }
 
@@ -62,10 +71,26 @@ export const createOrUpdateHours = async (
   const existing = await getStaffHours(periodId, staffId);
 
   if (existing) {
+    const mergedHoursData = withComputedTotalHours({
+      period_id: existing.period_id,
+      staff_id: existing.staff_id,
+      regular_hours: hoursData.regular_hours ?? existing.regular_hours,
+      overtime_hours: hoursData.overtime_hours ?? existing.overtime_hours,
+      vacation_hours: hoursData.vacation_hours ?? existing.vacation_hours,
+      sick_hours: hoursData.sick_hours ?? existing.sick_hours,
+      mat_cleaning_count: hoursData.mat_cleaning_count ?? existing.mat_cleaning_count,
+      total_hours: existing.total_hours,
+      ...(hoursData.notes !== undefined
+        ? { notes: hoursData.notes }
+        : existing.notes !== undefined
+          ? { notes: existing.notes }
+          : {}),
+    });
+
     // Update existing hours
     const { data, error } = await supabase
       .from('staff_hours')
-      .update(hoursData)
+      .update(mergedHoursData)
       .eq('id', existing.id)
       .select()
       .single();
@@ -78,7 +103,7 @@ export const createOrUpdateHours = async (
   }
 
   // Create new hours
-  const newHoursData: StaffHoursFormData = {
+  const newHoursData = withComputedTotalHours({
     period_id: periodId,
     staff_id: staffId,
     regular_hours: 0,
@@ -88,7 +113,7 @@ export const createOrUpdateHours = async (
     mat_cleaning_count: 0,
     total_hours: 0,
     ...hoursData,
-  };
+  });
 
   const { data, error } = await supabase
     .from('staff_hours')
