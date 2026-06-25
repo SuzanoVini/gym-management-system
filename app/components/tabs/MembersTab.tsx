@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { Upload, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Upload, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useCancellations } from '@/hooks/useCancellations';
@@ -33,9 +33,27 @@ const MONTHS_ABBR = [
   'Dec',
 ];
 const ITEMS_PER_PAGE = 50;
+type DerivedMemberStatus = 'Active' | 'On Hold' | 'Alumni';
+type DisplayMember = Member & { derivedStatus: DerivedMemberStatus };
 
-function nameKey(name: string) {
-  return name.toLowerCase().trim();
+function nameKey(row: { name: string; name_normalized?: string | null }) {
+  return (row.name_normalized ?? row.name).toLowerCase().trim();
+}
+
+function parseLifecycleDate(primary?: string | null, fallback?: string | null): number | null {
+  const primaryTime = primary ? new Date(primary).getTime() : Number.NaN;
+  if (!Number.isNaN(primaryTime)) {
+    return primaryTime;
+  }
+  const fallbackTime = fallback ? new Date(fallback).getTime() : Number.NaN;
+  return Number.isNaN(fallbackTime) ? null : fallbackTime;
+}
+
+function fallbackStatus(status?: Member['status']): DerivedMemberStatus {
+  if (status === 'Active' || status === 'On Hold') {
+    return status;
+  }
+  return 'Alumni';
 }
 
 function PlanBar({ label, count, total }: { label: string; count: number; total: number }) {
@@ -49,6 +67,29 @@ function PlanBar({ label, count, total }: { label: string; count: number; total:
       <span className="text-gray-500 w-16 text-right">
         {count} ({pct}%)
       </span>
+    </div>
+  );
+}
+
+function PlanSummarySection({
+  title,
+  rows,
+  total,
+}: {
+  title: string;
+  rows: [string, number][];
+  total: number;
+}) {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h4>
+      {rows.map(([label, count]) => (
+        <PlanBar key={label} label={label} count={count} total={total} />
+      ))}
     </div>
   );
 }
@@ -108,12 +149,12 @@ function buildJourneyEvents(
   return nextEvents.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function JourneyPanel({ member, onClose }: { member: Member; onClose: () => void }) {
+function JourneyPanel({ member, onClose }: { member: DisplayMember; onClose: () => void }) {
   const [events, setEvents] = useState<JourneyEvent[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const key = member.name_normalized ?? nameKey(member.name);
+    const key = (member.name_normalized ?? member.name).toLowerCase().trim();
 
     Promise.all([
       supabase.from('intros').select('*').ilike('name', member.name),
@@ -139,13 +180,20 @@ function JourneyPanel({ member, onClose }: { member: Member; onClose: () => void
   }, [member.name, member.name_normalized]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="member-journey-title"
+    >
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto mx-4">
         <div className="flex items-center justify-between p-5 border-b">
           <div>
-            <h2 className="font-semibold text-gray-900">{member.name}</h2>
+            <h2 id="member-journey-title" className="font-semibold text-gray-900">
+              {member.name}
+            </h2>
             <p className="text-xs text-gray-500">
-              {member.membership_type || 'No plan'} - {member.status || 'No status'}
+              {member.membership_type || 'No plan'} - {member.derivedStatus}
               {member.join_date ? ` - Since ${member.join_date}` : ''}
             </p>
           </div>
@@ -190,16 +238,81 @@ export default function MembersTab() {
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [selectedMember, setSelectedMember] = useState<DisplayMember | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
 
   const now = new Date();
   const currentMonthAbbr = MONTHS_ABBR[now.getMonth()];
   const currentYear = now.getFullYear();
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Derives member lifecycle state across signups, cancellations, and holds in one memoized pass.
+  const derivedMembers = useMemo<DisplayMember[]>(() => {
+    const latestSignupByName = new Map<string, number>();
+    const latestCancellationByName = new Map<string, number>();
+    const activeHoldKeys = new Set<string>();
+
+    for (const signup of signups) {
+      const effectiveDate = parseLifecycleDate(signup.membership_date, signup.created_at);
+      if (effectiveDate === null) {
+        continue;
+      }
+      const key = nameKey(signup);
+      const current = latestSignupByName.get(key);
+      if (current === undefined || effectiveDate > current) {
+        latestSignupByName.set(key, effectiveDate);
+      }
+    }
+
+    for (const cancellation of cancellations) {
+      const effectiveDate = parseLifecycleDate(cancellation.date, cancellation.created_at);
+      if (effectiveDate === null) {
+        continue;
+      }
+      const key = nameKey(cancellation);
+      const current = latestCancellationByName.get(key);
+      if (current === undefined || effectiveDate > current) {
+        latestCancellationByName.set(key, effectiveDate);
+      }
+    }
+
+    for (const hold of holds) {
+      if (!hold.start) {
+        continue;
+      }
+      const start = new Date(hold.start);
+      const end = hold.end ? new Date(hold.end) : null;
+      if (start <= now && (!end || end >= now)) {
+        activeHoldKeys.add(nameKey(hold));
+      }
+    }
+
+    return members.map((member) => {
+      const key = nameKey(member);
+      const latestSignup = latestSignupByName.get(key);
+      const latestCancellation = latestCancellationByName.get(key);
+
+      let derivedStatus: DerivedMemberStatus;
+      if (
+        latestCancellation !== undefined &&
+        (latestSignup === undefined || latestCancellation > latestSignup)
+      ) {
+        derivedStatus = 'Alumni';
+      } else if (activeHoldKeys.has(key)) {
+        derivedStatus = 'On Hold';
+      } else if (latestSignup !== undefined) {
+        derivedStatus = 'Active';
+      } else {
+        derivedStatus = fallbackStatus(member.status);
+      }
+
+      return { ...member, derivedStatus };
+    });
+  }, [cancellations, holds, members, now, signups]);
+
   const activeMembers = useMemo(
-    () => members.filter((member) => member.status === 'Active'),
-    [members]
+    () => derivedMembers.filter((member) => member.derivedStatus === 'Active'),
+    [derivedMembers]
   );
 
   const signupsThisMonth = signups.filter(
@@ -210,14 +323,7 @@ export default function MembersTab() {
     (cancellation) => cancellation.month === currentMonthAbbr && cancellation.year === currentYear
   ).length;
 
-  const onHoldCount = holds.filter((hold) => {
-    if (!hold.start) {
-      return false;
-    }
-    const start = new Date(hold.start);
-    const end = hold.end ? new Date(hold.end) : null;
-    return start <= now && (!end || end >= now);
-  }).length;
+  const onHoldCount = derivedMembers.filter((member) => member.derivedStatus === 'On Hold').length;
 
   const retentionRate =
     activeMembers.length > 0
@@ -233,25 +339,75 @@ export default function MembersTab() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [activeMembers]);
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Classifies active membership plan strings into independent summary groups.
+  const planSummary = useMemo(() => {
+    const program = { Legacy: 0, Integrity: 0, Special: 0 };
+    const age = { Adults: 0, Kids: 0 };
+    const duration = { Annual: 0, 'Semi-Annual': 0 };
+    const classPacks = { 'Flex 10': 0, 'Flex 20': 0 };
+
+    for (const member of activeMembers) {
+      const plan = member.membership_type?.toLowerCase() ?? '';
+      if (plan.includes('legacy')) {
+        program.Legacy++;
+      }
+      if (plan.includes('integrity')) {
+        program.Integrity++;
+      }
+      if (plan.includes('special')) {
+        program.Special++;
+      }
+      if (plan.includes('adult')) {
+        age.Adults++;
+      }
+      if (plan.includes('kids') || plan.includes('youth')) {
+        age.Kids++;
+      }
+      if (plan.includes('semi-annual') || plan.includes('semi annual')) {
+        duration['Semi-Annual']++;
+      } else if (plan.includes('annual')) {
+        duration.Annual++;
+      }
+      if (plan.includes('flex 10')) {
+        classPacks['Flex 10']++;
+      }
+      if (plan.includes('flex 20')) {
+        classPacks['Flex 20']++;
+      }
+    }
+
+    const nonZeroEntries = (counts: Record<string, number>) =>
+      Object.entries(counts).filter(([, count]) => count > 0) as [string, number][];
+
+    return {
+      program: nonZeroEntries(program),
+      age: nonZeroEntries(age),
+      duration: nonZeroEntries(duration),
+      classPacks: nonZeroEntries(classPacks),
+    };
+  }, [activeMembers]);
+
   const plans = useMemo(
     () =>
-      Array.from(new Set(members.map((member) => member.membership_type).filter(Boolean))).sort(),
-    [members]
+      Array.from(
+        new Set(derivedMembers.map((member) => member.membership_type).filter(Boolean))
+      ).sort(),
+    [derivedMembers]
   );
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim();
-    return members.filter((member) => {
+    return derivedMembers.filter((member) => {
       const matchesSearch =
         !query ||
         member.name.toLowerCase().includes(query) ||
         member.email?.toLowerCase().includes(query) ||
         member.phone?.toLowerCase().includes(query);
       const matchesPlan = planFilter === 'all' || member.membership_type === planFilter;
-      const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || member.derivedStatus === statusFilter;
       return matchesSearch && matchesPlan && matchesStatus;
     });
-  }, [members, planFilter, search, statusFilter]);
+  }, [derivedMembers, planFilter, search, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice(
@@ -362,10 +518,46 @@ export default function MembersTab() {
       {planCounts.length > 0 && (
         <div className="section-container">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">Membership Plan Breakdown</h3>
-          <div className="space-y-2.5">
-            {planCounts.map(([plan, count]) => (
-              <PlanBar key={plan} label={plan} count={count} total={activeMembers.length} />
-            ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <PlanSummarySection
+              title="Program"
+              rows={planSummary.program}
+              total={activeMembers.length}
+            />
+            <PlanSummarySection title="Age" rows={planSummary.age} total={activeMembers.length} />
+            <PlanSummarySection
+              title="Duration"
+              rows={planSummary.duration}
+              total={activeMembers.length}
+            />
+            <PlanSummarySection
+              title="Class Packs"
+              rows={planSummary.classPacks}
+              total={activeMembers.length}
+            />
+          </div>
+
+          <div className="mt-5 border-t pt-4">
+            <button
+              type="button"
+              onClick={() => setShowPlanDetails((value) => !value)}
+              className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
+              aria-expanded={showPlanDetails}
+            >
+              {showPlanDetails ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              Per-plan detail
+            </button>
+            {showPlanDetails && (
+              <div className="space-y-2.5 mt-3">
+                {planCounts.map(([plan, count]) => (
+                  <PlanBar key={plan} label={plan} count={count} total={activeMembers.length} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -408,7 +600,7 @@ export default function MembersTab() {
             <option value="all">All Statuses</option>
             <option value="Active">Active</option>
             <option value="On Hold">On Hold</option>
-            <option value="Inactive">Inactive</option>
+            <option value="Alumni">Alumni</option>
           </select>
         </div>
       </div>
@@ -458,14 +650,14 @@ export default function MembersTab() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${
-                          member.status === 'Active'
+                          member.derivedStatus === 'Active'
                             ? 'bg-green-100 text-green-700'
-                            : member.status === 'On Hold'
+                            : member.derivedStatus === 'On Hold'
                               ? 'bg-orange-100 text-orange-700'
                               : 'bg-gray-100 text-gray-600'
                         }`}
                       >
-                        {member.status || '-'}
+                        {member.derivedStatus}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">

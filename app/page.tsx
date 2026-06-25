@@ -71,7 +71,7 @@ function HomeContent() {
               <div className="max-w-full">
                 <div className="animate-fadeIn">
                   {activeTab === 'overview' && <OverviewTab />}
-                  {activeTab === 'insights' && <InsightsTab />}
+                  {activeTab === 'insights' && <InsightsTab followUps={followUps} />}
                   {activeTab === 'intros' && <IntrosTab />}
                   {activeTab === 'followups' && <FollowUpsTab followUps={followUps} />}
                   {activeTab === 'signups' && <SignupsTab />}

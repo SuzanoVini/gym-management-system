@@ -1,16 +1,6 @@
 'use client';
 
-import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  RefreshCw,
-  Target,
-  TrendingUp,
-  Users,
-} from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -36,7 +26,15 @@ interface Toast {
   insightId: string;
 }
 
-export default function InsightsTab() {
+interface InsightsTabProps {
+  followUps: {
+    overdueCount: number;
+    remindersDueCount: number;
+  };
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Tab coordinates filters, dismissal toasts, and insight rendering in one view.
+export default function InsightsTab({ followUps }: InsightsTabProps) {
   const [dateRange, setDateRange] = useState('3months');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -51,10 +49,38 @@ export default function InsightsTab() {
     customEndDate,
   });
 
-  const { insights } = useInsights({
+  const { insights: baseInsights } = useInsights({
     ...filteredData,
     rawHolds: allData.holds,
   });
+
+  const followUpInsight: Insight | null =
+    followUps.overdueCount > 0 || followUps.remindersDueCount > 0
+      ? {
+          id: 'follow-ups-due',
+          title:
+            followUps.overdueCount > 0
+              ? `${followUps.overdueCount} Follow-Up${followUps.overdueCount === 1 ? '' : 's'} Overdue`
+              : `${followUps.remindersDueCount} Follow-Up Reminder${followUps.remindersDueCount === 1 ? '' : 's'} Due`,
+          message:
+            followUps.overdueCount > 0
+              ? `${followUps.overdueCount} prospect follow-up${followUps.overdueCount === 1 ? ' is' : 's are'} overdue. These are active leads that need contact before they go cold.`
+              : `${followUps.remindersDueCount} follow-up reminder${followUps.remindersDueCount === 1 ? ' is' : 's are'} due. Handle these while the lead is still warm.`,
+          icon: followUps.overdueCount > 0 ? 'AlertCircle' : 'Clock',
+          color: followUps.overdueCount > 0 ? 'red' : 'orange',
+          priority: followUps.overdueCount > 0 ? 'high' : 'medium',
+          impact: 'Improves intro-to-signup follow-through',
+          actions: [
+            'Open the Follow Ups tab',
+            'Contact overdue leads first',
+            'Log each contact attempt',
+            'Set reminders for anyone who needs more time',
+          ],
+          category: 'operational',
+        }
+      : null;
+
+  const insights = followUpInsight ? [followUpInsight, ...baseInsights] : baseInsights;
 
   const { isDismissed, markDone, snooze, dismiss, restore, dismissed } = useDismissedInsights();
 
@@ -137,21 +163,6 @@ export default function InsightsTab() {
     (d) => d.action === 'dismissed' || d.action === 'done'
   ).length;
 
-  // Category breakdown (visible only)
-  const insightsByCategory = {
-    conversion: visibleInsights.filter((i: Insight) => i.category === 'conversion'),
-    retention: visibleInsights.filter((i: Insight) => i.category === 'retention'),
-    financial: visibleInsights.filter((i: Insight) => i.category === 'financial'),
-    operational: visibleInsights.filter((i: Insight) => i.category === 'operational'),
-    growth: visibleInsights.filter((i: Insight) => i.category === 'growth'),
-  };
-
-  const priorityCounts = {
-    critical: visibleInsights.filter((i: Insight) => i.priority === 'critical').length,
-    high: visibleInsights.filter((i: Insight) => i.priority === 'high').length,
-    medium: visibleInsights.filter((i: Insight) => i.priority === 'medium').length,
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -210,19 +221,15 @@ export default function InsightsTab() {
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-1">
+          <div className="flex items-center justify-between mb-4 gap-4">
             <div>
-              <h2 className="text-2xl font-bold flex items-center">
-                <AlertCircle className="w-6 h-6 mr-2 text-red-600" />
-                Smart Business Insights
-              </h2>
+              <h2 className="text-2xl font-bold">Smart Business Insights</h2>
               <p className="text-sm text-gray-600 mt-1">
                 Actionable recommendations based on your actual data
               </p>
             </div>
             <button type="button" onClick={refresh} className="btn btn-primary">
-              <RefreshCw className="w-4 h-4" />
               Refresh
             </button>
           </div>
@@ -288,42 +295,6 @@ export default function InsightsTab() {
           )}
         </div>
 
-        {/* Priority Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Critical Priority</p>
-                <p className="text-3xl font-bold mt-1 text-red-600">{priorityCounts.critical}</p>
-                <p className="text-xs text-gray-500 mt-1">Act immediately</p>
-              </div>
-              <AlertCircle className="w-8 h-8 text-red-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">High Priority</p>
-                <p className="text-3xl font-bold mt-1 text-orange-600">{priorityCounts.high}</p>
-                <p className="text-xs text-gray-500 mt-1">Address this week</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-orange-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Medium Priority</p>
-                <p className="text-3xl font-bold mt-1 text-yellow-600">{priorityCounts.medium}</p>
-                <p className="text-xs text-gray-500 mt-1">Plan for next month</p>
-              </div>
-              <Clock className="w-8 h-8 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
         {/* Insights */}
         {visibleInsights.length === 0 && !showDismissed ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
@@ -371,31 +342,6 @@ export default function InsightsTab() {
                 ? 'Hide dismissed insights'
                 : `Show dismissed (${dismissedInsightCount})`}
             </button>
-          </div>
-        )}
-
-        {/* Category Breakdown */}
-        {visibleInsights.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-bold mb-4">Insights by Category</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {[
-                { key: 'conversion', label: 'Conversion', icon: Target, color: 'blue' },
-                { key: 'retention', label: 'Retention', icon: Users, color: 'purple' },
-                { key: 'financial', label: 'Financial', icon: DollarSign, color: 'green' },
-                { key: 'operational', label: 'Operational', icon: Clock, color: 'orange' },
-                { key: 'growth', label: 'Growth', icon: TrendingUp, color: 'red' },
-              ].map(({ key, label, icon: CategoryIcon, color }) => {
-                const count = insightsByCategory[key as keyof typeof insightsByCategory].length;
-                return (
-                  <div key={key} className="text-center p-4 bg-gray-50 rounded-lg">
-                    <CategoryIcon className={`w-6 h-6 mx-auto mb-2 text-${color}-600`} />
-                    <p className="text-2xl font-bold text-gray-900">{count}</p>
-                    <p className="text-xs text-gray-600">{label}</p>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         )}
       </div>
