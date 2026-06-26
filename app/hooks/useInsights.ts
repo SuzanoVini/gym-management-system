@@ -11,7 +11,7 @@ interface UseInsightsProps {
   signups: Signup[];
   cancellations: Cancellation[];
   holds: Hold[];
-  rawHolds?: Hold[]; // Unfiltered holds for return-rate calculation (hold relevance is by end date, not created_at)
+  rawHolds?: Hold[]; // Unfiltered holds — used for long-hold detection (hold relevance is by end date, not created_at)
   members?: Member[];
 }
 
@@ -372,61 +372,6 @@ This concentration points to a retention issue specific to this demographic.`,
             `Review class schedule for ${ageGroup}-friendly time slots`,
             `Create a ${ageGroup}-focused retention offer`,
             'Adjust programming to better serve this demographic',
-          ],
-          category: 'retention',
-        });
-      }
-    }
-
-    // NS-3: Hold Return Rate (uses rawHolds if available for accuracy; falls back to filtered holds)
-    const holdsToUse = rawHolds ?? holds;
-    const expiredHolds = holdsToUse.filter((h) => h.end && new Date(h.end) < now);
-
-    if (expiredHolds.length >= 5) {
-      const signupNames = new Set(signups.map((s) => s.name.toLowerCase().trim()));
-      const returnedCount = expiredHolds.filter((h) =>
-        signupNames.has(h.name.toLowerCase().trim())
-      ).length;
-      const returnRate = (returnedCount / expiredHolds.length) * 100;
-      const missedReturns = expiredHolds.length - returnedCount;
-
-      if (returnRate < 50) {
-        generatedInsights.push({
-          id: 'low-hold-return-rate',
-          title: `Hold Return Rate at ${returnRate.toFixed(0)}% — ${missedReturns} Members Didn't Come Back`,
-          message: `${expiredHolds.length} holds have expired.
-Returned: ${returnedCount} (${returnRate.toFixed(0)}%)
-Did not return: ${missedReturns} (${(100 - returnRate).toFixed(0)}%)
-
-Members on hold intend to return — a low return rate means re-activation is failing.`,
-          icon: 'RefreshCw',
-          color: 'orange',
-          priority: 'high',
-          impact: `Recovering 50% of non-returns = $${(Math.round(missedReturns * 0.5) * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()}/month`,
-          actions: [
-            'Contact hold members within 48 hours of their hold end date',
-            'Create an automated re-activation reminder sequence',
-            'Offer a "welcome back" session or free class',
-            'Remove re-activation fees to lower the barrier',
-          ],
-          category: 'retention',
-        });
-      } else if (returnRate >= 75) {
-        generatedInsights.push({
-          id: 'high-hold-return-rate',
-          title: `Strong Hold Return Rate — ${returnRate.toFixed(0)}% Come Back`,
-          message: `${returnedCount} of ${expiredHolds.length} hold members returned (${returnRate.toFixed(0)}%).
-
-Your hold program is working well as a retention tool.`,
-          icon: 'RefreshCw',
-          color: 'green',
-          priority: 'medium',
-          impact: 'Hold program is saving revenue that would otherwise be lost',
-          actions: [
-            'Offer holds more proactively during cancellation conversations',
-            'Consider extending max hold duration to retain more at-risk members',
-            'Collect testimonials from returned members',
-            'Train all staff on the hold program benefits',
           ],
           category: 'retention',
         });
