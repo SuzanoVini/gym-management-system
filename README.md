@@ -36,7 +36,7 @@ Staff hours are entered and tracked by bi-weekly payroll period. The system hand
 
 **Actionable insights**
 
-The Insights tab auto-generates observations from the underlying data: things like a spike in cancellations from a specific reason, members on extended holds at risk of churning, or intro-to-signup conversion falling below average. Each insight can be marked as done, snoozed, or dismissed, and resurfaces automatically if the numbers shift again.
+The Insights tab auto-generates observations from the underlying data: things like a spike in cancellations from a specific reason, stale intro leads going cold, or intro-to-signup conversion falling below average. Each insight can be marked as done, snoozed, or dismissed, and resurfaces automatically if the numbers shift again.
 
 **Analytics overview**
 

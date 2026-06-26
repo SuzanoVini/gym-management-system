@@ -11,17 +11,10 @@ interface UseInsightsProps {
   signups: Signup[];
   cancellations: Cancellation[];
   holds: Hold[];
-  rawHolds?: Hold[]; // Unfiltered holds — used for long-hold detection (hold relevance is by end date, not created_at)
   members?: Member[];
 }
 
-export const useInsights = ({
-  intros,
-  signups,
-  cancellations,
-  holds,
-  rawHolds,
-}: UseInsightsProps) => {
+export const useInsights = ({ intros, signups, cancellations, holds }: UseInsightsProps) => {
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Insight generation aggregates many business rules.
   const insights = useMemo(() => {
     const generatedInsights: Insight[] = [];
@@ -479,44 +472,6 @@ The 60-day window is critical — after that, habits change and re-engagement be
       });
     }
 
-    // NEW-1: Long holds - churn risk
-    const holdsSource = rawHolds ?? holds;
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const longHolds = holdsSource.filter((h) => {
-      if (!h.start) {
-        return false;
-      }
-      const start = new Date(h.start);
-      const end = h.end ? new Date(h.end) : null;
-      return start <= thirtyDaysAgo && (!end || end >= now);
-    });
-
-    if (longHolds.length > 0) {
-      const names = longHolds
-        .slice(0, 3)
-        .map((h) => h.name)
-        .join(', ');
-      const extra = longHolds.length > 3 ? ` +${longHolds.length - 3} more` : '';
-      const recoveredCount = Math.ceil(longHolds.length / 2);
-
-      generatedInsights.push({
-        id: 'long-holds-churn-risk',
-        title: `${longHolds.length} member${longHolds.length === 1 ? '' : 's'} on hold for 30+ days - churn risk`,
-        message: `${names}${extra}\n\nMembers on extended holds often don't return. A proactive check-in now significantly improves return rates.`,
-        icon: 'Clock',
-        color: 'red',
-        priority: 'high',
-        impact: `Recovering 50% = ${recoveredCount} members = $${(recoveredCount * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()}/month`,
-        actions: [
-          'Reach out personally to each member on extended hold',
-          'Offer a re-activation session or open house invite',
-          'Check if their hold reason has resolved',
-          'Make it easy to return - no re-activation fees',
-        ],
-        category: 'retention',
-      });
-    }
-
     // NEW-2: Stale intros - 60+ days, no signup
     const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
     const staleIntros60 = activeIntros.filter((intro) => {
@@ -549,7 +504,7 @@ The 60-day window is critical — after that, habits change and re-engagement be
     // Sort by priority
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     return generatedInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  }, [intros, signups, cancellations, holds, rawHolds]);
+  }, [intros, signups, cancellations, holds]);
 
   return { insights };
 };

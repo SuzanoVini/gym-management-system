@@ -43,7 +43,7 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
   const [showDismissed, setShowDismissed] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const { filteredData, allData, loading, error, refresh } = useAnalyticsData({
+  const { filteredData, loading, error, refresh } = useAnalyticsData({
     dateRange,
     customStartDate,
     customEndDate,
@@ -51,7 +51,6 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
 
   const { insights: baseInsights } = useInsights({
     ...filteredData,
-    rawHolds: allData.holds,
   });
 
   const followUpInsight: Insight | null =
