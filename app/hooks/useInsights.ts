@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import type { Cancellation, Hold, Insight, Intro, Member, Signup } from '@/types';
 
 const MONTHLY_MEMBERSHIP_REVENUE = 180;
-const SIGNUP_PACKAGE_REVENUE = 200;
 
 interface UseInsightsProps {
   intros: Intro[];
@@ -14,7 +13,7 @@ interface UseInsightsProps {
   members?: Member[];
 }
 
-export const useInsights = ({ intros, signups, cancellations, holds }: UseInsightsProps) => {
+export const useInsights = ({ intros, signups, cancellations }: UseInsightsProps) => {
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Insight generation aggregates many business rules.
   const insights = useMemo(() => {
     const generatedInsights: Insight[] = [];
@@ -180,40 +179,8 @@ These aren't lost causes - they're seasonal! Most travel cancellations will retu
       });
     }
 
-    // 4. MEDIUM: Signup Package Rate
-    const signupsWithPackage = signups.filter((s) => s.signup_package).length;
-    const totalFilteredSignups = signups.length;
-    const packageRate = totalFilteredSignups > 0 ? signupsWithPackage / totalFilteredSignups : 0;
-
-    if (packageRate < 0.65 && totalFilteredSignups > 10) {
-      const targetRate = 0.8;
-      const gap = targetRate - packageRate;
-      const additionalPackages = Math.round(gap * totalFilteredSignups);
-      const revenue = additionalPackages * SIGNUP_PACKAGE_REVENUE;
-
-      generatedInsights.push({
-        id: 'signup-package-opportunity',
-        title: `Signup Package Rate at ${(packageRate * 100).toFixed(0)}% - Revenue Opportunity`,
-        message: `Current: ${signupsWithPackage}/${totalFilteredSignups} members purchased signup package (${(packageRate * 100).toFixed(0)}%)
-Target: 80%
-Gap: ${(gap * 100).toFixed(0)} percentage points
-
-Industry data: Members with signup packages have 40% better retention at 90 days.`,
-        icon: 'DollarSign',
-        color: 'green',
-        priority: 'medium',
-        impact: `$${revenue.toLocaleString()} additional revenue + better retention`,
-        actions: [
-          'Train staff on package benefits during signup',
-          'Use social proof: "87% of our members get the package"',
-          'Emphasize retention stat: "40% more likely to still be training in 3 months"',
-          'Create package as default option, not add-on',
-        ],
-        category: 'financial',
-      });
-    }
-
     // 5. MEDIUM: Net Growth Analysis
+    const totalFilteredSignups = signups.length;
     const netGrowth = totalFilteredSignups - cancellations.length;
 
     if (netGrowth < 0) {
@@ -371,67 +338,6 @@ This concentration points to a retention issue specific to this demographic.`,
       }
     }
 
-    // NS-4: Stale Warm Leads (attended 30–90 days ago, still no signup)
-    const staleLeads = activeIntros.filter((intro) => {
-      if (!intro.date) {
-        return false;
-      }
-      const daysAgo = (now.getTime() - new Date(intro.date).getTime()) / (1000 * 60 * 60 * 24);
-      return intro.attended === 'Yes' && intro.signed_up !== 'Yes' && daysAgo > 30 && daysAgo <= 90;
-    });
-
-    if (staleLeads.length >= 5) {
-      generatedInsights.push({
-        id: 'stale-warm-leads',
-        title: `${staleLeads.length} Warm Leads Gone Cold — Last-Chance Outreach`,
-        message: `${staleLeads.length} people attended intros 30–90 days ago and never signed up.
-
-After 30 days conversion drops to under 10%. A personal, compelling offer is the last realistic chance.`,
-        icon: 'Clock',
-        color: 'orange',
-        priority: 'high',
-        impact: `Even 10% conversion = ${Math.max(1, Math.round(staleLeads.length * 0.1))} signups = $${(Math.max(1, Math.round(staleLeads.length * 0.1)) * MONTHLY_MEMBERSHIP_REVENUE).toLocaleString()}/month`,
-        actions: [
-          'Send a personal (not automated) message to each person',
-          'Offer a limited-time re-intro or trial session',
-          'Mention any new programs or changes since their visit',
-          'Keep expectations realistic — focus on the motivated 10%',
-        ],
-        category: 'conversion',
-      });
-    }
-
-    // NS-5: Recent Signup Package Gap (signups in last 30 days without a package)
-    const recentSignupsAll = signups.filter((s) => {
-      if (!s.created_at) {
-        return false;
-      }
-      const daysAgo = (now.getTime() - new Date(s.created_at).getTime()) / (1000 * 60 * 60 * 24);
-      return daysAgo <= 30;
-    });
-    const recentWithoutPkg = recentSignupsAll.filter((s) => !s.signup_package);
-
-    if (recentSignupsAll.length >= 5 && recentWithoutPkg.length > 0) {
-      generatedInsights.push({
-        id: 'recent-signup-package-gap',
-        title: `${recentWithoutPkg.length} Recent Members Skipped the Signup Package`,
-        message: `In the last 30 days: ${recentWithoutPkg.length} of ${recentSignupsAll.length} new members didn't purchase a package.
-
-These members are still in their honeymoon phase — the best window to upsell.`,
-        icon: 'DollarSign',
-        color: 'green',
-        priority: 'medium',
-        impact: `${recentWithoutPkg.length} package upgrades = $${(recentWithoutPkg.length * SIGNUP_PACKAGE_REVENUE).toLocaleString()} immediate revenue`,
-        actions: [
-          'Reach out to these members this week with a personal package offer',
-          'Emphasize retention benefit: "40% more likely to still be here in 3 months"',
-          'Offer a time-limited discount (e.g., $20 off within 30 days of joining)',
-          'Have front desk mention it at their next check-in',
-        ],
-        category: 'financial',
-      });
-    }
-
     // NS-6: Re-Engagement Window (cancelled in last 60 days for recoverable reasons)
     const reEngageable = cancellations.filter((c) => {
       if (!c.created_at) {
@@ -472,39 +378,10 @@ The 60-day window is critical — after that, habits change and re-engagement be
       });
     }
 
-    // NEW-2: Stale intros - 60+ days, no signup
-    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-    const staleIntros60 = activeIntros.filter((intro) => {
-      if (!intro.date) {
-        return false;
-      }
-      return intro.signed_up !== 'Yes' && new Date(intro.date) <= sixtyDaysAgo;
-    });
-
-    if (staleIntros60.length > 0) {
-      const possibleSignups = Math.max(1, Math.ceil(staleIntros60.length * 0.05));
-      generatedInsights.push({
-        id: 'intros-60-days-no-signup',
-        title: `${staleIntros60.length} intro${staleIntros60.length === 1 ? '' : 's'} from 60+ days ago haven't signed up`,
-        message: `${staleIntros60.length} active intros attended 60+ days ago with no signup.\n\nConversion drops under 5% after 60 days - a final personal outreach is worth attempting before closing these leads.`,
-        icon: 'Clock',
-        color: 'orange',
-        priority: 'medium',
-        impact: `Even 5% conversion = ${possibleSignups} signup${possibleSignups === 1 ? '' : 's'}`,
-        actions: [
-          'Send a personal message to each person',
-          'Mention any new programs, schedule changes, or promotions',
-          'Offer a free return visit before deciding',
-          'Mark as Completed/Cancelled after outreach to keep the list clean',
-        ],
-        category: 'conversion',
-      });
-    }
-
     // Sort by priority
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     return generatedInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  }, [intros, signups, cancellations, holds]);
+  }, [intros, signups, cancellations]);
 
   return { insights };
 };
