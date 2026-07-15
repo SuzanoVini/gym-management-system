@@ -12,6 +12,7 @@ import {
   SECOND_PERIOD_START_DAY,
   WEEKEND_DAYS,
 } from '@/constants/payroll.constants';
+import { config } from '@/lib/config';
 
 // ============================================================================
 // Date Formatting Functions
@@ -243,6 +244,36 @@ export function getLastDayOfMonth(date: Date): Date {
  * getPayrollPeriodForDate(new Date('2026-01-20'))
  * // { start: 2026-01-16, end: 2026-01-31 }
  */
+/**
+ * Get the month abbreviation for a YYYY-MM-DD string, without going through
+ * `new Date()` (which parses as UTC midnight and can shift the local day/month).
+ *
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Month abbreviation (e.g., "Jul") or '' if unparseable
+ *
+ * @example
+ * monthAbbrFromDate('2026-07-01') // "Jul"
+ */
+export function monthAbbrFromDate(dateStr: string): string {
+  const parts = dateStr.split('-');
+  return parts.length >= 2 ? (config.months[Number(parts[1]) - 1] ?? '') : '';
+}
+
+/**
+ * Get the year for a YYYY-MM-DD string, without going through `new Date()`
+ * (which parses as UTC midnight and can shift the local year on Jan 1).
+ *
+ * @param dateStr - Date string in YYYY-MM-DD format
+ * @returns Four-digit year, or undefined if unparseable/implausible
+ *
+ * @example
+ * yearFromDate('2026-01-01') // 2026
+ */
+export function yearFromDate(dateStr: string): number | undefined {
+  const year = Number(dateStr.split('-')[0]);
+  return Number.isNaN(year) || year < 2000 ? undefined : year;
+}
+
 export function getPayrollPeriodForDate(date: Date): { start: Date; end: Date } {
   const year = date.getFullYear();
   const month = date.getMonth();

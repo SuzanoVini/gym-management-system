@@ -1,28 +1,27 @@
 'use client';
 
 import { Edit2, FileText, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import FilterBar from '@/components/ui/FilterBar';
 import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
-import YearFilter from '@/components/ui/YearFilter';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { useSignups } from '@/hooks/useSignups';
+import { config } from '@/lib/config';
 import { parseSignupsCSV, type SignupCsvRecord } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { markMostRecentIntroAsSignedUp } from '@/lib/supabase/intros';
 import { formatDate } from '@/lib/supabase/utils';
-import { useFilterStore } from '@/store/useFilterStore';
+import { isDefaultFilters, useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Signup } from '@/types';
 import { SignupModals } from './modals/SignupModals';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function daysBetween(from: string, to: string): number {
   return Math.round((new Date(to).getTime() - new Date(from).getTime()) / (1000 * 60 * 60 * 24));
@@ -32,7 +31,10 @@ export default function SignupsTab() {
   const { signups, loading, error, addSignup, editSignup, removeSignup, refresh } = useSignups();
   const { intros } = useIntros();
   const { openModal, closeModal } = useUIStore();
-  const { filters, setFilters } = useFilterStore();
+  const filters = useFilterStore((s) => s.filtersByTab.signups);
+  const setFiltersForTab = useFilterStore((s) => s.setFilters);
+  const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
+  const setFilters = (partial: Partial<typeof filters>) => setFiltersForTab('signups', partial);
   const selectionTab: SelectionTabKey = 'signups';
   const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
   const toggleSelection = useSelectionStore((state) => state.toggleSelection);
@@ -50,6 +52,11 @@ export default function SignupsTab() {
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('signups'));
   const membershipTypes = useSettingsStore((s) => s.membershipTypes);
   const [viewingNote, setViewingNote] = useState<string | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs whenever filters/sortOrder change, to reset to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortOrder]);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -490,75 +497,44 @@ export default function SignupsTab() {
         </div>
       </div>
 
-      <div className="section-container mb-4">
-        <input
-          type="text"
-          placeholder="Search by name, membership type, dates, or notes..."
-          value={filters.searchTerm}
-          onChange={(e) => setFilters({ searchTerm: e.target.value })}
-          className="form-input"
-        />
-      </div>
-
-      <div className="section-container">
-        <YearFilter
-          availableYears={availableYears}
-          selectedYear={filters.year}
-          onYearChange={(year) => setFilters({ year })}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="form-label" htmlFor="signups-sort">
-              Sort By
-            </label>
-            <select
-              id="signups-sort"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-              className="form-select"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="signups-month">
-              Month
-            </label>
-            <select
-              id="signups-month"
-              value={filters.month}
-              onChange={(e) => setFilters({ month: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Months</option>
-              {MONTHS.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="signups-membership">
-              Membership Type
-            </label>
-            <select
-              id="signups-membership"
-              value={filters.membership}
-              onChange={(e) => setFilters({ membership: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Types</option>
-              {membershipTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterBar
+        availableYears={availableYears}
+        selectedYear={filters.year}
+        onYearChange={(year) => setFilters({ year })}
+        searchValue={filters.searchTerm}
+        onSearchChange={(searchTerm) => setFilters({ searchTerm })}
+        searchPlaceholder="Search by name, membership type, dates, or notes..."
+        selects={[
+          {
+            id: 'signups-month',
+            label: 'Month',
+            value: filters.month,
+            onChange: (month) => setFilters({ month }),
+            options: [...config.months],
+            allLabel: 'All Months',
+          },
+          {
+            id: 'signups-membership',
+            label: 'Membership Type',
+            value: filters.membership,
+            onChange: (membership) => setFilters({ membership }),
+            options: membershipTypes,
+            allLabel: 'All Types',
+          },
+        ]}
+        sortSelect={{
+          id: 'signups-sort',
+          label: 'Sort By',
+          value: sortOrder,
+          onChange: (value) => setSortOrder(value as 'newest' | 'oldest'),
+          options: [
+            { value: 'newest', label: 'Newest First' },
+            { value: 'oldest', label: 'Oldest First' },
+          ],
+        }}
+        hasActiveFilters={!isDefaultFilters(filters)}
+        onClear={() => clearFiltersForTab('signups')}
+      />
 
       <PaginationBar
         id="signups-items-per-page"

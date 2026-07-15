@@ -1,19 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { config } from '@/lib/config';
+import { monthAbbrFromDate, yearFromDate } from '@/lib/utils/date.utils';
 import type { Signup, SignupFormData } from '@/types';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const monthFromDate = (dateStr: string): string => {
-  const parts = dateStr.split('-');
-  return parts.length >= 2 ? (MONTHS[Number(parts[1]) - 1] ?? '') : '';
-};
-
-const yearFromDate = (dateStr: string): number | undefined => {
-  const y = Number(dateStr.split('-')[0]);
-  return Number.isNaN(y) || y < 2000 ? undefined : y;
-};
+const MONTHS = config.months;
 
 interface SignupFormProps {
   signup?: Signup | null;
@@ -58,7 +50,7 @@ export function SignupForm({
       setFormData((prev) => ({
         ...prev,
         membership_date: value,
-        month: monthFromDate(value) || prev.month,
+        month: monthAbbrFromDate(value) || prev.month,
         ...(newYear !== undefined ? { year: newYear } : {}),
       }));
       return;
@@ -67,12 +59,18 @@ export function SignupForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const isASP = formData.membership.trim().toLowerCase() === 'asp';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const yearDerived = formData.membership_date
       ? yearFromDate(formData.membership_date as string)
       : undefined;
-    await onSubmit({ ...formData, ...(yearDerived !== undefined ? { year: yearDerived } : {}) });
+    await onSubmit({
+      ...formData,
+      signup_package: isASP ? false : formData.signup_package,
+      ...(yearDerived !== undefined ? { year: yearDerived } : {}),
+    });
   };
 
   const showMonthFallback = !formData.membership_date;
@@ -167,18 +165,20 @@ export function SignupForm({
           className="form-input"
         />
       </div>
-      <div>
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            name="signup_package"
-            checked={formData.signup_package}
-            onChange={handleChange}
-            className="rounded"
-          />
-          <span className="text-sm font-medium">Sign-up Package</span>
-        </label>
-      </div>
+      {!isASP && (
+        <div>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              name="signup_package"
+              checked={formData.signup_package}
+              onChange={handleChange}
+              className="rounded"
+            />
+            <span className="text-sm font-medium">Sign-up Package</span>
+          </label>
+        </div>
+      )}
       <div>
         <label className="form-label" htmlFor="signup-notes">
           Notes

@@ -1,29 +1,29 @@
 'use client';
 
 import { Download, Edit2, FileText, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import FilterBar from '@/components/ui/FilterBar';
 import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
-import YearFilter from '@/components/ui/YearFilter';
 import { useCancellations } from '@/hooks/useCancellations';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
 import { useMembers } from '@/hooks/useMembers';
+import { config } from '@/lib/config';
 import { type CancellationCsvRecord, parseCancellationsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { closeActiveHold } from '@/lib/supabase/holds';
 import { exportToCSV, formatDate } from '@/lib/supabase/utils';
-import { useFilterStore } from '@/store/useFilterStore';
+import { isDefaultFilters, useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Cancellation } from '@/types';
 import { CancellationModals } from './modals/CancellationModals';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const AGE_GROUPS = ['3-6 YO', '7-9 YO', '10-15 YO', 'Adult'];
 
 function monthsBetween(from: string, to: string): number {
@@ -45,7 +45,11 @@ export default function CancellationsTab() {
   const { members } = useMembers();
   const { intros } = useIntros();
   const { openModal, closeModal } = useUIStore();
-  const { filters, setFilters } = useFilterStore();
+  const filters = useFilterStore((s) => s.filtersByTab.cancellations);
+  const setFiltersForTab = useFilterStore((s) => s.setFilters);
+  const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
+  const setFilters = (partial: Partial<typeof filters>) =>
+    setFiltersForTab('cancellations', partial);
   const selectionTab: SelectionTabKey = 'cancellations';
   const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
   const toggleSelection = useSelectionStore((state) => state.toggleSelection);
@@ -63,6 +67,11 @@ export default function CancellationsTab() {
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('cancellations'));
   const cancellationReasons = useSettingsStore((s) => s.cancellationReasons);
   const [viewingNote, setViewingNote] = useState<string | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs whenever filters/sortOrder change, to reset to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortOrder]);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -521,93 +530,52 @@ export default function CancellationsTab() {
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-        <input
-          type="text"
-          placeholder="Search by name, reason, age category, date, or notes..."
-          value={filters.searchTerm}
-          onChange={(e) => setFilters({ searchTerm: e.target.value })}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-        />
-      </div>
-
-      <div className="section-container">
-        <YearFilter
-          availableYears={availableYears}
-          selectedYear={filters.year}
-          onYearChange={(year) => setFilters({ year })}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="form-label" htmlFor="cancellations-sort">
-              Sort By
-            </label>
-            <select
-              id="cancellations-sort"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-              className="form-select"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="cancellations-month">
-              Month
-            </label>
-            <select
-              id="cancellations-month"
-              value={filters.month}
-              onChange={(e) => setFilters({ month: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Months</option>
-              {MONTHS.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="cancellations-reason">
-              Reason
-            </label>
-            <select
-              id="cancellations-reason"
-              value={filters.reason}
-              onChange={(e) => setFilters({ reason: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Reasons</option>
-              {cancellationReasons.map((reason) => (
-                <option key={reason} value={reason}>
-                  {reason}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="cancellations-age-group">
-              Age Group
-            </label>
-            <select
-              id="cancellations-age-group"
-              value={filters.ageGroup}
-              onChange={(e) => setFilters({ ageGroup: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Ages</option>
-              {AGE_GROUPS.map((age) => (
-                <option key={age} value={age}>
-                  {age}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterBar
+        availableYears={availableYears}
+        selectedYear={filters.year}
+        onYearChange={(year) => setFilters({ year })}
+        searchValue={filters.searchTerm}
+        onSearchChange={(searchTerm) => setFilters({ searchTerm })}
+        searchPlaceholder="Search by name, reason, age category, date, or notes..."
+        selects={[
+          {
+            id: 'cancellations-month',
+            label: 'Month',
+            value: filters.month,
+            onChange: (month) => setFilters({ month }),
+            options: [...config.months],
+            allLabel: 'All Months',
+          },
+          {
+            id: 'cancellations-reason',
+            label: 'Reason',
+            value: filters.reason,
+            onChange: (reason) => setFilters({ reason }),
+            options: cancellationReasons,
+            allLabel: 'All Reasons',
+          },
+          {
+            id: 'cancellations-age-group',
+            label: 'Age Group',
+            value: filters.ageGroup,
+            onChange: (ageGroup) => setFilters({ ageGroup }),
+            options: AGE_GROUPS,
+            allLabel: 'All Ages',
+          },
+        ]}
+        sortSelect={{
+          id: 'cancellations-sort',
+          label: 'Sort By',
+          value: sortOrder,
+          onChange: (value) => setSortOrder(value as 'newest' | 'oldest'),
+          options: [
+            { value: 'newest', label: 'Newest First' },
+            { value: 'oldest', label: 'Oldest First' },
+          ],
+        }}
+        hasActiveFilters={!isDefaultFilters(filters)}
+        onClear={() => clearFiltersForTab('cancellations')}
+      />
 
       <PaginationBar
         id="cancellations-items-per-page"

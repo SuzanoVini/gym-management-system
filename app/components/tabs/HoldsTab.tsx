@@ -1,30 +1,32 @@
 'use client';
 
 import { Download, Edit2, Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import FilterBar from '@/components/ui/FilterBar';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
-import YearFilter from '@/components/ui/YearFilter';
 import { useHolds } from '@/hooks/useHolds';
 import { useImportUndo } from '@/hooks/useImportUndo';
+import { config } from '@/lib/config';
 import { type HoldCsvRecord, parseHoldsCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { exportToCSV, formatDate } from '@/lib/supabase/utils';
-import { useFilterStore } from '@/store/useFilterStore';
+import { isDefaultFilters, useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Hold } from '@/types';
 import { HoldModals } from './modals/HoldModals';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export default function HoldsTab() {
   const { holds, loading, error, addHold, editHold, removeHold, refresh } = useHolds();
   const { openModal, closeModal } = useUIStore();
-  const { filters, setFilters } = useFilterStore();
+  const filters = useFilterStore((s) => s.filtersByTab.holds);
+  const setFiltersForTab = useFilterStore((s) => s.setFilters);
+  const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
+  const setFilters = (partial: Partial<typeof filters>) => setFiltersForTab('holds', partial);
   const selectionTab: SelectionTabKey = 'holds';
   const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
   const toggleSelection = useSelectionStore((state) => state.toggleSelection);
@@ -41,6 +43,11 @@ export default function HoldsTab() {
   const { saveImportBatch, getImportBatch, clearImportBatch } = useImportUndo();
   const [undoBatch, setUndoBatch] = useState(() => getImportBatch('holds'));
   const holdReasons = useSettingsStore((s) => s.holdReasons);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs whenever filters/sortOrder change, to reset to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortOrder]);
 
   const handleCSVImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -479,91 +486,56 @@ export default function HoldsTab() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-        <input
-          type="text"
-          placeholder="Search by name, reason, or dates..."
-          value={filters.searchTerm}
-          onChange={(e) => setFilters({ searchTerm: e.target.value })}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
-        />
-      </div>
-
-      <div className="section-container">
-        <YearFilter
-          availableYears={availableYears}
-          selectedYear={filters.year}
-          onYearChange={(year) => setFilters({ year })}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="form-label" htmlFor="holds-sort">
-              Sort By
-            </label>
-            <select
-              id="holds-sort"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-              className="form-select"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="holds-month">
-              Month
-            </label>
-            <select
-              id="holds-month"
-              value={filters.month}
-              onChange={(e) => setFilters({ month: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Months</option>
-              {MONTHS.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="holds-reason">
-              Reason
-            </label>
-            <select
-              id="holds-reason"
-              value={filters.reason}
-              onChange={(e) => setFilters({ reason: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Reasons</option>
-              {holdReasons.map((reason) => (
-                <option key={reason} value={reason}>
-                  {reason}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="holds-status">
-              Status
-            </label>
-            <select
-              id="holds-status"
-              value={filters.holdStatus}
-              onChange={(e) => setFilters({ holdStatus: e.target.value })}
-              className="form-select"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="ended">Ended</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterBar
+        availableYears={availableYears}
+        selectedYear={filters.year}
+        onYearChange={(year) => setFilters({ year })}
+        searchValue={filters.searchTerm}
+        onSearchChange={(searchTerm) => setFilters({ searchTerm })}
+        searchPlaceholder="Search by name, reason, or dates..."
+        selects={[
+          {
+            id: 'holds-month',
+            label: 'Month',
+            value: filters.month,
+            onChange: (month) => setFilters({ month }),
+            options: [...config.months],
+            allLabel: 'All Months',
+          },
+          {
+            id: 'holds-reason',
+            label: 'Reason',
+            value: filters.reason,
+            onChange: (reason) => setFilters({ reason }),
+            options: holdReasons,
+            allLabel: 'All Reasons',
+          },
+          {
+            id: 'holds-status',
+            label: 'Status',
+            value: filters.holdStatus,
+            onChange: (holdStatus) => setFilters({ holdStatus }),
+            options: [
+              { value: 'active', label: 'Active' },
+              { value: 'upcoming', label: 'Upcoming' },
+              { value: 'ended', label: 'Ended' },
+            ],
+            allLabel: 'All Status',
+          },
+        ]}
+        sortSelect={{
+          id: 'holds-sort',
+          label: 'Sort By',
+          value: sortOrder,
+          onChange: (value) => setSortOrder(value as 'newest' | 'oldest'),
+          options: [
+            { value: 'newest', label: 'Newest First' },
+            { value: 'oldest', label: 'Oldest First' },
+          ],
+        }}
+        hasActiveFilters={!isDefaultFilters(filters)}
+        onClear={() => clearFiltersForTab('holds')}
+      />
 
       <PaginationBar
         id="holds-items-per-page"

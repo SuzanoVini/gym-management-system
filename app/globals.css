@@ -1,9 +1,7 @@
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
-@tailwind base;
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
-@tailwind components;
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind directives are processed by PostCSS. */
-@tailwind utilities;
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v4 at-rules are processed by PostCSS. */
+@import "tailwindcss";
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v4 at-rules are processed by PostCSS. */
+@config "../tailwind.config.js";
 
 @layer components {
   /* ============================================================================

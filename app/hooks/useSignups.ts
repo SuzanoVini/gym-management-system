@@ -12,6 +12,7 @@ import {
   subscribeToSignups,
   updateSignup,
 } from '@/lib/supabase/signups';
+import { yearFromDate } from '@/lib/utils/date.utils';
 import { signupSchema, validate } from '@/lib/validations';
 import type { Signup, SignupFormData } from '@/types';
 
@@ -80,7 +81,7 @@ export const useSignups = () => {
           );
         }
         const year = validation.data.membership_date
-          ? new Date(validation.data.membership_date).getFullYear()
+          ? yearFromDate(validation.data.membership_date)
           : undefined;
         await createSignup({ ...validation.data, ...(year !== undefined ? { year } : {}) });
         await markMostRecentIntroAsSignedUp(validation.data.name).catch(() => {

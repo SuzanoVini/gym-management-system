@@ -14,7 +14,7 @@ type SettingsKey = (typeof SETTINGS_KEYS)[number];
 
 const DEFAULTS: Record<SettingsKey, string[]> = {
   hold_reasons: ['Injury', 'Illness', 'Travel', 'Break Time', 'Work', 'No reason', 'Other'],
-  membership_types: ['Integrity', 'Legacy', 'Special', 'ASP'],
+  membership_types: ['Integrity', 'Legacy', 'Special', 'ASP', 'Flex 10', 'Flex 20'],
   class_types: [
     'GB1',
     'GB 1/2',

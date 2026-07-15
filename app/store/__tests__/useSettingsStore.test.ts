@@ -81,7 +81,7 @@ describe('useSettingsStore.load()', () => {
     const state = useSettingsStore.getState();
     expect(state.holdReasons).toEqual(['Custom']);
     expect(state.membershipTypes).toEqual(
-      expect.arrayContaining(['Integrity', 'Legacy', 'Special', 'ASP'])
+      expect.arrayContaining(['Integrity', 'Legacy', 'Special', 'ASP', 'Flex 10', 'Flex 20'])
     );
   });
 });
