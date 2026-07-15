@@ -167,7 +167,7 @@ export interface Database {
           updated_at?: string;
           month?: string;
           name?: string;
-          membership?: 'Integrity' | 'Legacy' | 'Special' | 'ASP';
+          membership?: string;
           membership_date?: string | null;
           first_payment_date?: string | null;
           signup_package?: boolean;
