@@ -13,26 +13,27 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ClassResolutionPopover from '@/components/tabs/ClassResolutionPopover';
 import QuickSignupModal from '@/components/tabs/QuickSignupModal';
 import CopyButton from '@/components/ui/CopyButton';
 import DismissUndoToast from '@/components/ui/DismissUndoToast';
+import FilterBar from '@/components/ui/FilterBar';
 import FollowUpCheckButton, { type FollowUpIntro } from '@/components/ui/FollowUpCheckButton';
 import Modal from '@/components/ui/Modal';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import Tooltip from '@/components/ui/Tooltip';
-import YearFilter from '@/components/ui/YearFilter';
 import { useFormerMembers } from '@/hooks/useFormerMembers';
 import { useImportUndo } from '@/hooks/useImportUndo';
 import { useIntros } from '@/hooks/useIntros';
+import { config } from '@/lib/config';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { undoDismissFollowUp } from '@/lib/supabase/intros';
 import { formatDate } from '@/lib/supabase/utils';
-import { useFilterStore } from '@/store/useFilterStore';
+import { isDefaultFilters, useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -54,7 +55,10 @@ export default function IntrosTab() {
   const { intros, loading, error, addIntro, editIntro, removeIntro, refresh, silentRefresh } =
     useIntros();
   const { modals, openModal, closeModal } = useUIStore();
-  const { filters, setFilters } = useFilterStore();
+  const filters = useFilterStore((s) => s.filtersByTab.intros);
+  const setFiltersForTab = useFilterStore((s) => s.setFilters);
+  const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
+  const setFilters = (partial: Partial<typeof filters>) => setFiltersForTab('intros', partial);
   const formerMemberMap = useFormerMembers();
   const selectionTab: SelectionTabKey = 'intros';
   const selectedIds = useSelectionStore((state) => state.selectedIdsByTab[selectionTab]);
@@ -78,6 +82,11 @@ export default function IntrosTab() {
   const [pendingSignupIntro, setPendingSignupIntro] = useState<Intro | null>(null);
   const [selectedIntroForNotes, setSelectedIntroForNotes] = useState<Intro | null>(null);
   const [dismissedForUndo, setDismissedForUndo] = useState<FollowUpIntro | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-runs whenever filters/sortOrder change, to reset to page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortOrder]);
 
   const handleUndoDismiss = async () => {
     if (!dismissedForUndo) {
@@ -587,79 +596,52 @@ export default function IntrosTab() {
       </div>
 
       {/* Filters */}
-      <div className="section-container">
-        <YearFilter
-          availableYears={availableYears}
-          selectedYear={filters.year}
-          onYearChange={(year) => setFilters({ year })}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <input
-            type="text"
-            placeholder="Search by name, email, or phone..."
-            value={filters.searchTerm}
-            onChange={(e) => setFilters({ searchTerm: e.target.value })}
-            className="form-input"
-          />
-          <select
-            value={filters.month}
-            onChange={(e) => setFilters({ month: e.target.value })}
-            className="form-select"
-          >
-            <option value="all">All Months</option>
-            {[
-              'Jan',
-              'Feb',
-              'Mar',
-              'Apr',
-              'May',
-              'Jun',
-              'Jul',
-              'Aug',
-              'Sep',
-              'Oct',
-              'Nov',
-              'Dec',
-            ].map((month) => (
-              <option key={month} value={month}>
-                {month}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.staff}
-            onChange={(e) => setFilters({ staff: e.target.value })}
-            className="form-select"
-          >
-            <option value="all">All Staff</option>
-            {staffMembers.map((staff) => (
-              <option key={staff} value={staff}>
-                {staff}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filters.class}
-            onChange={(e) => setFilters({ class: e.target.value })}
-            className="form-select"
-          >
-            <option value="all">All Classes</option>
-            {classTypes.map((cls) => (
-              <option key={cls} value={cls}>
-                {cls}
-              </option>
-            ))}
-          </select>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
-            className="form-select"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-        </div>
-      </div>
+      <FilterBar
+        availableYears={availableYears}
+        selectedYear={filters.year}
+        onYearChange={(year) => setFilters({ year })}
+        searchValue={filters.searchTerm}
+        onSearchChange={(searchTerm) => setFilters({ searchTerm })}
+        searchPlaceholder="Search by name, email, or phone..."
+        selects={[
+          {
+            id: 'intros-month',
+            label: 'Month',
+            value: filters.month,
+            onChange: (month) => setFilters({ month }),
+            options: [...config.months],
+            allLabel: 'All Months',
+          },
+          {
+            id: 'intros-staff',
+            label: 'Staff',
+            value: filters.staff,
+            onChange: (staff) => setFilters({ staff }),
+            options: staffMembers,
+            allLabel: 'All Staff',
+          },
+          {
+            id: 'intros-class',
+            label: 'Class',
+            value: filters.class,
+            onChange: (cls) => setFilters({ class: cls }),
+            options: classTypes,
+            allLabel: 'All Classes',
+          },
+        ]}
+        sortSelect={{
+          id: 'intros-sort',
+          label: 'Sort By',
+          value: sortOrder,
+          onChange: (value) => setSortOrder(value as 'newest' | 'oldest'),
+          options: [
+            { value: 'newest', label: 'Newest First' },
+            { value: 'oldest', label: 'Oldest First' },
+          ],
+        }}
+        hasActiveFilters={!isDefaultFilters(filters)}
+        onClear={() => clearFiltersForTab('intros')}
+      />
 
       <PaginationBar
         id="intros-items-per-page"
@@ -716,8 +698,11 @@ export default function IntrosTab() {
       >
         <IntroForm
           onSubmit={async (data) => {
-            await addIntro(data);
+            const created = await addIntro(data);
             closeModal('addIntro');
+            if (data.signed_up === 'Yes' && created) {
+              setPendingSignupIntro(created);
+            }
           }}
           loading={loading}
           onCancel={() => closeModal('addIntro')}
@@ -738,8 +723,12 @@ export default function IntrosTab() {
             if (!selectedIntro) {
               return;
             }
+            const becameSignedUp = data.signed_up === 'Yes' && selectedIntro.signed_up !== 'Yes';
             await editIntro(selectedIntro.id, data);
             closeModal('editIntro');
+            if (becameSignedUp) {
+              setPendingSignupIntro(selectedIntro);
+            }
             setSelectedIntro(null);
           }}
           loading={loading}

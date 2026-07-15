@@ -1,3 +1,4 @@
+import { escapeIlike } from '@/lib/utils/normalizePersonKey';
 import { supabase } from './client';
 
 export interface MemberStatus {
@@ -12,14 +13,14 @@ export async function checkMemberStatus(name: string): Promise<MemberStatus> {
     supabase
       .from('signups')
       .select('membership_date')
-      .ilike('name', normalised)
+      .ilike('name', escapeIlike(normalised))
       .order('membership_date', { ascending: false })
       .limit(1)
       .maybeSingle(),
     supabase
       .from('cancellations')
       .select('date')
-      .ilike('name', normalised)
+      .eq('name_normalized', normalised)
       .order('date', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -45,7 +46,7 @@ export async function getMostRecentSignupDate(name: string): Promise<string | nu
   const { data } = await supabase
     .from('signups')
     .select('membership_date')
-    .ilike('name', name.toLowerCase().trim())
+    .ilike('name', escapeIlike(name.toLowerCase().trim()))
     .order('membership_date', { ascending: false })
     .limit(1)
     .maybeSingle();

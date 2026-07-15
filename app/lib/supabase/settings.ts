@@ -41,7 +41,7 @@ export const fetchSettings = async (key: string) => {
         'Staff 11',
         'Staff 12',
       ],
-      membership_types: ['Integrity', 'Legacy', 'Special', 'ASP'],
+      membership_types: ['Integrity', 'Legacy', 'Special', 'ASP', 'Flex 10', 'Flex 20'],
       cancellation_reasons: [
         'No time',
         'Moving',

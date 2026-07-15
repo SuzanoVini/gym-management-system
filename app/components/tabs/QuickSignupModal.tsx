@@ -4,19 +4,16 @@ import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase/client';
 import { createSignup } from '@/lib/supabase/signups';
+import { monthAbbrFromDate, yearFromDate } from '@/lib/utils/date.utils';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import type { Intro } from '@/types';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 function toMonthAbbr(dateStr: string): string {
-  const monthIndex = new Date(dateStr).getMonth();
-  const month = MONTHS[monthIndex];
-  return month || 'Jan';
+  return monthAbbrFromDate(dateStr) || 'Jan';
 }
 
 function toYear(dateStr: string): number {
-  return new Date(dateStr).getFullYear();
+  return yearFromDate(dateStr) ?? new Date(dateStr).getFullYear();
 }
 
 function today(): string {
@@ -42,6 +39,7 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [step2Failed, setStep2Failed] = useState(false);
+  const isASP = membership.trim().toLowerCase() === 'asp';
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
@@ -82,7 +80,7 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
         membership,
         membership_date: signupDate,
         first_payment_date: firstPaymentDate,
-        signup_package: signupPackage,
+        signup_package: isASP ? false : signupPackage,
         month: toMonthAbbr(signupDate),
         year: toYear(signupDate),
       });
@@ -171,18 +169,20 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="signup-package"
-                checked={signupPackage}
-                onChange={(e) => setSignupPackage(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-red-600"
-              />
-              <label htmlFor="signup-package" className="text-sm text-gray-700">
-                Package
-              </label>
-            </div>
+            {!isASP && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="signup-package"
+                  checked={signupPackage}
+                  onChange={(e) => setSignupPackage(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-red-600"
+                />
+                <label htmlFor="signup-package" className="text-sm text-gray-700">
+                  Package
+                </label>
+              </div>
+            )}
           </div>
         )}
 

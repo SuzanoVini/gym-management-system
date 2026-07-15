@@ -65,9 +65,10 @@ export const useIntros = () => {
             );
           }
         }
-        await createIntro(sanitized);
+        const created = await createIntro(sanitized);
         await loadIntros();
         errorHandler.notify('Intro added successfully', 'success');
+        return created as Intro;
       } catch (err) {
         errorHandler.handle(err, 'addIntro');
         throw err;

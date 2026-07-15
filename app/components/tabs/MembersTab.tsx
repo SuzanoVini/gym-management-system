@@ -9,6 +9,7 @@ import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
 import { useSignups } from '@/hooks/useSignups';
 import { supabase } from '@/lib/supabase/client';
+import { escapeIlike } from '@/lib/utils/normalizePersonKey';
 import type { Cancellation, Hold, Intro, Member, Signup } from '@/types';
 
 interface JourneyEvent {
@@ -149,10 +150,11 @@ function JourneyPanel({ member, onClose }: { member: DisplayMember; onClose: () 
   useEffect(() => {
     let cancelled = false;
     const key = (member.name_normalized ?? member.name).toLowerCase().trim();
+    const escapedName = escapeIlike(member.name);
 
     Promise.all([
-      supabase.from('intros').select('*').ilike('name', member.name),
-      supabase.from('signups').select('*').ilike('name', member.name),
+      supabase.from('intros').select('*').ilike('name', escapedName),
+      supabase.from('signups').select('*').ilike('name', escapedName),
       supabase.from('holds').select('*').eq('name_normalized', key),
       supabase.from('cancellations').select('*').eq('name_normalized', key),
     ]).then(([intros, signups, holds, cancellations]) => {
@@ -236,7 +238,7 @@ export default function MembersTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showPlanDetails, setShowPlanDetails] = useState(false);
 
-  const now = new Date();
+  const [now] = useState(() => new Date());
   const currentMonthAbbr = MONTHS_ABBR[now.getMonth()];
   const currentYear = now.getFullYear();
 

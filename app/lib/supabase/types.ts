@@ -141,7 +141,7 @@ export interface Database {
           updated_at: string;
           month: string;
           name: string;
-          membership: 'Integrity' | 'Legacy' | 'Special' | 'ASP';
+          membership: string;
           membership_date: string | null;
           first_payment_date: string | null;
           signup_package: boolean;
@@ -154,7 +154,7 @@ export interface Database {
           updated_at?: string;
           month: string;
           name: string;
-          membership: 'Integrity' | 'Legacy' | 'Special' | 'ASP';
+          membership: string;
           membership_date?: string | null;
           first_payment_date?: string | null;
           signup_package?: boolean;
@@ -530,7 +530,7 @@ export interface Database {
     Enums: {
       attendance_status: 'Yes' | 'No' | '';
       signup_status: 'Yes' | 'No' | '';
-      membership_type: 'Integrity' | 'Legacy' | 'Special' | 'ASP';
+      membership_type: string;
       intro_status: 'Active' | 'Cancelled' | 'Completed';
     };
   };

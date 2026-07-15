@@ -18,3 +18,12 @@ export function normalizePersonKey(
 export function personKeyString(key: PersonKey): string {
   return `${key.name}|${key.email}`;
 }
+
+/**
+ * Escape ILIKE wildcard characters so a name lookup can't be misinterpreted
+ * as a pattern (a literal "%" or "_" in someone's name would otherwise match
+ * unrelated rows).
+ */
+export function escapeIlike(value: string): string {
+  return value.replace(/[%_\\]/g, (char) => `\\${char}`);
+}
