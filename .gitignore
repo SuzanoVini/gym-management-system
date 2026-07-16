@@ -51,6 +51,9 @@ HANDOFF.md
 design-system/
 docs/superpowers/
 docs/asp-pickup-integration-context.md
+
+# Superseded local integration notes
+payroll-integration/
 .superpowers/
 .features/
 *_CHECKLIST.md

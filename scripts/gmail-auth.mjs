@@ -7,7 +7,7 @@
  * A browser window will open. After authorizing, the refresh token is printed here.
  */
 
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import { google } from 'googleapis';
 
 const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
