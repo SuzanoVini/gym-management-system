@@ -618,6 +618,7 @@ export type Database = {
           overtime_hours: number | null;
           period_id: string;
           regular_hours: number | null;
+          sick_hours: number | null;
           staff_id: string;
           total_hours: number | null;
           updated_at: string;
@@ -631,6 +632,7 @@ export type Database = {
           overtime_hours?: number | null;
           period_id: string;
           regular_hours?: number | null;
+          sick_hours?: number | null;
           staff_id: string;
           total_hours?: number | null;
           updated_at?: string;
@@ -644,6 +646,7 @@ export type Database = {
           overtime_hours?: number | null;
           period_id?: string;
           regular_hours?: number | null;
+          sick_hours?: number | null;
           staff_id?: string;
           total_hours?: number | null;
           updated_at?: string;
@@ -826,6 +829,7 @@ export type Database = {
           period: string | null;
           period_id: string | null;
           regular_hours: number | null;
+          sick_hours: number | null;
           staff_id: string | null;
           total_hours: number | null;
           vacation_hours: number | null;
