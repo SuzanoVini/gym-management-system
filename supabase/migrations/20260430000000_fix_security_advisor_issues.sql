@@ -43,9 +43,13 @@ $$;
 -- so RLS policies on the underlying tables are properly enforced.
 -- Previously the views defaulted to SECURITY DEFINER, which bypassed RLS.
 
--- staff_hours_summary — column names reflect 20260227000000_fix_payroll_schema.sql
--- (staff_id, period_id, period_label, vacation_hours — no sick_hours yet)
-CREATE OR REPLACE VIEW staff_hours_summary
+-- staff_hours_summary — column names reflect 20260227000000_fix_payroll_schema.sql.
+-- Dropped rather than replaced because databases where 20260227000001 applied
+-- carry a sick_hours column that CREATE OR REPLACE cannot remove; the
+-- sick-hours reconciliation migration restores the full column set afterwards.
+DROP VIEW IF EXISTS staff_hours_summary;
+
+CREATE VIEW staff_hours_summary
   WITH (security_invoker = true)
 AS
 SELECT
