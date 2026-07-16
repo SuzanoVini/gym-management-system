@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount-once subscription effect; fetchRole only closes over stable client state
   useEffect(() => {
     const getSession = async () => {
       try {

@@ -76,6 +76,7 @@ export function useFollowUps() {
     return d;
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: today re-arms the timer after each midnight rollover
   useEffect(() => {
     const msUntilMidnight = () => {
       const now = new Date();

@@ -1,6 +1,5 @@
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v4 at-rules are processed by PostCSS. */
 @import "tailwindcss";
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v4 at-rules are processed by PostCSS. */
+/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v4 @config is processed by PostCSS. */
 @config "../tailwind.config.js";
 
 @layer components {
