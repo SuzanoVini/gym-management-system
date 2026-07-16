@@ -1,537 +1,985 @@
-// src/lib/supabase/types.ts
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export interface Database {
-  public: {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: '13.0.5';
+  };
+  graphql_public: {
     Tables: {
-      intros: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          month: string;
-          date: string | null;
-          time: string | null;
-          class: string | null;
-          name: string;
-          email: string | null;
-          phone: string | null;
-          staff: string | null;
-          attended: 'Yes' | 'No' | '';
-          signed_up: 'Yes' | 'No' | '';
-          follow_up_status: string | null;
-          last_follow_up: string | null;
-          followup_1_at: string | null;
-          followup_2_at: string | null;
-          created_by: string | null;
-          status: 'Active' | 'Cancelled' | 'Completed'; // NEW FIELD
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month: string;
-          date?: string | null;
-          time?: string | null;
-          class?: string | null;
-          name: string;
-          email?: string | null;
-          phone?: string | null;
-          staff?: string | null;
-          attended?: 'Yes' | 'No' | '';
-          signed_up?: 'Yes' | 'No' | '';
-          follow_up_status?: string | null;
-          last_follow_up?: string | null;
-          followup_1_at?: string | null;
-          followup_2_at?: string | null;
-          created_by?: string | null;
-          status?: 'Active' | 'Cancelled' | 'Completed'; // NEW FIELD
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month?: string;
-          date?: string | null;
-          time?: string | null;
-          class?: string | null;
-          name?: string;
-          email?: string | null;
-          phone?: string | null;
-          staff?: string | null;
-          attended?: 'Yes' | 'No' | '';
-          signed_up?: 'Yes' | 'No' | '';
-          follow_up_status?: string | null;
-          last_follow_up?: string | null;
-          followup_1_at?: string | null;
-          followup_2_at?: string | null;
-          created_by?: string | null;
-          status?: 'Active' | 'Cancelled' | 'Completed'; // NEW FIELD
-        };
-      };
-      // NEW TABLE
-      intro_class_history: {
-        Row: {
-          id: string;
-          created_at: string;
-          intro_id: string;
-          month: string;
-          date: number;
-          time: string | null;
-          class: string | null;
-          staff: string | null;
-          attended: 'Yes' | 'No' | '';
-          notes: string | null;
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          intro_id: string;
-          month: string;
-          date: number;
-          time?: string | null;
-          class?: string | null;
-          staff?: string | null;
-          attended?: 'Yes' | 'No' | '';
-          notes?: string | null;
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          intro_id?: string;
-          month?: string;
-          date?: number;
-          time?: string | null;
-          class?: string | null;
-          staff?: string | null;
-          attended?: 'Yes' | 'No' | '';
-          notes?: string | null;
-        };
-      };
-      follow_up_notes: {
-        Row: {
-          id: string;
-          created_at: string;
-          intro_id: string;
-          note: string;
-          created_by: string | null;
-          staff_name: string | null;
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          intro_id: string;
-          note: string;
-          created_by?: string | null;
-          staff_name?: string | null;
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          intro_id?: string;
-          note?: string;
-          created_by?: string | null;
-          staff_name?: string | null;
-        };
-      };
-      signups: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          month: string;
-          name: string;
-          membership: string;
-          membership_date: string | null;
-          first_payment_date: string | null;
-          signup_package: boolean;
-          notes: string | null;
-          created_by: string | null;
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month: string;
-          name: string;
-          membership: string;
-          membership_date?: string | null;
-          first_payment_date?: string | null;
-          signup_package?: boolean;
-          notes?: string | null;
-          created_by?: string | null;
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month?: string;
-          name?: string;
-          membership?: string;
-          membership_date?: string | null;
-          first_payment_date?: string | null;
-          signup_package?: boolean;
-          notes?: string | null;
-          created_by?: string | null;
-        };
-      };
-      cancellations: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          month: string;
-          name: string;
-          date: string | null;
-          reason: string | null;
-          age_group: string | null;
-          notes: string | null;
-          year: number | null;
-          created_by: string | null;
-          source: 'manual' | 'cron' | null;
-          name_normalized: string | null;
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month: string;
-          name: string;
-          date?: string | null;
-          reason?: string | null;
-          age_group?: string | null;
-          notes?: string | null;
-          year?: number | null;
-          created_by?: string | null;
-          source?: 'manual' | 'cron' | null;
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month?: string;
-          name?: string;
-          date?: string | null;
-          reason?: string | null;
-          age_group?: string | null;
-          notes?: string | null;
-          year?: number | null;
-          created_by?: string | null;
-          source?: 'manual' | 'cron' | null;
-        };
-      };
-      holds: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          month: string;
-          name: string;
-          start: string | null;
-          end: string | null;
-          reason: string | null;
-          fee: string | null;
-          year: number | null;
-          created_by: string | null;
-          source: 'manual' | 'cron' | null;
-          hold_status: string | null;
-          name_normalized: string | null;
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month: string;
-          name: string;
-          start?: string | null;
-          end?: string | null;
-          reason?: string | null;
-          fee?: string | null;
-          year?: number | null;
-          created_by?: string | null;
-          source?: 'manual' | 'cron' | null;
-          hold_status?: string | null;
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          month?: string;
-          name?: string;
-          start?: string | null;
-          end?: string | null;
-          reason?: string | null;
-          fee?: string | null;
-          year?: number | null;
-          created_by?: string | null;
-          source?: 'manual' | 'cron' | null;
-          hold_status?: string | null;
-        };
-      };
-      members: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          name: string;
-          name_normalized: string | null;
-          birth_date: string | null;
-          email: string | null;
-          phone: string | null;
-          membership_type: string | null;
-          status: 'Active' | 'On Hold' | 'Inactive' | null;
-          join_date: string | null;
-          last_sync_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          name: string;
-          birth_date?: string | null;
-          email?: string | null;
-          phone?: string | null;
-          membership_type?: string | null;
-          status?: 'Active' | 'On Hold' | 'Inactive' | null;
-          join_date?: string | null;
-          last_sync_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          name?: string;
-          birth_date?: string | null;
-          email?: string | null;
-          phone?: string | null;
-          membership_type?: string | null;
-          status?: 'Active' | 'On Hold' | 'Inactive' | null;
-          join_date?: string | null;
-          last_sync_at?: string | null;
-        };
-      };
-      settings: {
-        Row: {
-          id: string;
-          key: string;
-          value: Json;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          key: string;
-          value: Json;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          key?: string;
-          value?: Json;
-          updated_at?: string;
-        };
-      };
-      user_profiles: {
-        Row: {
-          id: string;
-          created_at: string;
-          updated_at: string;
-          full_name: string;
-          avatar_url: string | null;
-          role: 'owner' | 'staff';
-        };
-        Insert: {
-          id: string;
-          created_at?: string;
-          updated_at?: string;
-          full_name: string;
-          avatar_url?: string | null;
-          role?: 'owner' | 'staff';
-        };
-        Update: {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-          full_name?: string;
-          avatar_url?: string | null;
-          role?: 'owner' | 'staff';
-        };
-      };
-      // PAYROLL TABLES
-      staff_members: {
-        Row: {
-          id: string;
-          employee_id: string;
-          full_name: string;
-          job_title: string;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          employee_id: string;
-          full_name: string;
-          job_title: string;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          employee_id?: string;
-          full_name?: string;
-          job_title?: string;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      payroll_periods: {
-        Row: {
-          id: string;
-          start_date: string;
-          end_date: string;
-          period_label: string;
-          is_current: boolean;
-          is_closed: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          start_date: string;
-          end_date: string;
-          period_label: string;
-          is_current?: boolean;
-          is_closed?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          start_date?: string;
-          end_date?: string;
-          period_label?: string;
-          is_current?: boolean;
-          is_closed?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      staff_hours: {
-        Row: {
-          id: string;
-          staff_id: string;
-          period_id: string;
-          regular_hours: number;
-          overtime_hours: number;
-          vacation_hours: number;
-          sick_hours: number;
-          mat_cleaning_count: number;
-          total_hours: number;
-          notes: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          staff_id: string;
-          period_id: string;
-          regular_hours?: number;
-          overtime_hours?: number;
-          vacation_hours?: number;
-          sick_hours?: number;
-          mat_cleaning_count?: number;
-          total_hours?: number;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          staff_id?: string;
-          period_id?: string;
-          regular_hours?: number;
-          overtime_hours?: number;
-          vacation_hours?: number;
-          sick_hours?: number;
-          mat_cleaning_count?: number;
-          total_hours?: number;
-          notes?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      time_entries: {
-        Row: {
-          id: string;
-          staff_hours_id: string;
-          entry_date: string;
-          entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
-          hours: number;
-          notes: string | null;
-          source: 'manual' | 'csv' | 'pdf' | 'quick_import';
-          is_after_school_program: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          staff_hours_id: string;
-          entry_date: string;
-          entry_type: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
-          hours: number;
-          notes?: string | null;
-          source?: 'manual' | 'csv' | 'pdf' | 'quick_import';
-          is_after_school_program?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          staff_hours_id?: string;
-          entry_date?: string;
-          entry_type?: 'regular' | 'overtime' | 'vacation' | 'mat_cleaning' | 'sick';
-          hours?: number;
-          notes?: string | null;
-          source?: 'manual' | 'csv' | 'pdf' | 'quick_import';
-          is_after_school_program?: boolean;
-          created_at?: string;
-        };
-      };
-      app_configuration: {
-        Row: {
-          id: string;
-          config_key: string;
-          config_value: Json;
-          description: string | null;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          config_key: string;
-          config_value: Json;
-          description?: string | null;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          config_key?: string;
-          config_value?: Json;
-          description?: string | null;
-          updated_at?: string;
-        };
-      };
+      [_ in never]: never;
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json;
+          operationName?: string;
+          query?: string;
+          variables?: Json;
+        };
+        Returns: Json;
+      };
+    };
+    Enums: {
       [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+  public: {
+    Tables: {
+      app_configuration: {
+        Row: {
+          config_key: string;
+          config_value: Json;
+          description: string | null;
+          id: string;
+          updated_at: string;
+        };
+        Insert: {
+          config_key: string;
+          config_value: Json;
+          description?: string | null;
+          id?: string;
+          updated_at?: string;
+        };
+        Update: {
+          config_key?: string;
+          config_value?: Json;
+          description?: string | null;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      cancellations: {
+        Row: {
+          age_category: string | null;
+          age_group: string | null;
+          cancellation_date: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          date: string | null;
+          id: string;
+          month: string;
+          name: string;
+          name_normalized: string | null;
+          notes: string | null;
+          reason: string | null;
+          source: string | null;
+          updated_at: string | null;
+          year: number | null;
+        };
+        Insert: {
+          age_category?: string | null;
+          age_group?: string | null;
+          cancellation_date?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          date?: string | null;
+          id?: string;
+          month: string;
+          name: string;
+          name_normalized?: string | null;
+          notes?: string | null;
+          reason?: string | null;
+          source?: string | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Update: {
+          age_category?: string | null;
+          age_group?: string | null;
+          cancellation_date?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          date?: string | null;
+          id?: string;
+          month?: string;
+          name?: string;
+          name_normalized?: string | null;
+          notes?: string | null;
+          reason?: string | null;
+          source?: string | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Relationships: [];
+      };
+      class_mappings: {
+        Row: {
+          created_at: string | null;
+          id: string;
+          system_name: string;
+          zenplanner_name: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: string;
+          system_name: string;
+          zenplanner_name: string;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: string;
+          system_name?: string;
+          zenplanner_name?: string;
+        };
+        Relationships: [];
+      };
+      csv_export_formats: {
+        Row: {
+          column_config: Json;
+          created_at: string;
+          format_name: string;
+          id: string;
+          is_default: boolean | null;
+          staff_order_config: Json;
+          updated_at: string;
+        };
+        Insert: {
+          column_config: Json;
+          created_at?: string;
+          format_name: string;
+          id?: string;
+          is_default?: boolean | null;
+          staff_order_config: Json;
+          updated_at?: string;
+        };
+        Update: {
+          column_config?: Json;
+          created_at?: string;
+          format_name?: string;
+          id?: string;
+          is_default?: boolean | null;
+          staff_order_config?: Json;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      dismissed_insights: {
+        Row: {
+          action: string;
+          created_at: string;
+          data_hash: string;
+          dismissed_at: string;
+          id: string;
+          insight_id: string;
+          snoozed_until: string | null;
+          user_id: string;
+        };
+        Insert: {
+          action: string;
+          created_at?: string;
+          data_hash: string;
+          dismissed_at?: string;
+          id?: string;
+          insight_id: string;
+          snoozed_until?: string | null;
+          user_id: string;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          data_hash?: string;
+          dismissed_at?: string;
+          id?: string;
+          insight_id?: string;
+          snoozed_until?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      follow_up_notes: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          id: string;
+          intro_id: string | null;
+          note: string;
+          staff_name: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by?: string | null;
+          id?: string;
+          intro_id?: string | null;
+          note: string;
+          staff_name?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string | null;
+          id?: string;
+          intro_id?: string | null;
+          note?: string;
+          staff_name?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'follow_up_notes_intro_id_fkey';
+            columns: ['intro_id'];
+            isOneToOne: false;
+            referencedRelation: 'intros';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      follow_ups: {
+        Row: {
+          class: string | null;
+          contact_info: string | null;
+          created_at: string | null;
+          id: string;
+          intro_id: string | null;
+          last_contact_date: string | null;
+          month: string | null;
+          name: string | null;
+          next_followup_date: string | null;
+          notes: string | null;
+          priority: string | null;
+          status: string | null;
+        };
+        Insert: {
+          class?: string | null;
+          contact_info?: string | null;
+          created_at?: string | null;
+          id?: string;
+          intro_id?: string | null;
+          last_contact_date?: string | null;
+          month?: string | null;
+          name?: string | null;
+          next_followup_date?: string | null;
+          notes?: string | null;
+          priority?: string | null;
+          status?: string | null;
+        };
+        Update: {
+          class?: string | null;
+          contact_info?: string | null;
+          created_at?: string | null;
+          id?: string;
+          intro_id?: string | null;
+          last_contact_date?: string | null;
+          month?: string | null;
+          name?: string | null;
+          next_followup_date?: string | null;
+          notes?: string | null;
+          priority?: string | null;
+          status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'follow_ups_intro_id_fkey';
+            columns: ['intro_id'];
+            isOneToOne: false;
+            referencedRelation: 'intros';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      holds: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          end: string | null;
+          fee: string | null;
+          hold_status: string | null;
+          id: string;
+          month: string;
+          name: string;
+          name_normalized: string | null;
+          reason: string | null;
+          source: string | null;
+          start: string | null;
+          updated_at: string | null;
+          year: number | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by?: string | null;
+          end?: string | null;
+          fee?: string | null;
+          hold_status?: string | null;
+          id?: string;
+          month: string;
+          name: string;
+          name_normalized?: string | null;
+          reason?: string | null;
+          source?: string | null;
+          start?: string | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string | null;
+          end?: string | null;
+          fee?: string | null;
+          hold_status?: string | null;
+          id?: string;
+          month?: string;
+          name?: string;
+          name_normalized?: string | null;
+          reason?: string | null;
+          source?: string | null;
+          start?: string | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Relationships: [];
+      };
+      intro_class_history: {
+        Row: {
+          attended: Database['public']['Enums']['attendance_status'] | null;
+          class: string | null;
+          created_at: string | null;
+          date: number;
+          id: string;
+          intro_id: string;
+          month: string;
+          notes: string | null;
+          staff: string | null;
+          time: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          attended?: Database['public']['Enums']['attendance_status'] | null;
+          class?: string | null;
+          created_at?: string | null;
+          date: number;
+          id?: string;
+          intro_id: string;
+          month: string;
+          notes?: string | null;
+          staff?: string | null;
+          time?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          attended?: Database['public']['Enums']['attendance_status'] | null;
+          class?: string | null;
+          created_at?: string | null;
+          date?: number;
+          id?: string;
+          intro_id?: string;
+          month?: string;
+          notes?: string | null;
+          staff?: string | null;
+          time?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'intro_class_history_intro_id_fkey';
+            columns: ['intro_id'];
+            isOneToOne: false;
+            referencedRelation: 'intros';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      intros: {
+        Row: {
+          attended: Database['public']['Enums']['attendance_status'] | null;
+          class: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          date: string | null;
+          email: string | null;
+          follow_up_status: string | null;
+          followup_1_at: string | null;
+          followup_2_at: string | null;
+          followup_dismissed_at: string | null;
+          followup_reminder_at: string | null;
+          id: string;
+          last_follow_up: string | null;
+          month: string;
+          name: string;
+          phone: string | null;
+          signed_up: Database['public']['Enums']['signup_status'] | null;
+          staff: string | null;
+          status: Database['public']['Enums']['intro_status'] | null;
+          time: string | null;
+          updated_at: string | null;
+          year: number | null;
+        };
+        Insert: {
+          attended?: Database['public']['Enums']['attendance_status'] | null;
+          class?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          date?: string | null;
+          email?: string | null;
+          follow_up_status?: string | null;
+          followup_1_at?: string | null;
+          followup_2_at?: string | null;
+          followup_dismissed_at?: string | null;
+          followup_reminder_at?: string | null;
+          id?: string;
+          last_follow_up?: string | null;
+          month: string;
+          name: string;
+          phone?: string | null;
+          signed_up?: Database['public']['Enums']['signup_status'] | null;
+          staff?: string | null;
+          status?: Database['public']['Enums']['intro_status'] | null;
+          time?: string | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Update: {
+          attended?: Database['public']['Enums']['attendance_status'] | null;
+          class?: string | null;
+          created_at?: string | null;
+          created_by?: string | null;
+          date?: string | null;
+          email?: string | null;
+          follow_up_status?: string | null;
+          followup_1_at?: string | null;
+          followup_2_at?: string | null;
+          followup_dismissed_at?: string | null;
+          followup_reminder_at?: string | null;
+          id?: string;
+          last_follow_up?: string | null;
+          month?: string;
+          name?: string;
+          phone?: string | null;
+          signed_up?: Database['public']['Enums']['signup_status'] | null;
+          staff?: string | null;
+          status?: Database['public']['Enums']['intro_status'] | null;
+          time?: string | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Relationships: [];
+      };
+      members: {
+        Row: {
+          birth_date: string | null;
+          created_at: string;
+          email: string | null;
+          id: string;
+          join_date: string | null;
+          last_sync_at: string | null;
+          membership_type: string | null;
+          name: string;
+          name_normalized: string | null;
+          phone: string | null;
+          status: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          birth_date?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          join_date?: string | null;
+          last_sync_at?: string | null;
+          membership_type?: string | null;
+          name: string;
+          name_normalized?: string | null;
+          phone?: string | null;
+          status?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          birth_date?: string | null;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          join_date?: string | null;
+          last_sync_at?: string | null;
+          membership_type?: string | null;
+          name?: string;
+          name_normalized?: string | null;
+          phone?: string | null;
+          status?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      payroll_periods: {
+        Row: {
+          created_at: string;
+          end_date: string;
+          id: string;
+          is_closed: boolean | null;
+          is_current: boolean | null;
+          period_label: string;
+          start_date: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          end_date: string;
+          id?: string;
+          is_closed?: boolean | null;
+          is_current?: boolean | null;
+          period_label: string;
+          start_date: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          end_date?: string;
+          id?: string;
+          is_closed?: boolean | null;
+          is_current?: boolean | null;
+          period_label?: string;
+          start_date?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      settings: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          id: string;
+          key: string;
+          updated_at: string | null;
+          value: Json;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          key: string;
+          updated_at?: string | null;
+          value: Json;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          id?: string;
+          key?: string;
+          updated_at?: string | null;
+          value?: Json;
+        };
+        Relationships: [];
+      };
+      signups: {
+        Row: {
+          created_at: string | null;
+          created_by: string | null;
+          first_payment_date: string | null;
+          id: string;
+          membership: Database['public']['Enums']['membership_type'];
+          membership_date: string | null;
+          month: string;
+          name: string;
+          notes: string | null;
+          signup_package: boolean | null;
+          updated_at: string | null;
+          year: number | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          created_by?: string | null;
+          first_payment_date?: string | null;
+          id?: string;
+          membership: Database['public']['Enums']['membership_type'];
+          membership_date?: string | null;
+          month: string;
+          name: string;
+          notes?: string | null;
+          signup_package?: boolean | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Update: {
+          created_at?: string | null;
+          created_by?: string | null;
+          first_payment_date?: string | null;
+          id?: string;
+          membership?: Database['public']['Enums']['membership_type'];
+          membership_date?: string | null;
+          month?: string;
+          name?: string;
+          notes?: string | null;
+          signup_package?: boolean | null;
+          updated_at?: string | null;
+          year?: number | null;
+        };
+        Relationships: [];
+      };
+      staff_hours: {
+        Row: {
+          created_at: string;
+          id: string;
+          mat_cleaning_count: number | null;
+          notes: string | null;
+          overtime_hours: number | null;
+          period_id: string;
+          regular_hours: number | null;
+          sick_hours: number | null;
+          staff_id: string;
+          total_hours: number | null;
+          updated_at: string;
+          vacation_hours: number | null;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          mat_cleaning_count?: number | null;
+          notes?: string | null;
+          overtime_hours?: number | null;
+          period_id: string;
+          regular_hours?: number | null;
+          sick_hours?: number | null;
+          staff_id: string;
+          total_hours?: number | null;
+          updated_at?: string;
+          vacation_hours?: number | null;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          mat_cleaning_count?: number | null;
+          notes?: string | null;
+          overtime_hours?: number | null;
+          period_id?: string;
+          regular_hours?: number | null;
+          sick_hours?: number | null;
+          staff_id?: string;
+          total_hours?: number | null;
+          updated_at?: string;
+          vacation_hours?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_hours_period_id_fkey';
+            columns: ['period_id'];
+            isOneToOne: false;
+            referencedRelation: 'payroll_periods';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'staff_hours_period_id_fkey';
+            columns: ['period_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff_hours_summary';
+            referencedColumns: ['period_id'];
+          },
+          {
+            foreignKeyName: 'staff_hours_staff_id_fkey';
+            columns: ['staff_id'];
+            isOneToOne: false;
+            referencedRelation: 'department_mappings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'staff_hours_staff_id_fkey';
+            columns: ['staff_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff_hours_summary';
+            referencedColumns: ['staff_id'];
+          },
+          {
+            foreignKeyName: 'staff_hours_staff_id_fkey';
+            columns: ['staff_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff_members';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      staff_members: {
+        Row: {
+          created_at: string;
+          employee_id: string;
+          full_name: string;
+          id: string;
+          is_active: boolean | null;
+          job_title: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          employee_id: string;
+          full_name: string;
+          id?: string;
+          is_active?: boolean | null;
+          job_title: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          employee_id?: string;
+          full_name?: string;
+          id?: string;
+          is_active?: boolean | null;
+          job_title?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      time_entries: {
+        Row: {
+          created_at: string;
+          entry_date: string;
+          entry_type: string;
+          hours: number;
+          id: string;
+          is_after_school_program: boolean | null;
+          notes: string | null;
+          source: string | null;
+          staff_hours_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          entry_date: string;
+          entry_type: string;
+          hours: number;
+          id?: string;
+          is_after_school_program?: boolean | null;
+          notes?: string | null;
+          source?: string | null;
+          staff_hours_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          entry_date?: string;
+          entry_type?: string;
+          hours?: number;
+          id?: string;
+          is_after_school_program?: boolean | null;
+          notes?: string | null;
+          source?: string | null;
+          staff_hours_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'time_entries_staff_hours_id_fkey';
+            columns: ['staff_hours_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff_hours';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      user_profiles: {
+        Row: {
+          avatar_url: string | null;
+          created_at: string;
+          full_name: string;
+          id: string;
+          role: string;
+          updated_at: string;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          created_at?: string;
+          full_name: string;
+          id: string;
+          role?: string;
+          updated_at?: string;
+        };
+        Update: {
+          avatar_url?: string | null;
+          created_at?: string;
+          full_name?: string;
+          id?: string;
+          role?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      department_mappings: {
+        Row: {
+          department: string | null;
+          employee_id: string | null;
+          full_name: string | null;
+          id: string | null;
+          job_id: number | null;
+          job_title: string | null;
+        };
+        Insert: {
+          department?: never;
+          employee_id?: string | null;
+          full_name?: string | null;
+          id?: string | null;
+          job_id?: never;
+          job_title?: string | null;
+        };
+        Update: {
+          department?: never;
+          employee_id?: string | null;
+          full_name?: string | null;
+          id?: string | null;
+          job_id?: never;
+          job_title?: string | null;
+        };
+        Relationships: [];
+      };
+      staff_hours_summary: {
+        Row: {
+          employee_id: string | null;
+          full_name: string | null;
+          job_title: string | null;
+          overtime_hours: number | null;
+          period: string | null;
+          period_id: string | null;
+          regular_hours: number | null;
+          sick_hours: number | null;
+          staff_id: string | null;
+          total_hours: number | null;
+          vacation_hours: number | null;
+        };
+        Relationships: [];
+      };
+    };
+    Functions: {
+      current_user_id: { Args: never; Returns: string };
+      is_authenticated: { Args: never; Returns: boolean };
+      is_owner: { Args: never; Returns: boolean };
+      mark_unsigned_intros: { Args: never; Returns: number };
     };
     Enums: {
       attendance_status: 'Yes' | 'No' | '';
-      signup_status: 'Yes' | 'No' | '';
-      membership_type: string;
       intro_status: 'Active' | 'Cancelled' | 'Completed';
+      membership_type: 'Integrity' | 'Legacy' | 'Special' | 'ASP' | 'Flex 10' | 'Flex 20';
+      signup_status: 'Yes' | 'No' | '';
+    };
+    CompositeTypes: {
+      [_ in never]: never;
     };
   };
+};
+
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+      Row: infer R;
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
+      }
+      ? R
+      : never
+    : never;
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema['Tables']
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Insert: infer I;
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I;
+      }
+      ? I
+      : never
+    : never;
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema['Tables']
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Update: infer U;
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U;
+      }
+      ? U
+      : never
+    : never;
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema['Enums']
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+    : never;
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema['CompositeTypes']
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals;
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+    : never;
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      attendance_status: ['Yes', 'No', ''],
+      intro_status: ['Active', 'Cancelled', 'Completed'],
+      membership_type: ['Integrity', 'Legacy', 'Special', 'ASP', 'Flex 10', 'Flex 20'],
+      signup_status: ['Yes', 'No', ''],
+    },
+  },
+} as const;
