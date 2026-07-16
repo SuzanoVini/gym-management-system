@@ -46,6 +46,14 @@ Monthly signup and cancellation trends, membership type breakdown, churn rate, a
 
 The gym's existing spreadsheets had dates formatted as `MM/DD` with no year. The import flow asks you to confirm the year before writing anything, which prevents old records from getting the wrong year stamped on them. The year picker also lives inside each tab's filter row for quick viewing by period.
 
+**Automated Zen Planner imports**
+
+Zen Planner (the gym's billing/booking system) has no public API on its plan, but it does send notification emails. Scheduled importers read booking, hold, and cancellation emails through the Gmail API and turn them into records — deduplicated against natural keys, enriched rather than duplicated when a record already exists, and with Zen Planner's class names translated through a mapping table that staff can extend from the UI when a new name appears.
+
+**Member roster with derived status**
+
+The full member roster syncs from Zen Planner's CSV export. Each member's displayed status (Active, On Hold, Alumni) isn't taken from the export — it's derived from the system's own lifecycle records, comparing their latest signup against their latest cancellation and any currently active hold. A journey view assembles every touchpoint (intro classes, signups, holds, cancellations) into one timeline per member.
+
 **Access control**
 
 Two roles: `owner` and `staff`. Owners get access to payroll, configuration, and admin settings. Staff see member data only. Row Level Security on every Supabase table enforces this at the database level, not just the UI.
@@ -76,26 +84,35 @@ Two roles: `owner` and `staff`. Owners get access to payroll, configuration, and
 
 ```
 app/
+├── api/
+│   ├── cron/            # Gmail importers, keep-alive, follow-up auto-marker
+│   ├── members/import/  # Zen Planner roster CSV sync
+│   └── admin/           # User and role management endpoints
 ├── components/
 │   ├── layout/          # Header, sidebar, navigation
 │   ├── tabs/            # One component per major feature tab
 │   │   ├── forms/       # IntroForm, SignupForm, CancellationForm, HoldForm
 │   │   └── modals/      # Follow-up notes, settings, and import preview modals
 │   ├── payroll/         # Hours entry, period selector, export, import, staff management
-│   └── ui/              # Shared: Table, Modal, YearFilter, etc.
+│   └── ui/              # Shared: Table, Modal, FilterBar, PaginationBar, etc.
 ├── hooks/               # Data hooks: useIntros, useSignups, useInsights, useStaffHours, etc.
 ├── lib/
 │   ├── supabase/        # DB queries, one file per table
-│   ├── services/        # Payroll calculations, CSV format logic, template analysis
+│   ├── services/        # Email parsers, payroll calculations, CSV format logic
+│   ├── utils/           # Date math, business days, person-name normalization
 │   └── csv.ts           # CSV parsing for all record types
 ├── store/               # Zustand stores
 └── types/               # Shared TypeScript types
 
+docs/                    # SRS, SDD, database reference, test plan
+e2e/                     # Playwright end-to-end specs
 supabase/
-└── migrations/          # 16 versioned migrations, applied via Supabase CLI
+└── migrations/          # Versioned SQL migrations, applied via Supabase CLI
 ```
 
 Each tab follows the same pattern: a hook fetches and caches data, the tab component handles filtering and selection, and forms and modals live in subdirectories. That consistency made it straightforward to add new tabs without rethinking the structure each time.
+
+The email importers run on an external scheduler (cron-job.org) calling the `/api/cron/*` endpoints with a bearer secret; two housekeeping jobs run on Vercel cron. All scheduled endpoints are idempotent, so re-runs are always safe.
 
 ---
 
@@ -145,12 +162,41 @@ Open [http://localhost:3000](http://localhost:3000). Create a user in your Supab
 
 ---
 
+## Testing
+
+| Command | What it runs |
+|---------|--------------|
+| `npm run test` | Jest unit and schema suites |
+| `npm run test:coverage` | Unit tests with the enforced 70% coverage floor |
+| `npm run e2e` | Playwright end-to-end suite (needs `TEST_EMAIL` / `TEST_PASSWORD` for a test login) |
+| `npm run quality` | Lint + typecheck + tests — the pre-release gate |
+
+The strategy behind what gets tested at which layer is documented in the [test plan](docs/test-plan.md).
+
+---
+
+## Documentation
+
+- [Software Requirements Specification](docs/SRS.md) — what the system is required to do, including the Zen Planner integration boundary
+- [Software Design Document](docs/SDD.md) — architecture, key decisions, and trade-offs
+- [Database Schema Reference](docs/database.md) — tables, enums, triggers, and the RLS model
+- [Test Plan](docs/test-plan.md) — the three-layer testing strategy
+
+---
+
 ## What's next
 
-- Replace Supabase Auth with a custom authentication implementation
+- Integrate the after-school program pickup system (shared Supabase project, `asp_`-prefixed tables, mounted under its own route section)
 - Add screenshots to this README
+- CI pipeline (lint, typecheck, tests on every push)
 - Mobile layout improvements
 - Email reminders for intro class follow-ups
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
