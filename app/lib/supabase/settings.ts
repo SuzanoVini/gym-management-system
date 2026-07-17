@@ -80,3 +80,27 @@ export const updateSettings = async (key: string, value: unknown[]) => {
 
   return true;
 };
+
+// Numeric settings (e.g. revenue-per-member) share the same jsonb `value`
+// column as the list settings above but hold a single number, not an array.
+export const fetchNumberSetting = async (key: string, fallback: number): Promise<number> => {
+  const { data, error } = await supabase.from('settings').select('value').eq('key', key).single();
+
+  if (error || typeof data?.value !== 'number') {
+    return fallback;
+  }
+
+  return data.value;
+};
+
+export const updateNumberSetting = async (key: string, value: number): Promise<void> => {
+  const { error } = await supabase
+    .from('settings')
+    .update({ value, updated_at: new Date().toISOString() })
+    .eq('key', key);
+
+  if (error) {
+    console.error(`Error updating settings for ${key}:`, error);
+    throw error;
+  }
+};

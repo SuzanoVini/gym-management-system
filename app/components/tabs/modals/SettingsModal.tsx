@@ -4,9 +4,15 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Modal from '@/components/ui/Modal';
 import { errorHandler } from '@/lib/errorHandler';
+import { DEFAULT_MONTHLY_MEMBERSHIP_REVENUE } from '@/lib/insights/rules';
 import { updateSystemNameInMappings } from '@/lib/supabase/classMappings';
 import { supabase } from '@/lib/supabase/client';
-import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
+import {
+  fetchNumberSetting,
+  fetchSettings,
+  updateNumberSetting,
+  updateSettings,
+} from '@/lib/supabase/settings';
 import { useSettingsStore } from '@/store/useSettingsStore';
 
 interface SettingsModalProps {
@@ -22,7 +28,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [newClassType, setNewClassType] = useState('');
   const [newStaffMember, setNewStaffMember] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'classes' | 'staff'>('classes');
+  const [activeTab, setActiveTab] = useState<'classes' | 'staff' | 'revenue'>('classes');
+  const [revenueInput, setRevenueInput] = useState(String(DEFAULT_MONTHLY_MEMBERSHIP_REVENUE));
+  const [revenueSaving, setRevenueSaving] = useState(false);
   const [editingClass, setEditingClass] = useState<{ original: string; value: string } | null>(
     null
   );
@@ -34,12 +42,14 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const [classes, staff] = await Promise.all([
+        const [classes, staff, revenue] = await Promise.all([
           fetchSettings('class_types'),
           fetchSettings('staff_members'),
+          fetchNumberSetting('avg_monthly_membership_revenue', DEFAULT_MONTHLY_MEMBERSHIP_REVENUE),
         ]);
         setClassTypes(classes);
         setStaffMembers(staff);
+        setRevenueInput(String(revenue));
       } catch (err) {
         errorHandler.handle(err, 'loadSettings');
       }
@@ -49,6 +59,23 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       loadSettings();
     }
   }, [isOpen]);
+
+  const handleSaveRevenue = async () => {
+    const value = Number(revenueInput);
+    if (!Number.isFinite(value) || value < 0) {
+      errorHandler.handle(new Error('Enter a valid non-negative amount'), 'saveRevenue');
+      return;
+    }
+    try {
+      setRevenueSaving(true);
+      await updateNumberSetting('avg_monthly_membership_revenue', value);
+      errorHandler.notify('Revenue estimate updated', 'success');
+    } catch (err) {
+      errorHandler.handle(err, 'saveRevenue');
+    } finally {
+      setRevenueSaving(false);
+    }
+  };
 
   const handleAddClassType = async () => {
     if (!newClassType.trim()) {
@@ -223,9 +250,52 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         >
           Staff Members
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('revenue')}
+          className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+            activeTab === 'revenue'
+              ? 'border-red-600 text-red-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Revenue
+        </button>
       </div>
 
       {/* Content */}
+      {activeTab === 'revenue' && (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Average monthly revenue per member — used to estimate the dollar impact shown on
+            Insights cards.
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">$</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={revenueInput}
+              onChange={(e) => setRevenueInput(e.target.value)}
+              disabled={!isOwner}
+              className="form-input w-32"
+            />
+            <span className="text-sm text-gray-500">/month</span>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={handleSaveRevenue}
+                disabled={revenueSaving}
+                className="btn btn-primary ml-2"
+              >
+                Save
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {activeTab === 'classes' && (
         <div className="space-y-4">
           {isOwner && (
