@@ -23,6 +23,7 @@ import {
   saveQuickImportEntries,
 } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
+import { parseDate } from '@/lib/utils/date.utils';
 import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
 export default function PayrollPage() {
@@ -347,9 +348,13 @@ export default function PayrollPage() {
         return rowBuilder(h, staffMember);
       });
 
-      // Format dates for the header (mm/dd/yyyy)
+      // Format dates for the header (mm/dd/yyyy); parseDate avoids the UTC
+      // day-shift of new Date('YYYY-MM-DD')
       const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
+        const date = parseDate(dateStr);
+        if (!date) {
+          return dateStr;
+        }
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         const year = date.getFullYear();
