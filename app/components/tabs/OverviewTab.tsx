@@ -40,6 +40,7 @@ import {
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
+import { isActiveHold } from '@/lib/utils/holds';
 import { useSettingsStore } from '@/store/useSettingsStore';
 
 const OverviewIcons = {
@@ -148,33 +149,57 @@ export default function OverviewTab() {
   const attendedIntros = intros.filter((i) => i.attended === 'Yes').length;
   const totalSignups = signups.length;
   const totalCancellations = cancellations.length;
-  const activeHolds = holds.filter((h) => {
-    const end = h.end ? new Date(h.end) : null;
-    return end && end > new Date();
-  }).length;
+  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
 
-  const signupsFromIntros = signups.filter((signup) =>
-    intros.some((intro) => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim())
-  ).length;
+  // Person-level matching (signups carry no email, so normalized name is the
+  // key): a prospect with several intro rows counts once, and walk-in signups
+  // that never attended an intro don't inflate the funnel past 100%
+  const personName = (name: string) => name.toLowerCase().trim().replace(/\s+/g, ' ');
+  const attendedPersonNames = new Set(
+    intros.filter((i) => i.attended === 'Yes').map((i) => personName(i.name))
+  );
+  const signupsFromIntros = new Set(
+    signups.map((s) => personName(s.name)).filter((n) => attendedPersonNames.has(n))
+  ).size;
 
   const conversionRate =
     attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(1) : '0';
   const netGrowth = totalSignups - totalCancellations;
 
-  // Monthly Trends
-  const monthlyData = MONTHS.map((month) => {
-    const monthIntros = intros.filter((i) => i.month === month).length;
-    const monthSignups = signups.filter((s) => s.month === month).length;
-    const monthCancellations = cancellations.filter((c) => c.month === month).length;
+  // Monthly Trends — bucketed by month + year so "All Time" doesn't sum
+  // Jan 2025 and Jan 2026 into one point
+  const trendBuckets = new Map<
+    number,
+    { month: string; Intros: number; 'Sign-ups': number; Cancellations: number }
+  >();
+  const bumpTrend = (
+    records: Array<{ month: string; year?: number; created_at?: string }>,
+    field: 'Intros' | 'Sign-ups' | 'Cancellations'
+  ) => {
+    for (const r of records) {
+      const monthIndex = MONTHS.indexOf(r.month);
+      const year = r.year ?? (r.created_at ? new Date(r.created_at).getFullYear() : undefined);
+      if (monthIndex === -1 || !year) {
+        continue;
+      }
+      const sortKey = year * 12 + monthIndex;
+      const bucket = trendBuckets.get(sortKey) ?? {
+        month: `${r.month} ${year}`,
+        Intros: 0,
+        'Sign-ups': 0,
+        Cancellations: 0,
+      };
+      bucket[field]++;
+      trendBuckets.set(sortKey, bucket);
+    }
+  };
+  bumpTrend(intros, 'Intros');
+  bumpTrend(signups, 'Sign-ups');
+  bumpTrend(cancellations, 'Cancellations');
 
-    return {
-      month,
-      Intros: monthIntros,
-      'Sign-ups': monthSignups,
-      Cancellations: monthCancellations,
-      'Net Growth': monthSignups - monthCancellations,
-    };
-  }).filter((m) => m.Intros > 0 || m['Sign-ups'] > 0 || m.Cancellations > 0);
+  const monthlyData = [...trendBuckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, bucket]) => ({ ...bucket, 'Net Growth': bucket['Sign-ups'] - bucket.Cancellations }));
 
   // Conversion Funnel
   const funnelData = [
@@ -192,19 +217,23 @@ export default function OverviewTab() {
     },
     {
       stage: 'Signed Up',
-      count: totalSignups,
-      percentage: attendedIntros > 0 ? ((totalSignups / attendedIntros) * 100).toFixed(0) : 0,
-      countLabel: `${totalSignups} (${attendedIntros > 0 ? ((totalSignups / attendedIntros) * 100).toFixed(0) : 0}%)`,
+      count: signupsFromIntros,
+      percentage: attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(0) : 0,
+      countLabel: `${signupsFromIntros} (${attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(0) : 0}%)`,
     },
   ];
 
-  // Top Classes by Sign-ups (matches actual signups to intro classes by name)
+  // Top Classes by Sign-ups — person-level match on the attended intro
+  const classByPerson = new Map<string, string>();
+  for (const intro of intros) {
+    if (intro.attended === 'Yes' && intro.class) {
+      classByPerson.set(personName(intro.name), intro.class);
+    }
+  }
   const classSignups = signups.reduce<Record<string, number>>((acc, signup) => {
-    const matchingIntro = intros.find(
-      (intro) => intro.name.toLowerCase().trim() === signup.name.toLowerCase().trim()
-    );
-    if (matchingIntro?.class) {
-      acc[matchingIntro.class] = (acc[matchingIntro.class] || 0) + 1;
+    const introClass = classByPerson.get(personName(signup.name));
+    if (introClass) {
+      acc[introClass] = (acc[introClass] || 0) + 1;
     }
     return acc;
   }, {});
