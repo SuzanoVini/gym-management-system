@@ -20,10 +20,12 @@ import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
 import {
   createOrUpdateHours,
   deleteStaffHours,
+  getHoursForPeriod,
   saveQuickImportEntries,
 } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
 import { parseDate } from '@/lib/utils/date.utils';
+import { escapeCsvValue } from '@/lib/utils/export.utils';
 import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
 export default function PayrollPage() {
@@ -236,8 +238,9 @@ export default function PayrollPage() {
         formatConfig = result.data;
       }
 
-      // Get hours for the selected period
-      let periodHours = hours.filter((h) => h.period_id === periodId);
+      // Fetch hours for the selected period — in-memory hours only cover the
+      // current period, so exporting any other period needs its own query
+      let periodHours = await getHoursForPeriod(periodId);
 
       // Apply staff ordering based on format configuration
       if (formatConfig?.staff_order_config) {
@@ -377,7 +380,9 @@ export default function PayrollPage() {
         ...rows,
       ];
 
-      const csvContent = csvLines.map((row) => row.join(',')).join('\n');
+      const csvContent = csvLines
+        .map((row) => row.map((cell) => escapeCsvValue(cell)).join(','))
+        .join('\n');
 
       // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

@@ -96,7 +96,7 @@ export function generatePayrollCSV(data: PayrollExportData[]): string {
  * escapeCsvValue(42) // "42"
  * escapeCsvValue(null) // ""
  */
-function escapeCsvValue(value: string | number | boolean | null | undefined): string {
+export function escapeCsvValue(value: string | number | boolean | null | undefined): string {
   // Handle null/undefined
   if (value === null || value === undefined) {
     return '';
