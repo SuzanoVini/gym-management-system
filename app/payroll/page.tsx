@@ -17,7 +17,11 @@ import { usePayrollStaff } from '@/hooks/usePayrollStaff';
 import { useStaffHours } from '@/hooks/useStaffHours';
 import { errorHandler } from '@/lib/errorHandler';
 import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
-import { createOrUpdateHours, saveQuickImportEntries } from '@/lib/services/hours.service';
+import {
+  createOrUpdateHours,
+  deleteStaffHours,
+  saveQuickImportEntries,
+} from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
 import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
@@ -182,6 +186,16 @@ export default function PayrollPage() {
   // Hours management handlers
   const handleAddHours = () => {
     setHoursModalOpen(true);
+  };
+
+  const handleDeleteHours = async (staffHoursId: string) => {
+    try {
+      await deleteStaffHours(staffHoursId);
+      errorHandler.notify('Hours deleted', 'success');
+      await refreshHours();
+    } catch (err) {
+      errorHandler.handle(err, 'handleDeleteHours');
+    }
   };
 
   const handleSubmitHours = async (staffId: string, data: Partial<StaffHoursFormData>) => {
@@ -555,12 +569,7 @@ export default function PayrollPage() {
                       hours={hours}
                       staff={staff}
                       loading={hoursLoading}
-                      onEdit={() => {
-                        /* TODO: Implement edit hours functionality */
-                      }}
-                      onDelete={() => {
-                        /* TODO: Implement delete hours functionality */
-                      }}
+                      onDelete={handleDeleteHours}
                       onUpdateHours={updateHoursField}
                     />
                   ) : (

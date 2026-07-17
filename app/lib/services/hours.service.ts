@@ -152,6 +152,17 @@ export const saveQuickImportEntries = async (
 };
 
 /**
+ * Delete a staff_hours record; its time entries cascade via FK.
+ */
+export const deleteStaffHours = async (staffHoursId: string): Promise<void> => {
+  const { error } = await supabase.from('staff_hours').delete().eq('id', staffHoursId);
+
+  if (error) {
+    throw error;
+  }
+};
+
+/**
  * Get all time entries for specific staff hours
  */
 export const getTimeEntries = async (staffHoursId: string): Promise<TimeEntry[]> => {

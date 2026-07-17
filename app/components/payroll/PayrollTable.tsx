@@ -1,6 +1,6 @@
 'use client';
 
-import { Edit2, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Table from '@/components/ui/Table';
 import type { StaffHours, StaffMember } from '@/types';
@@ -10,7 +10,6 @@ interface PayrollTableProps {
   hours: StaffHours[];
   staff: StaffMember[];
   loading?: boolean;
-  onEdit: (hours: StaffHours) => void;
   onDelete: (id: string) => void;
   onUpdateHours?: (
     staffHoursId: string,
@@ -32,7 +31,6 @@ export default function PayrollTable({
   hours,
   staff,
   loading = false,
-  onEdit,
   onDelete,
   onUpdateHours,
   selectedIds,
@@ -185,18 +183,6 @@ export default function PayrollTable({
       label: 'Actions',
       render: (_value: unknown, row: PayrollRow) => (
         <div className="flex justify-end space-x-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit(row);
-            }}
-            className="btn-icon hover:text-blue-600"
-            title="Edit"
-            aria-label={`Edit hours for ${row.staff_name}`}
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
           <button
             type="button"
             onClick={(e) => {
