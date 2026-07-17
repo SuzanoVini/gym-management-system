@@ -42,7 +42,9 @@ export default function PayrollPage() {
     loading: periodsLoading,
     switchToPeriod,
     addPeriod,
+    finalizePeriod,
   } = usePayrollPeriod();
+  const periodClosed = currentPeriod?.is_closed ?? false;
 
   const {
     staff,
@@ -77,6 +79,14 @@ export default function PayrollPage() {
       } catch (err) {
         errorHandler.handle(err, 'handleCreatePeriod');
       }
+    }
+  };
+
+  const handleClosePeriod = async (periodId: string) => {
+    try {
+      await finalizePeriod(periodId);
+    } catch (err) {
+      errorHandler.handle(err, 'handleClosePeriod');
     }
   };
 
@@ -156,6 +166,9 @@ export default function PayrollPage() {
     if (!currentPeriod) {
       throw new Error('Please select a payroll period first');
     }
+    if (currentPeriod.is_closed) {
+      throw new Error('This payroll period is closed and cannot be modified');
+    }
 
     // Parse the quick import text
     const summary = parseQuickImport(textData);
@@ -192,6 +205,13 @@ export default function PayrollPage() {
   };
 
   const handleDeleteHours = async (staffHoursId: string) => {
+    if (periodClosed) {
+      errorHandler.handle(
+        new Error('This payroll period is closed and cannot be modified'),
+        'handleDeleteHours'
+      );
+      return;
+    }
     try {
       await deleteStaffHours(staffHoursId);
       errorHandler.notify('Hours deleted', 'success');
@@ -204,6 +224,13 @@ export default function PayrollPage() {
   const handleSubmitHours = async (staffId: string, data: Partial<StaffHoursFormData>) => {
     if (!currentPeriod) {
       errorHandler.handle(new Error('Please select a payroll period first'), 'handleSubmitHours');
+      return;
+    }
+    if (currentPeriod.is_closed) {
+      errorHandler.handle(
+        new Error('This payroll period is closed and cannot be modified'),
+        'handleSubmitHours'
+      );
       return;
     }
 
@@ -448,6 +475,7 @@ export default function PayrollPage() {
               currentPeriod={currentPeriod}
               onSelectPeriod={handleSelectPeriod}
               onCreatePeriod={handleCreatePeriod}
+              onClosePeriod={handleClosePeriod}
               loading={periodsLoading}
             />
           </div>
@@ -565,7 +593,7 @@ export default function PayrollPage() {
                 <div className="payroll-card">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-gray-900">Hours Summary</h2>
-                    {currentPeriod && (
+                    {currentPeriod && !periodClosed && (
                       <button type="button" onClick={handleAddHours} className="btn btn-primary">
                         <Plus className="w-4 h-4" />
                         Add Hours
@@ -578,6 +606,7 @@ export default function PayrollPage() {
                       hours={hours}
                       staff={staff}
                       loading={hoursLoading}
+                      readOnly={periodClosed}
                       onDelete={handleDeleteHours}
                       onUpdateHours={updateHoursField}
                     />

@@ -10,6 +10,7 @@ interface PayrollTableProps {
   hours: StaffHours[];
   staff: StaffMember[];
   loading?: boolean;
+  readOnly?: boolean;
   onDelete: (id: string) => void;
   onUpdateHours?: (
     staffHoursId: string,
@@ -31,6 +32,7 @@ export default function PayrollTable({
   hours,
   staff,
   loading = false,
+  readOnly = false,
   onDelete,
   onUpdateHours,
   selectedIds,
@@ -113,7 +115,7 @@ export default function PayrollTable({
           <EditableHoursCell
             value={value as number}
             onSave={(newValue) => onUpdateHours(row.id, 'regular_hours', newValue)}
-            disabled={loading}
+            disabled={loading || readOnly}
           />
         ) : (
           <div className="text-right">{(value as number).toFixed(2)}</div>
@@ -128,7 +130,7 @@ export default function PayrollTable({
           <EditableHoursCell
             value={value as number}
             onSave={(newValue) => onUpdateHours(row.id, 'overtime_hours', newValue)}
-            disabled={loading}
+            disabled={loading || readOnly}
           />
         ) : (
           <div className="text-right">{(value as number).toFixed(2)}</div>
@@ -143,7 +145,7 @@ export default function PayrollTable({
           <EditableHoursCell
             value={value as number}
             onSave={(newValue) => onUpdateHours(row.id, 'vacation_hours', newValue)}
-            disabled={loading}
+            disabled={loading || readOnly}
           />
         ) : (
           <div className="text-right">{(value as number).toFixed(2)}</div>
@@ -158,7 +160,7 @@ export default function PayrollTable({
           <EditableHoursCell
             value={value as number}
             onSave={(newValue) => onUpdateHours(row.id, 'sick_hours', newValue)}
-            disabled={loading}
+            disabled={loading || readOnly}
           />
         ) : (
           <div className="text-right">{(value as number).toFixed(2)}</div>
@@ -191,8 +193,9 @@ export default function PayrollTable({
                 onDelete(row.id);
               }
             }}
-            className="btn-icon hover:text-red-600"
-            title="Delete"
+            disabled={readOnly}
+            className="btn-icon hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={readOnly ? 'Period is closed' : 'Delete'}
             aria-label={`Delete hours for ${row.staff_name}`}
           >
             <Trash2 className="w-4 h-4" />

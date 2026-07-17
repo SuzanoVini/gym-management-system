@@ -152,6 +152,34 @@ describe('migration chain in embedded PostgreSQL', () => {
     expect(result.rows[0]?.count).toBe(1);
   });
 
+  it('blocks writes to staff_hours and time_entries once a period is closed', async () => {
+    await db.exec(`
+      INSERT INTO staff_members (id, employee_id, full_name, job_title)
+        VALUES ('20000000-0000-4000-8000-000000000001', 'EMP-CLOSED', 'Closed Period Coach', 'Coach');
+      INSERT INTO payroll_periods (id, period_label, start_date, end_date, is_closed)
+        VALUES ('20000000-0000-4000-8000-000000000002', '01/01/26 - 01/15/26', '2026-01-01', '2026-01-15', false);
+      INSERT INTO staff_hours (id, staff_id, period_id)
+        VALUES ('20000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002');
+      INSERT INTO time_entries (staff_hours_id, entry_date, entry_type, hours)
+        VALUES ('20000000-0000-4000-8000-000000000003', '2026-01-02', 'regular', 4);
+      UPDATE payroll_periods SET is_closed = true
+        WHERE id = '20000000-0000-4000-8000-000000000002';
+    `);
+
+    await expect(
+      db.exec(`
+        INSERT INTO time_entries (staff_hours_id, entry_date, entry_type, hours)
+          VALUES ('20000000-0000-4000-8000-000000000003', '2026-01-03', 'regular', 2)
+      `)
+    ).rejects.toThrow(/payroll period is closed/);
+
+    await expect(
+      db.exec(`
+        DELETE FROM staff_hours WHERE id = '20000000-0000-4000-8000-000000000003'
+      `)
+    ).rejects.toThrow(/payroll period is closed/);
+  });
+
   it('blocks role escalation from client contexts', async () => {
     await db.exec(`
       INSERT INTO auth.users (id, email)
