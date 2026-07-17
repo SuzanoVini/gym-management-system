@@ -2,7 +2,11 @@
 
 import type { PayrollPeriod, PayrollPeriodFormData } from '@/types';
 import { supabase } from '../supabase/client';
-import { formatDateISO, getPayrollPeriodForDate } from '../utils/date.utils';
+import { formatDateISO, generatePeriodLabel, getPayrollPeriodForDate } from '../utils/date.utils';
+
+// Re-exported for existing callers; the timezone-safe implementation lives in
+// date.utils (parsing YYYY-MM-DD with new Date() rendered labels a day early)
+export { generatePeriodLabel };
 
 /**
  * Get the current active payroll period
@@ -56,21 +60,6 @@ export const getPeriodById = async (id: string): Promise<PayrollPeriod | null> =
   }
 
   return data;
-};
-
-/**
- * Generate a period label in the format MM/DD/YY - MM/DD/YY
- */
-export const generatePeriodLabel = (startDate: string, endDate: string): string => {
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = String(date.getFullYear()).slice(-2);
-    return `${month}/${day}/${year}`;
-  };
-
-  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
 };
 
 /**

@@ -9,6 +9,7 @@ import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
 import { useSignups } from '@/hooks/useSignups';
 import { supabase } from '@/lib/supabase/client';
+import { isActiveHold } from '@/lib/utils/holds';
 import { escapeIlike } from '@/lib/utils/normalizePersonKey';
 import type { Cancellation, Hold, Intro, Member, Signup } from '@/types';
 
@@ -273,12 +274,7 @@ export default function MembersTab() {
     }
 
     for (const hold of holds) {
-      if (!hold.start) {
-        continue;
-      }
-      const start = new Date(hold.start);
-      const end = hold.end ? new Date(hold.end) : null;
-      if (start <= now && (!end || end >= now)) {
+      if (isActiveHold(hold, now)) {
         activeHoldKeys.add(nameKey(hold));
       }
     }

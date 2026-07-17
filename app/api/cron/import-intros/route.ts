@@ -3,6 +3,7 @@ import { verifyCronRequest } from '@/lib/cron';
 import { getEmailTextBody, getZenPlannerBookingEmails } from '@/lib/gmail';
 import { MONTH_TO_NUM, parseBookingEmail } from '@/lib/services/booking-parser';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Gmail import handles parsing, enrichment, dedupe, and reporting in one cron transaction.
 export async function GET(req: NextRequest) {
@@ -27,6 +28,15 @@ export async function GET(req: NextRequest) {
   const classMapping: Record<string, string> = Object.fromEntries(
     (classMappingRows ?? []).map((r) => [r.zenplanner_name, r.system_name])
   );
+
+  // Staff vocabulary for name canonicalization — a future email format change
+  // back to first names won't re-split coaches
+  const { data: staffSetting } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'staff_members')
+    .maybeSingle();
+  const staffList: string[] = Array.isArray(staffSetting?.value) ? staffSetting.value : [];
 
   let imported = 0;
   let enriched = 0;
@@ -120,7 +130,7 @@ export async function GET(req: NextRequest) {
           name: booking.name,
           phone: booking.phone,
           email: booking.email,
-          staff: booking.staff,
+          staff: canonicalizeStaffName(booking.staff, staffList),
           status: 'Active',
         });
 

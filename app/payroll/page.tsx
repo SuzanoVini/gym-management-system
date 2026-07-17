@@ -17,8 +17,15 @@ import { usePayrollStaff } from '@/hooks/usePayrollStaff';
 import { useStaffHours } from '@/hooks/useStaffHours';
 import { errorHandler } from '@/lib/errorHandler';
 import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
-import { createOrUpdateHours } from '@/lib/services/hours.service';
+import {
+  createOrUpdateHours,
+  deleteStaffHours,
+  getHoursForPeriod,
+  saveQuickImportEntries,
+} from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
+import { parseDate } from '@/lib/utils/date.utils';
+import { escapeCsvValue } from '@/lib/utils/export.utils';
 import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
 export default function PayrollPage() {
@@ -167,18 +174,31 @@ export default function PayrollPage() {
       throw new Error('Staff member not found');
     }
 
-    // Import is not yet implemented - just show success for now
+    await saveQuickImportEntries(
+      currentPeriod.id,
+      staffId,
+      currentPeriod.start_date,
+      summary.entries
+    );
+
     const message = formatQuickImportSummary(summary, staffMember.full_name);
     errorHandler.notify(message, 'success');
-
-    // TODO: Implement actual database save using hooks
-    // For now, just refresh to show the message
     await refreshHours();
   };
 
   // Hours management handlers
   const handleAddHours = () => {
     setHoursModalOpen(true);
+  };
+
+  const handleDeleteHours = async (staffHoursId: string) => {
+    try {
+      await deleteStaffHours(staffHoursId);
+      errorHandler.notify('Hours deleted', 'success');
+      await refreshHours();
+    } catch (err) {
+      errorHandler.handle(err, 'handleDeleteHours');
+    }
   };
 
   const handleSubmitHours = async (staffId: string, data: Partial<StaffHoursFormData>) => {
@@ -218,8 +238,9 @@ export default function PayrollPage() {
         formatConfig = result.data;
       }
 
-      // Get hours for the selected period
-      let periodHours = hours.filter((h) => h.period_id === periodId);
+      // Fetch hours for the selected period — in-memory hours only cover the
+      // current period, so exporting any other period needs its own query
+      let periodHours = await getHoursForPeriod(periodId);
 
       // Apply staff ordering based on format configuration
       if (formatConfig?.staff_order_config) {
@@ -330,9 +351,13 @@ export default function PayrollPage() {
         return rowBuilder(h, staffMember);
       });
 
-      // Format dates for the header (mm/dd/yyyy)
+      // Format dates for the header (mm/dd/yyyy); parseDate avoids the UTC
+      // day-shift of new Date('YYYY-MM-DD')
       const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
+        const date = parseDate(dateStr);
+        if (!date) {
+          return dateStr;
+        }
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         const year = date.getFullYear();
@@ -355,7 +380,9 @@ export default function PayrollPage() {
         ...rows,
       ];
 
-      const csvContent = csvLines.map((row) => row.join(',')).join('\n');
+      const csvContent = csvLines
+        .map((row) => row.map((cell) => escapeCsvValue(cell)).join(','))
+        .join('\n');
 
       // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -552,12 +579,7 @@ export default function PayrollPage() {
                       hours={hours}
                       staff={staff}
                       loading={hoursLoading}
-                      onEdit={() => {
-                        /* TODO: Implement edit hours functionality */
-                      }}
-                      onDelete={() => {
-                        /* TODO: Implement delete hours functionality */
-                      }}
+                      onDelete={handleDeleteHours}
                       onUpdateHours={updateHoursField}
                     />
                   ) : (

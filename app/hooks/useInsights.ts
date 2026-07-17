@@ -23,48 +23,9 @@ export const useInsights = ({ intros, signups, cancellations }: UseInsightsProps
       (intro) => intro.status !== 'Completed' && intro.status !== 'Cancelled'
     );
 
-    // 1. CRITICAL: Attended But Didn't Sign Up
-    const warmLeads = activeIntros.filter((intro) => {
-      if (!intro.date) {
-        return false;
-      }
-      const twoWeeksAgo = new Date();
-      twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      const introDate = new Date(intro.date);
-
-      return intro.attended === 'Yes' && intro.signed_up !== 'Yes' && introDate >= twoWeeksAgo;
-    });
-
-    if (warmLeads.length >= 3) {
-      const byStaff = warmLeads.reduce<Record<string, number>>((acc, intro) => {
-        acc[intro.staff] = (acc[intro.staff] || 0) + 1;
-        return acc;
-      }, {});
-
-      const staffBreakdown = Object.entries(byStaff)
-        .map(([staff, count]) => `• ${count} from ${staff}'s classes`)
-        .join('\n');
-
-      const potentialSignups = Math.round(warmLeads.length * 0.6);
-      const potentialRevenue = potentialSignups * MONTHLY_MEMBERSHIP_REVENUE;
-
-      generatedInsights.push({
-        id: 'warm-leads',
-        title: `${warmLeads.length} High-Intent Prospects Need Follow-Up NOW`,
-        message: `${warmLeads.length} people attended their intro in the last 2 weeks but haven't signed up yet:\n\n${staffBreakdown}\n\nThese are warm leads - they took time to attend. Don't let them go cold!\n\nSuccess rate with proper follow-up: ~60% within 48 hours\nAfter 2 weeks: Drops to 15%`,
-        icon: 'Target',
-        color: 'red',
-        priority: 'critical',
-        impact: `Potential ${potentialSignups} signups = $${potentialRevenue.toLocaleString()} revenue`,
-        actions: [
-          'Call each person TODAY (not tomorrow)',
-          'Ask: "What questions can I answer for you?"',
-          'Offer trial class or buddy intro',
-          'Follow up within 48 hours if they need time',
-        ],
-        category: 'conversion',
-      });
-    }
+    // Follow-up urgency is covered by the follow-ups-due insight in InsightsTab,
+    // built from useFollowUps — the same engine as the Follow Ups tab, so it
+    // honors contacts, reminders, and dismissals.
 
     // 2. CRITICAL: Seasonal Cancellation Pattern
     const travelCancels = cancellations.filter(

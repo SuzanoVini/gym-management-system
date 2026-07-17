@@ -29,7 +29,9 @@ import { config } from '@/lib/config';
  * formatDateShort('2026-01-15') // "01/15/26"
  */
 export function formatDateShort(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  // parseDate reads date-only strings in local time; new Date('YYYY-MM-DD')
+  // would parse as UTC midnight and render one day early in Vancouver
+  const d = typeof date === 'string' ? (parseDate(date) ?? new Date(date)) : date;
 
   if (Number.isNaN(d.getTime())) {
     return '';
@@ -53,7 +55,7 @@ export function formatDateShort(date: Date | string): string {
  * formatDateISO('01/15/2026') // "2026-01-15"
  */
 export function formatDateISO(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = typeof date === 'string' ? (parseDate(date) ?? new Date(date)) : date;
 
   if (Number.isNaN(d.getTime())) {
     return '';
@@ -77,7 +79,7 @@ export function formatDateISO(date: Date | string): string {
  * generatePeriodLabel(new Date('2026-01-01'), new Date('2026-01-15'))
  * // "01/01/26 - 01/15/26"
  */
-export function generatePeriodLabel(startDate: Date, endDate: Date): string {
+export function generatePeriodLabel(startDate: Date | string, endDate: Date | string): string {
   return `${formatDateShort(startDate)} - ${formatDateShort(endDate)}`;
 }
 

@@ -1,6 +1,7 @@
 // app/lib/services/hours.service.ts
 
 import type { StaffHours, StaffHoursFormData, TimeEntry, TimeEntryFormData } from '@/types';
+import { buildQuickImportTimeEntries, type QuickImportEntry } from '../quick-import';
 import { supabase } from '../supabase/client';
 
 /**
@@ -126,6 +127,39 @@ export const createOrUpdateHours = async (
   }
 
   return data;
+};
+
+/**
+ * Persist parsed quick-import entries as time_entries rows for a staff member
+ * and period. The aggregate_time_entries() DB trigger recomputes the
+ * staff_hours totals from the inserted rows.
+ */
+export const saveQuickImportEntries = async (
+  periodId: string,
+  staffId: string,
+  periodStartDate: string,
+  entries: QuickImportEntry[]
+): Promise<void> => {
+  // Ensure the staff_hours row exists so entries have a parent to aggregate into
+  const staffHours = await createOrUpdateHours(periodId, staffId, {});
+  const rows = buildQuickImportTimeEntries(staffHours.id, periodStartDate, entries);
+
+  const { error } = await supabase.from('time_entries').insert(rows);
+
+  if (error) {
+    throw error;
+  }
+};
+
+/**
+ * Delete a staff_hours record; its time entries cascade via FK.
+ */
+export const deleteStaffHours = async (staffHoursId: string): Promise<void> => {
+  const { error } = await supabase.from('staff_hours').delete().eq('id', staffHoursId);
+
+  if (error) {
+    throw error;
+  }
 };
 
 /**

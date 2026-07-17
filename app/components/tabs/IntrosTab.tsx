@@ -33,6 +33,7 @@ import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { supabase } from '@/lib/supabase/client';
 import { undoDismissFollowUp } from '@/lib/supabase/intros';
 import { formatDate } from '@/lib/supabase/utils';
+import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 import { isDefaultFilters, useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -108,13 +109,15 @@ export default function IntrosTab() {
         intro.phone?.includes(filters.searchTerm);
 
       const matchesMonth = filters.month === 'all' || intro.month === filters.month;
-      const matchesStaff = filters.staff === 'all' || intro.staff === filters.staff;
+      const matchesStaff =
+        filters.staff === 'all' ||
+        canonicalizeStaffName(intro.staff ?? '', staffMembers) === filters.staff;
       const matchesClass = filters.class === 'all' || intro.class === filters.class;
       const matchesYear = filters.year === 'all' || String(intro.year) === filters.year;
 
       return matchesSearch && matchesMonth && matchesStaff && matchesClass && matchesYear;
     });
-  }, [intros, filters]);
+  }, [intros, filters, staffMembers]);
 
   const sortedIntros = useMemo(() => {
     const parseDateStr = (s: string): number => {
