@@ -60,6 +60,51 @@ const OverviewIcons = {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Period-over-period delta badge for a summary card. `goodDirection` flips
+// the color (an increase in Cancellations is bad, not good).
+function DeltaBadge({
+  current,
+  previous,
+  goodDirection = 'up',
+}: {
+  current: number;
+  previous: number | null;
+  goodDirection?: 'up' | 'down';
+}) {
+  if (previous === null) {
+    return null;
+  }
+  if (previous === 0) {
+    if (current === 0) {
+      return null;
+    }
+    return (
+      <span className="text-xs font-medium text-gray-500 ml-2" title="No prior-period data">
+        new
+      </span>
+    );
+  }
+
+  const pct = ((current - previous) / previous) * 100;
+  if (Math.abs(pct) < 0.5) {
+    return <span className="text-xs font-medium text-gray-500 ml-2">flat</span>;
+  }
+
+  const isUp = pct > 0;
+  const isGood = isUp === (goodDirection === 'up');
+  const Icon = isUp ? TrendingUp : TrendingDown;
+
+  return (
+    <span
+      className={`inline-flex items-center text-xs font-semibold ml-2 ${isGood ? 'text-green-600' : 'text-red-600'}`}
+      title={`vs. previous period: ${previous}`}
+    >
+      <Icon className="w-3 h-3 mr-0.5" />
+      {Math.abs(pct).toFixed(0)}%
+    </span>
+  );
+}
+
 const insightStyles: Record<
   'red' | 'orange' | 'yellow' | 'green' | 'blue',
   { card: string; icon: string }
@@ -81,7 +126,7 @@ export default function OverviewTab() {
   const [activeMembershipIndex, setActiveMembershipIndex] = useState<number | null>(null);
   const [activeReasonIndex, setActiveReasonIndex] = useState<number | null>(null);
 
-  const { filteredData, loading, error, refresh } = useAnalyticsData({
+  const { filteredData, previousPeriodData, loading, error, refresh } = useAnalyticsData({
     dateRange,
     customStartDate,
     customEndDate,
@@ -144,27 +189,51 @@ export default function OverviewTab() {
 
   const { intros, signups, cancellations, holds } = filteredData;
 
-  // Key Metrics
-  const totalIntros = intros.length;
-  const attendedIntros = intros.filter((i) => i.attended === 'Yes').length;
-  const totalSignups = signups.length;
-  const totalCancellations = cancellations.length;
-  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
-
   // Person-level matching (signups carry no email, so normalized name is the
   // key): a prospect with several intro rows counts once, and walk-in signups
   // that never attended an intro don't inflate the funnel past 100%
   const personName = (name: string) => name.toLowerCase().trim().replace(/\s+/g, ' ');
-  const attendedPersonNames = new Set(
-    intros.filter((i) => i.attended === 'Yes').map((i) => personName(i.name))
-  );
-  const signupsFromIntros = new Set(
-    signups.map((s) => personName(s.name)).filter((n) => attendedPersonNames.has(n))
-  ).size;
 
-  const conversionRate =
-    attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(1) : '0';
-  const netGrowth = totalSignups - totalCancellations;
+  function computeCoreMetrics(data: {
+    intros: typeof intros;
+    signups: typeof signups;
+    cancellations: typeof cancellations;
+  }) {
+    const attended = data.intros.filter((i) => i.attended === 'Yes').length;
+    const attendedNames = new Set(
+      data.intros.filter((i) => i.attended === 'Yes').map((i) => personName(i.name))
+    );
+    const signupsFromIntros = new Set(
+      data.signups.map((s) => personName(s.name)).filter((n) => attendedNames.has(n))
+    ).size;
+    return {
+      totalIntros: data.intros.length,
+      attendedIntros: attended,
+      totalSignups: data.signups.length,
+      totalCancellations: data.cancellations.length,
+      netGrowth: data.signups.length - data.cancellations.length,
+      conversionRate: attended > 0 ? (signupsFromIntros / attended) * 100 : 0,
+      signupsFromIntros,
+    };
+  }
+
+  // Key Metrics
+  const current = computeCoreMetrics({ intros, signups, cancellations });
+  const {
+    totalIntros,
+    attendedIntros,
+    totalSignups,
+    totalCancellations,
+    netGrowth,
+    signupsFromIntros,
+  } = current;
+  const conversionRate = current.conversionRate.toFixed(1);
+  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
+
+  // Period-over-period deltas vs the immediately preceding window of the same
+  // length — null (hidden) when the date filter is "All Time", since there's
+  // no bounded window to mirror
+  const previous = previousPeriodData ? computeCoreMetrics(previousPeriodData) : null;
 
   // Monthly Trends — bucketed by month + year so "All Time" doesn't sum
   // Jan 2025 and Jan 2026 into one point
@@ -607,7 +676,10 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Intros</p>
-              <p className="text-3xl font-bold mt-1">{totalIntros}</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {totalIntros}
+                <DeltaBadge current={totalIntros} previous={previous?.totalIntros ?? null} />
+              </p>
             </div>
             <OverviewIcons.Users className="summary-card-icon w-8 h-8 text-blue-600" />
           </div>
@@ -617,7 +689,10 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Sign-ups</p>
-              <p className="text-3xl font-bold mt-1">{totalSignups}</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {totalSignups}
+                <DeltaBadge current={totalSignups} previous={previous?.totalSignups ?? null} />
+              </p>
             </div>
             <OverviewIcons.UserPlus className="summary-card-icon w-8 h-8 text-green-600" />
           </div>
@@ -627,7 +702,14 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Cancellations</p>
-              <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {totalCancellations}
+                <DeltaBadge
+                  current={totalCancellations}
+                  previous={previous?.totalCancellations ?? null}
+                  goodDirection="down"
+                />
+              </p>
             </div>
             <OverviewIcons.UserMinus className="summary-card-icon w-8 h-8 text-red-600" />
           </div>
@@ -640,10 +722,11 @@ export default function OverviewTab() {
             <div>
               <p className="text-sm text-gray-600">Net Growth</p>
               <p
-                className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-3xl font-bold mt-1 flex items-baseline ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
                 {netGrowth >= 0 ? '+' : ''}
                 {netGrowth}
+                <DeltaBadge current={netGrowth} previous={previous?.netGrowth ?? null} />
               </p>
             </div>
             {netGrowth >= 0 ? (
@@ -658,7 +741,13 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Conversion Rate</p>
-              <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {conversionRate}%
+                <DeltaBadge
+                  current={current.conversionRate}
+                  previous={previous?.conversionRate ?? null}
+                />
+              </p>
             </div>
             <OverviewIcons.Target className="summary-card-icon w-8 h-8 text-purple-600" />
           </div>
