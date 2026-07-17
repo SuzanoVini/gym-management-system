@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Lock, Plus } from 'lucide-react';
 import type { PayrollPeriod } from '@/types';
 
 interface PeriodSelectorProps {
@@ -8,6 +8,7 @@ interface PeriodSelectorProps {
   currentPeriod: PayrollPeriod | null;
   onSelectPeriod: (periodId: string) => void;
   onCreatePeriod?: () => void;
+  onClosePeriod?: (periodId: string) => void;
   loading?: boolean;
 }
 
@@ -16,20 +17,33 @@ export default function PeriodSelector({
   currentPeriod,
   onSelectPeriod,
   onCreatePeriod,
+  onClosePeriod,
   loading = false,
 }: PeriodSelectorProps) {
   return (
     <div className="space-y-3">
       {/* Current Period Display */}
       {currentPeriod && (
-        <div className="payroll-current-period">
+        <div className="payroll-current-period flex items-center justify-between">
           <span className="text-base font-semibold">
             Current Period: {currentPeriod.period_label}
+            {currentPeriod.is_closed && (
+              <span className="ml-3 px-3 py-1 bg-gray-800 text-white text-xs font-semibold rounded-full">
+                Closed
+              </span>
+            )}
           </span>
-          {currentPeriod.is_closed && (
-            <span className="ml-3 px-3 py-1 bg-gray-800 text-white text-xs font-semibold rounded-full">
-              Closed
-            </span>
+          {onClosePeriod && !currentPeriod.is_closed && (
+            <button
+              type="button"
+              onClick={() => onClosePeriod(currentPeriod.id)}
+              disabled={loading}
+              className="btn btn-secondary-blue"
+              title="Close this payroll period"
+            >
+              <Lock className="w-4 h-4" />
+              <span className="hidden sm:inline">Close Period</span>
+            </button>
           )}
         </div>
       )}

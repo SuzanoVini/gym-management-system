@@ -7,6 +7,8 @@ import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useDismissedInsights } from '@/hooks/useDismissedInsights';
 import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { useInsights } from '@/hooks/useInsights';
+import { DEFAULT_MONTHLY_MEMBERSHIP_REVENUE } from '@/lib/insights/rules';
+import { fetchNumberSetting } from '@/lib/supabase/settings';
 import { addBusinessDays } from '@/lib/utils/businessDays';
 import type { Insight } from '@/types';
 import { InsightCard } from './InsightCard';
@@ -115,6 +117,7 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
   const [tempEndDate, setTempEndDate] = useState('');
   const [showDismissed, setShowDismissed] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [revenuePerMember, setRevenuePerMember] = useState(DEFAULT_MONTHLY_MEMBERSHIP_REVENUE);
 
   const { filteredData, loading, error, refresh } = useAnalyticsData({
     dateRange,
@@ -122,8 +125,15 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
     customEndDate,
   });
 
+  useEffect(() => {
+    fetchNumberSetting('avg_monthly_membership_revenue', DEFAULT_MONTHLY_MEMBERSHIP_REVENUE).then(
+      setRevenuePerMember
+    );
+  }, []);
+
   const { insights: baseInsights } = useInsights({
     ...filteredData,
+    revenuePerMember,
   });
 
   const followUpInsight = buildFollowUpInsight(followUps);

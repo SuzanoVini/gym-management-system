@@ -3,24 +3,16 @@
 import type { StaffHours, StaffHoursFormData, TimeEntry, TimeEntryFormData } from '@/types';
 import { buildQuickImportTimeEntries, type QuickImportEntry } from '../quick-import';
 import { supabase } from '../supabase/client';
+import { formatDateISO } from '../utils/date.utils';
 
 /**
  * Mat cleaning bonus in hours (15 minutes = 0.25 hours)
  */
 const MAT_CLEANING_BONUS = 0.25;
 
-const withComputedTotalHours = (hours: StaffHoursFormData): StaffHoursFormData => {
-  const matCleaningHours = (hours.mat_cleaning_count || 0) * MAT_CLEANING_BONUS;
-  return {
-    ...hours,
-    total_hours:
-      (hours.regular_hours || 0) +
-      (hours.overtime_hours || 0) +
-      (hours.vacation_hours || 0) +
-      (hours.sick_hours || 0) +
-      matCleaningHours,
-  };
-};
+// Tag on the single adjustment row per (staff_hours_id, entry_type) that
+// backs manual edits — see setFieldAdjustment/setMatCleaningAdjustment below.
+const ADJUSTMENT_NOTE = 'Manual adjustment';
 
 /**
  * Get all staff hours for a specific payroll period
@@ -61,64 +53,34 @@ export const getStaffHours = async (
 };
 
 /**
- * Create or update staff hours (upsert)
+ * Get or create the staff_hours row for a period/staff pair, with all
+ * aggregate fields at zero. The aggregate_time_entries() trigger is the only
+ * writer of those fields from here on — this just gives time_entries rows a
+ * parent to aggregate into.
  */
-export const createOrUpdateHours = async (
+export const ensureStaffHoursRow = async (
   periodId: string,
-  staffId: string,
-  hoursData: Partial<StaffHoursFormData>
+  staffId: string
 ): Promise<StaffHours> => {
-  // Check if hours already exist
   const existing = await getStaffHours(periodId, staffId);
-
   if (existing) {
-    const mergedHoursData = withComputedTotalHours({
-      period_id: existing.period_id,
-      staff_id: existing.staff_id,
-      regular_hours: hoursData.regular_hours ?? existing.regular_hours,
-      overtime_hours: hoursData.overtime_hours ?? existing.overtime_hours,
-      vacation_hours: hoursData.vacation_hours ?? existing.vacation_hours,
-      sick_hours: hoursData.sick_hours ?? existing.sick_hours,
-      mat_cleaning_count: hoursData.mat_cleaning_count ?? existing.mat_cleaning_count,
-      total_hours: existing.total_hours,
-      ...(hoursData.notes !== undefined
-        ? { notes: hoursData.notes }
-        : existing.notes !== undefined
-          ? { notes: existing.notes }
-          : {}),
-    });
-
-    // Update existing hours
-    const { data, error } = await supabase
-      .from('staff_hours')
-      .update(mergedHoursData)
-      .eq('id', existing.id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
+    return existing;
   }
-
-  // Create new hours
-  const newHoursData = withComputedTotalHours({
-    period_id: periodId,
-    staff_id: staffId,
-    regular_hours: 0,
-    overtime_hours: 0,
-    vacation_hours: 0,
-    sick_hours: 0,
-    mat_cleaning_count: 0,
-    total_hours: 0,
-    ...hoursData,
-  });
 
   const { data, error } = await supabase
     .from('staff_hours')
-    .insert([newHoursData])
+    .insert([
+      {
+        period_id: periodId,
+        staff_id: staffId,
+        regular_hours: 0,
+        overtime_hours: 0,
+        vacation_hours: 0,
+        sick_hours: 0,
+        mat_cleaning_count: 0,
+        total_hours: 0,
+      },
+    ])
     .select()
     .single();
 
@@ -126,6 +88,148 @@ export const createOrUpdateHours = async (
     throw error;
   }
 
+  return data;
+};
+
+/**
+ * Set an hour-based field (regular/overtime/vacation/sick) to an absolute
+ * target by maintaining a single tagged adjustment time_entry for that type —
+ * the delta between the target and everything else already logged for it.
+ * time_entries.hours must stay positive, so a target below what's already
+ * logged clamps to that logged total (the closest achievable value); the
+ * caller gets the achieved amount back to surface if it didn't fully apply.
+ */
+async function setFieldAdjustment(
+  staffHoursId: string,
+  entryType: 'regular' | 'overtime' | 'vacation' | 'sick',
+  targetHours: number
+): Promise<number> {
+  const entries = await getTimeEntries(staffHoursId);
+  const sameType = entries.filter((e) => e.entry_type === entryType);
+  const otherEntries = sameType.filter((e) => e.notes !== ADJUSTMENT_NOTE);
+  const adjustmentEntries = sameType.filter((e) => e.notes === ADJUSTMENT_NOTE);
+  const otherSum = otherEntries.reduce((sum, e) => sum + e.hours, 0);
+
+  if (adjustmentEntries.length > 0) {
+    const ids = adjustmentEntries.map((e) => e.id);
+    const { error } = await supabase.from('time_entries').delete().in('id', ids);
+    if (error) {
+      throw error;
+    }
+  }
+
+  const needed = targetHours - otherSum;
+  if (needed > 0) {
+    const { error } = await supabase.from('time_entries').insert([
+      {
+        staff_hours_id: staffHoursId,
+        entry_date: formatDateISO(new Date()),
+        entry_type: entryType,
+        hours: needed,
+        notes: ADJUSTMENT_NOTE,
+        is_after_school_program: false,
+      },
+    ]);
+    if (error) {
+      throw error;
+    }
+  }
+
+  return otherSum + Math.max(needed, 0);
+}
+
+/**
+ * Same idea as setFieldAdjustment, but mat_cleaning_count is a row COUNT in
+ * the trigger, not a sum — so the adjustment is N tagged 0.25h rows, not one
+ * row holding a delta.
+ */
+async function setMatCleaningAdjustment(staffHoursId: string, targetCount: number): Promise<void> {
+  const entries = await getTimeEntries(staffHoursId);
+  const matEntries = entries.filter((e) => e.entry_type === 'mat_cleaning');
+  const otherCount = matEntries.filter((e) => e.notes !== ADJUSTMENT_NOTE).length;
+  const adjustmentEntries = matEntries.filter((e) => e.notes === ADJUSTMENT_NOTE);
+
+  if (adjustmentEntries.length > 0) {
+    const ids = adjustmentEntries.map((e) => e.id);
+    const { error } = await supabase.from('time_entries').delete().in('id', ids);
+    if (error) {
+      throw error;
+    }
+  }
+
+  const needed = targetCount - otherCount;
+  if (needed > 0) {
+    const rows = Array.from({ length: needed }, () => ({
+      staff_hours_id: staffHoursId,
+      entry_date: formatDateISO(new Date()),
+      entry_type: 'mat_cleaning' as const,
+      hours: MAT_CLEANING_BONUS,
+      notes: ADJUSTMENT_NOTE,
+      is_after_school_program: false,
+    }));
+    const { error } = await supabase.from('time_entries').insert(rows);
+    if (error) {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Set staff_hours fields to absolute manual values via adjustment
+ * time_entries, so the aggregation trigger stays the single writer of
+ * regular/overtime/vacation/sick/mat_cleaning_count.
+ */
+export const setManualHours = async (
+  periodId: string,
+  staffId: string,
+  hoursData: Partial<StaffHoursFormData>
+): Promise<StaffHours> => {
+  const staffHours = await ensureStaffHoursRow(periodId, staffId);
+
+  if (hoursData.regular_hours !== undefined) {
+    await setFieldAdjustment(staffHours.id, 'regular', hoursData.regular_hours);
+  }
+  if (hoursData.overtime_hours !== undefined) {
+    await setFieldAdjustment(staffHours.id, 'overtime', hoursData.overtime_hours);
+  }
+  if (hoursData.vacation_hours !== undefined) {
+    await setFieldAdjustment(staffHours.id, 'vacation', hoursData.vacation_hours);
+  }
+  if (hoursData.sick_hours !== undefined) {
+    await setFieldAdjustment(staffHours.id, 'sick', hoursData.sick_hours);
+  }
+  if (hoursData.mat_cleaning_count !== undefined) {
+    await setMatCleaningAdjustment(staffHours.id, hoursData.mat_cleaning_count);
+  }
+
+  const refreshed = await getStaffHours(periodId, staffId);
+  if (!refreshed) {
+    throw new Error('Staff hours row disappeared after adjustment');
+  }
+  return refreshed;
+};
+
+/**
+ * Update a single hour field for staff hours (inline table editing). Returns
+ * the achieved value, which may fall short of `value` if it would require
+ * reducing below hours already logged via real time entries.
+ */
+export const updateStaffHoursField = async (
+  staffHoursId: string,
+  field: 'regular_hours' | 'overtime_hours' | 'vacation_hours' | 'sick_hours',
+  value: number
+): Promise<StaffHours> => {
+  const entryType = field.replace(/_hours$/, '') as 'regular' | 'overtime' | 'vacation' | 'sick';
+  await setFieldAdjustment(staffHoursId, entryType, value);
+
+  const { data, error } = await supabase
+    .from('staff_hours')
+    .select('*')
+    .eq('id', staffHoursId)
+    .single();
+  if (error) {
+    throw error;
+  }
   return data;
 };
 
@@ -140,8 +244,7 @@ export const saveQuickImportEntries = async (
   periodStartDate: string,
   entries: QuickImportEntry[]
 ): Promise<void> => {
-  // Ensure the staff_hours row exists so entries have a parent to aggregate into
-  const staffHours = await createOrUpdateHours(periodId, staffId, {});
+  const staffHours = await ensureStaffHoursRow(periodId, staffId);
   const rows = buildQuickImportTimeEntries(staffHours.id, periodStartDate, entries);
 
   const { error } = await supabase.from('time_entries').insert(rows);
@@ -197,9 +300,6 @@ export const addTimeEntry = async (
     throw error;
   }
 
-  // Recalculate total hours after adding entry
-  await calculateTotalHours(staffHoursId);
-
   return data;
 };
 
@@ -221,9 +321,6 @@ export const updateTimeEntry = async (
     throw error;
   }
 
-  // Recalculate total hours after updating entry
-  await calculateTotalHours(data.staff_hours_id);
-
   return data;
 };
 
@@ -231,87 +328,11 @@ export const updateTimeEntry = async (
  * Delete a time entry
  */
 export const deleteTimeEntry = async (id: string): Promise<void> => {
-  // Get the time entry first to know which staff_hours to recalculate
-  const { data: entry, error: fetchError } = await supabase
-    .from('time_entries')
-    .select('staff_hours_id')
-    .eq('id', id)
-    .single();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
   const { error } = await supabase.from('time_entries').delete().eq('id', id);
 
   if (error) {
     throw error;
   }
-
-  // Recalculate total hours after deleting entry
-  if (entry) {
-    await calculateTotalHours(entry.staff_hours_id);
-  }
-};
-
-/**
- * Calculate and update total hours for staff hours based on time entries
- */
-export const calculateTotalHours = async (staffHoursId: string): Promise<StaffHours> => {
-  // Get all time entries for this staff hours
-  const entries = await getTimeEntries(staffHoursId);
-
-  // Calculate totals by type
-  let regularHours = 0;
-  let overtimeHours = 0;
-  let vacationHours = 0;
-  let sickHours = 0;
-  let matCleaningCount = 0;
-
-  for (const entry of entries) {
-    switch (entry.entry_type) {
-      case 'regular':
-        regularHours += entry.hours;
-        break;
-      case 'overtime':
-        overtimeHours += entry.hours;
-        break;
-      case 'vacation':
-        vacationHours += entry.hours;
-        break;
-      case 'sick':
-        sickHours += entry.hours;
-        break;
-      case 'mat_cleaning':
-        matCleaningCount += 1;
-        break;
-    }
-  }
-
-  // Calculate total hours including mat cleaning bonus
-  const matCleaningHours = matCleaningCount * MAT_CLEANING_BONUS;
-  const totalHours = regularHours + overtimeHours + vacationHours + sickHours + matCleaningHours;
-
-  // Update staff hours
-  const { data, error } = await supabase
-    .from('staff_hours')
-    .update({
-      regular_hours: regularHours,
-      overtime_hours: overtimeHours,
-      vacation_hours: vacationHours,
-      sick_hours: sickHours,
-      mat_cleaning_count: matCleaningCount,
-      total_hours: totalHours,
-    })
-    .eq('id', staffHoursId)
-    .select()
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
 };
 
 /**
@@ -333,55 +354,6 @@ export const addMatCleaningBonus = async (
   };
 
   const { data, error } = await supabase.from('time_entries').insert([entryData]).select().single();
-
-  if (error) {
-    throw error;
-  }
-
-  // Recalculate total hours after adding mat cleaning bonus
-  await calculateTotalHours(staffHoursId);
-
-  return data;
-};
-
-/**
- * Update specific hour fields for staff hours (for inline editing)
- */
-export const updateStaffHoursField = async (
-  staffHoursId: string,
-  field: 'regular_hours' | 'overtime_hours' | 'vacation_hours' | 'sick_hours',
-  value: number
-): Promise<StaffHours> => {
-  // Get current staff hours to recalculate total
-  const { data: currentHours, error: fetchError } = await supabase
-    .from('staff_hours')
-    .select('*')
-    .eq('id', staffHoursId)
-    .single();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  // Update the specific field
-  const updates: Partial<StaffHours> = { [field]: value };
-
-  // Recalculate total hours
-  const matCleaningHours = currentHours.mat_cleaning_count * MAT_CLEANING_BONUS;
-  const newRegular = field === 'regular_hours' ? value : currentHours.regular_hours;
-  const newOvertime = field === 'overtime_hours' ? value : currentHours.overtime_hours;
-  const newVacation = field === 'vacation_hours' ? value : currentHours.vacation_hours;
-  const newSick = field === 'sick_hours' ? value : currentHours.sick_hours;
-
-  updates.total_hours = newRegular + newOvertime + newVacation + newSick + matCleaningHours;
-
-  // Update the database
-  const { data, error } = await supabase
-    .from('staff_hours')
-    .update(updates)
-    .eq('id', staffHoursId)
-    .select()
-    .single();
 
   if (error) {
     throw error;
