@@ -39,6 +39,8 @@ import {
 } from 'recharts';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { exportToCSV } from '@/lib/supabase/utils';
+import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
+import { useSettingsStore } from '@/store/useSettingsStore';
 
 const OverviewIcons = {
   AlertCircle,
@@ -83,6 +85,7 @@ export default function OverviewTab() {
     customStartDate,
     customEndDate,
   });
+  const staffMembers = useSettingsStore((s) => s.staffMembers);
 
   const handleApplyCustomDates = () => {
     setCustomStartDate(tempStartDate);
@@ -246,15 +249,18 @@ export default function OverviewTab() {
       return acc;
     }
 
-    if (!acc[intro.staff]) {
-      acc[intro.staff] = {
+    // Safety net after the one-time data migration: bare first names from old
+    // records aggregate under the same coach as full names
+    const staffName = canonicalizeStaffName(intro.staff, staffMembers);
+    if (!acc[staffName]) {
+      acc[staffName] = {
         total: 0,
         attended: 0,
         signedUp: 0,
       };
     }
 
-    const staffEntry = acc[intro.staff];
+    const staffEntry = acc[staffName];
     if (staffEntry) {
       staffEntry.total++;
       if (intro.attended === 'Yes') {
