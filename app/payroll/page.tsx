@@ -17,7 +17,7 @@ import { usePayrollStaff } from '@/hooks/usePayrollStaff';
 import { useStaffHours } from '@/hooks/useStaffHours';
 import { errorHandler } from '@/lib/errorHandler';
 import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
-import { createOrUpdateHours } from '@/lib/services/hours.service';
+import { createOrUpdateHours, saveQuickImportEntries } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
 import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
@@ -167,12 +167,15 @@ export default function PayrollPage() {
       throw new Error('Staff member not found');
     }
 
-    // Import is not yet implemented - just show success for now
+    await saveQuickImportEntries(
+      currentPeriod.id,
+      staffId,
+      currentPeriod.start_date,
+      summary.entries
+    );
+
     const message = formatQuickImportSummary(summary, staffMember.full_name);
     errorHandler.notify(message, 'success');
-
-    // TODO: Implement actual database save using hooks
-    // For now, just refresh to show the message
     await refreshHours();
   };
 

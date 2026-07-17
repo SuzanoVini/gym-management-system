@@ -1,5 +1,7 @@
 // app/lib/quick-import.ts
 
+import type { TimeEntryFormData } from '@/types';
+
 /**
  * Quick Text Import - Parses simple text format for hours entry
  *
@@ -175,6 +177,46 @@ export function parseQuickImport(importText: string): QuickImportSummary {
     entries,
     errors,
   };
+}
+
+/**
+ * Map parsed quick-import entries to time_entries rows. Entry dates land in
+ * the period's month (periods never span months) using each line's day token.
+ * Mat cleaning becomes its own 'mat_cleaning' entry so the DB aggregation
+ * trigger counts it as a bonus rather than regular hours.
+ */
+export function buildQuickImportTimeEntries(
+  staffHoursId: string,
+  periodStartDate: string, // YYYY-MM-DD
+  entries: QuickImportEntry[]
+): TimeEntryFormData[] {
+  const [year, month] = periodStartDate.split('-');
+  const rows: TimeEntryFormData[] = [];
+
+  for (const entry of entries) {
+    const entryDate = `${year}-${month}-${String(entry.day).padStart(2, '0')}`;
+    const base = {
+      staff_hours_id: staffHoursId,
+      entry_date: entryDate,
+      is_after_school_program: entry.isAfterSchool,
+      notes: `Quick import ${entry.time}`,
+    };
+
+    if (entry.overtimeHours > 0) {
+      rows.push({ ...base, entry_type: 'overtime', hours: entry.overtimeHours });
+      continue;
+    }
+
+    const regularHours = entry.hasMatClean
+      ? entry.regularHours - MAT_CLEANING_BONUS
+      : entry.regularHours;
+    rows.push({ ...base, entry_type: 'regular', hours: regularHours });
+    if (entry.hasMatClean) {
+      rows.push({ ...base, entry_type: 'mat_cleaning', hours: MAT_CLEANING_BONUS });
+    }
+  }
+
+  return rows;
 }
 
 /**
