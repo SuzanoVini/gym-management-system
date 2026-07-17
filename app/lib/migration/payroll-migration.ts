@@ -1,7 +1,7 @@
 // app/lib/migration/payroll-migration.ts
 
 import type { StaffHoursFormData, StaffMemberFormData } from '@/types';
-import { createOrUpdateHours } from '../services/hours.service';
+import { setManualHours } from '../services/hours.service';
 import { createPeriod, getAllPeriods } from '../services/period.service';
 import { createStaff, getStaffByEmployeeId } from '../services/staff.service';
 
@@ -318,17 +318,17 @@ export async function migrateLegacyData(
           throw new Error(`Period not found for ID ${legacyHours.periodId}`);
         }
 
-        // Create or update hours
+        // total_hours and notes are derived/unsupported by the adjustment
+        // mechanism — the trigger recomputes total_hours from the entries
+        // this creates, and legacy notes aren't carried over
         const hoursData: Partial<StaffHoursFormData> = {
           regular_hours: legacyHours.regularHours,
           overtime_hours: legacyHours.overtimeHours,
           vacation_hours: legacyHours.vacationHours,
           mat_cleaning_count: legacyHours.matCleaningCount,
-          total_hours: legacyHours.totalHours,
-          ...(legacyHours.notes && { notes: legacyHours.notes }),
         };
 
-        await createOrUpdateHours(newPeriodId, newStaffId, hoursData);
+        await setManualHours(newPeriodId, newStaffId, hoursData);
         result.migrated.hours++;
       } catch (error) {
         const errorMsg = `Failed to migrate hours for staff ${legacyHours.staffId}: ${error instanceof Error ? error.message : 'Unknown error'}`;

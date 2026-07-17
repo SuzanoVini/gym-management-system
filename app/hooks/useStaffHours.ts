@@ -4,11 +4,10 @@ import { errorHandler } from '@/lib/errorHandler';
 import {
   addMatCleaningBonus,
   addTimeEntry,
-  calculateTotalHours,
-  createOrUpdateHours,
   deleteTimeEntry,
   getHoursForPeriod,
   getTimeEntries,
+  setManualHours,
   updateStaffHoursField,
   updateTimeEntry,
 } from '@/lib/services/hours.service';
@@ -64,7 +63,7 @@ export const useStaffHours = (periodId: string | null) => {
       }
 
       try {
-        const staffHours = await createOrUpdateHours(periodId, staffId, hoursData);
+        const staffHours = await setManualHours(periodId, staffId, hoursData);
         await loadHours();
         errorHandler.notify('Hours updated successfully', 'success');
         return staffHours;
@@ -151,23 +150,6 @@ export const useStaffHours = (periodId: string | null) => {
     [loadHours, loadTimeEntries, selectedStaffHours]
   );
 
-  const recalculateHours = useCallback(
-    async (staffHoursId: string) => {
-      try {
-        await calculateTotalHours(staffHoursId);
-        await loadHours();
-        if (selectedStaffHours?.id === staffHoursId) {
-          await loadTimeEntries(staffHoursId);
-        }
-        errorHandler.notify('Hours recalculated successfully', 'success');
-      } catch (err) {
-        errorHandler.handle(err, 'recalculateHours');
-        throw err;
-      }
-    },
-    [loadHours, loadTimeEntries, selectedStaffHours]
-  );
-
   const selectStaffHours = useCallback(
     async (staffHours: StaffHours | null) => {
       setSelectedStaffHours(staffHours);
@@ -215,7 +197,6 @@ export const useStaffHours = (periodId: string | null) => {
     editTimeEntry,
     removeTimeEntry,
     addMatCleaning,
-    recalculateHours,
     selectStaffHours,
     updateHoursField,
   };

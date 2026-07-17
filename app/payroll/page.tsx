@@ -18,10 +18,10 @@ import { useStaffHours } from '@/hooks/useStaffHours';
 import { errorHandler } from '@/lib/errorHandler';
 import { formatQuickImportSummary, parseQuickImport } from '@/lib/quick-import';
 import {
-  createOrUpdateHours,
   deleteStaffHours,
   getHoursForPeriod,
   saveQuickImportEntries,
+  setManualHours,
 } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
 import { parseDate } from '@/lib/utils/date.utils';
@@ -208,8 +208,7 @@ export default function PayrollPage() {
     }
 
     try {
-      // Create or update staff hours for this period
-      await createOrUpdateHours(currentPeriod.id, staffId, data);
+      await setManualHours(currentPeriod.id, staffId, data);
 
       errorHandler.notify('Hours saved successfully', 'success');
       setHoursModalOpen(false);
