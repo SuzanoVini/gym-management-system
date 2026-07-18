@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   CheckCircle,
   Clock,
@@ -37,14 +38,19 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import { useInsights } from '@/hooks/useInsights';
+import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 import { isActiveHold } from '@/lib/utils/holds';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import type { InsightColor } from '@/types';
 
 const OverviewIcons = {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   CheckCircle,
   Clock,
@@ -60,15 +66,68 @@ const OverviewIcons = {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const insightStyles: Record<
-  'red' | 'orange' | 'yellow' | 'green' | 'blue',
-  { card: string; icon: string }
-> = {
+const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
+  { value: 'all', label: 'All Time' },
+  { value: '1month', label: 'Last Month' },
+  { value: '3months', label: 'Last 3 Months' },
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'year', label: 'Last Year' },
+  { value: 'ytd', label: 'Year to Date' },
+  { value: 'custom', label: 'Custom Range' },
+];
+
+// Period-over-period delta badge for a summary card. `goodDirection` flips
+// the color (an increase in Cancellations is bad, not good).
+function DeltaBadge({
+  current,
+  previous,
+  goodDirection = 'up',
+}: {
+  current: number;
+  previous: number | null;
+  goodDirection?: 'up' | 'down';
+}) {
+  if (previous === null) {
+    return null;
+  }
+  if (previous === 0) {
+    if (current === 0) {
+      return null;
+    }
+    return (
+      <span className="text-xs font-medium text-gray-500 ml-2" title="No prior-period data">
+        new
+      </span>
+    );
+  }
+
+  const pct = ((current - previous) / previous) * 100;
+  if (Math.abs(pct) < 0.5) {
+    return <span className="text-xs font-medium text-gray-500 ml-2">flat</span>;
+  }
+
+  const isUp = pct > 0;
+  const isGood = isUp === (goodDirection === 'up');
+  const Icon = isUp ? TrendingUp : TrendingDown;
+
+  return (
+    <span
+      className={`inline-flex items-center text-xs font-semibold ml-2 ${isGood ? 'text-green-600' : 'text-red-600'}`}
+      title={`vs. previous period: ${previous}`}
+    >
+      <Icon className="w-3 h-3 mr-0.5" />
+      {Math.abs(pct).toFixed(0)}%
+    </span>
+  );
+}
+
+const insightStyles: Record<InsightColor, { card: string; icon: string }> = {
   red: { card: 'bg-red-50 border-red-500', icon: 'text-red-600' },
   orange: { card: 'bg-orange-50 border-orange-500', icon: 'text-orange-600' },
   yellow: { card: 'bg-yellow-50 border-yellow-500', icon: 'text-yellow-600' },
   green: { card: 'bg-green-50 border-green-500', icon: 'text-green-600' },
   blue: { card: 'bg-blue-50 border-blue-500', icon: 'text-blue-600' },
+  purple: { card: 'bg-purple-50 border-purple-500', icon: 'text-purple-600' },
 };
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Overview combines multiple analytics blocks.
@@ -81,12 +140,13 @@ export default function OverviewTab() {
   const [activeMembershipIndex, setActiveMembershipIndex] = useState<number | null>(null);
   const [activeReasonIndex, setActiveReasonIndex] = useState<number | null>(null);
 
-  const { filteredData, loading, error, refresh } = useAnalyticsData({
+  const { filteredData, previousPeriodData, loading, error, refresh } = useAnalyticsData({
     dateRange,
     customStartDate,
     customEndDate,
   });
   const staffMembers = useSettingsStore((s) => s.staffMembers);
+  const revenuePerMember = useRevenueSetting();
 
   const handleApplyCustomDates = () => {
     setCustomStartDate(tempStartDate);
@@ -144,27 +204,51 @@ export default function OverviewTab() {
 
   const { intros, signups, cancellations, holds } = filteredData;
 
-  // Key Metrics
-  const totalIntros = intros.length;
-  const attendedIntros = intros.filter((i) => i.attended === 'Yes').length;
-  const totalSignups = signups.length;
-  const totalCancellations = cancellations.length;
-  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
-
   // Person-level matching (signups carry no email, so normalized name is the
   // key): a prospect with several intro rows counts once, and walk-in signups
   // that never attended an intro don't inflate the funnel past 100%
   const personName = (name: string) => name.toLowerCase().trim().replace(/\s+/g, ' ');
-  const attendedPersonNames = new Set(
-    intros.filter((i) => i.attended === 'Yes').map((i) => personName(i.name))
-  );
-  const signupsFromIntros = new Set(
-    signups.map((s) => personName(s.name)).filter((n) => attendedPersonNames.has(n))
-  ).size;
 
-  const conversionRate =
-    attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(1) : '0';
-  const netGrowth = totalSignups - totalCancellations;
+  function computeCoreMetrics(data: {
+    intros: typeof intros;
+    signups: typeof signups;
+    cancellations: typeof cancellations;
+  }) {
+    const attended = data.intros.filter((i) => i.attended === 'Yes').length;
+    const attendedNames = new Set(
+      data.intros.filter((i) => i.attended === 'Yes').map((i) => personName(i.name))
+    );
+    const signupsFromIntros = new Set(
+      data.signups.map((s) => personName(s.name)).filter((n) => attendedNames.has(n))
+    ).size;
+    return {
+      totalIntros: data.intros.length,
+      attendedIntros: attended,
+      totalSignups: data.signups.length,
+      totalCancellations: data.cancellations.length,
+      netGrowth: data.signups.length - data.cancellations.length,
+      conversionRate: attended > 0 ? (signupsFromIntros / attended) * 100 : 0,
+      signupsFromIntros,
+    };
+  }
+
+  // Key Metrics
+  const current = computeCoreMetrics({ intros, signups, cancellations });
+  const {
+    totalIntros,
+    attendedIntros,
+    totalSignups,
+    totalCancellations,
+    netGrowth,
+    signupsFromIntros,
+  } = current;
+  const conversionRate = current.conversionRate.toFixed(1);
+  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
+
+  // Period-over-period deltas vs the immediately preceding window of the same
+  // length — null (hidden) when the date filter is "All Time", since there's
+  // no bounded window to mirror
+  const previous = previousPeriodData ? computeCoreMetrics(previousPeriodData) : null;
 
   // Monthly Trends — bucketed by month + year so "All Time" doesn't sum
   // Jan 2025 and Jan 2026 into one point
@@ -315,146 +399,17 @@ export default function OverviewTab() {
     }))
     .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
 
-  // ENHANCED: Smart Business Insights - Focus on Retention, Conversion, and Business Health
-  const insights: Array<{
-    icon: keyof typeof OverviewIcons;
-    title: string;
-    message: string;
-    color: 'red' | 'orange' | 'yellow' | 'green' | 'blue';
-  }> = [];
-
-  // 1. Conversion Rate Analysis
-  if (parseFloat(conversionRate) < 30 && attendedIntros > 10) {
-    insights.push({
-      icon: 'TrendingDown',
-      title: 'Low Conversion Rate',
-      message: `Your conversion rate is ${conversionRate}%. Review intro class quality, instructor engagement, and pricing strategy to improve conversions.`,
-      color: 'red',
-    });
-  } else if (parseFloat(conversionRate) >= 50 && attendedIntros > 5) {
-    insights.push({
-      icon: 'CheckCircle',
-      title: 'Excellent Conversion Rate',
-      message: `Outstanding ${conversionRate}% conversion rate! Your intro program is highly effective. Consider scaling your marketing efforts.`,
-      color: 'green',
-    });
-  }
-
-  // 2. Retention & Growth Analysis
-  if (netGrowth < 0) {
-    const churnRate =
-      totalSignups > 0 ? ((totalCancellations / totalSignups) * 100).toFixed(1) : '0';
-    insights.push({
-      icon: 'UserMinus',
-      title: 'Negative Member Growth',
-      message: `Net loss of ${Math.abs(netGrowth)} members (${churnRate}% churn rate). Priority: improve retention programs and address cancellation reasons.`,
-      color: 'red',
-    });
-  } else if (netGrowth > 10) {
-    insights.push({
-      icon: 'TrendingUp',
-      title: 'Strong Growth Trajectory',
-      message: `Net gain of ${netGrowth} members! Maintain this momentum with consistent intro quality and member engagement.`,
-      color: 'green',
-    });
-  }
-
-  // 3. Cancellation Reason Analysis
-  const cancellationReasonsForInsights = cancellations.reduce<Record<string, number>>(
-    (acc, cancel) => {
-      if (cancel.reason) {
-        acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
-      }
-      return acc;
-    },
-    {}
-  );
-
-  const topCancellationReason = Object.entries(cancellationReasonsForInsights).sort(
-    (a, b) => b[1] - a[1]
-  )[0];
-
-  if (topCancellationReason && (topCancellationReason[1] as number) > 3) {
-    const [reason, count] = topCancellationReason;
-    let actionableAdvice = '';
-
-    if (reason.toLowerCase().includes('time')) {
-      actionableAdvice =
-        'Consider offering more flexible class schedules or virtual training options.';
-    } else if (
-      reason.toLowerCase().includes('financial') ||
-      reason.toLowerCase().includes('money')
-    ) {
-      actionableAdvice =
-        'Review pricing tiers and consider introducing budget-friendly membership options or payment plans.';
-    } else if (
-      reason.toLowerCase().includes('injury') ||
-      reason.toLowerCase().includes('medical')
-    ) {
-      actionableAdvice =
-        'Emphasize injury prevention training and consider specialized classes for recovery.';
-    } else if (reason.toLowerCase().includes('moving')) {
-      actionableAdvice =
-        'Offer temporary holds for relocations and promote your gym network if applicable.';
-    } else {
-      actionableAdvice = 'Schedule exit interviews to better understand this cancellation pattern.';
-    }
-
-    insights.push({
-      icon: 'AlertCircle',
-      title: `Top Cancellation: ${reason}`,
-      message: `${count} cancellations due to "${reason}". ${actionableAdvice}`,
-      color: 'orange',
-    });
-  }
-
-  // 4. Hold Rate Analysis
-  const holdRate = totalSignups > 0 ? (activeHolds / totalSignups) * 100 : 0;
-  if (holdRate > 15) {
-    insights.push({
-      icon: 'Clock',
-      title: 'High Hold Rate Alert',
-      message: `${activeHolds} members on hold (${holdRate.toFixed(0)}% of active base). Implement re-engagement campaigns to bring them back.`,
-      color: 'yellow',
-    });
-  }
-
-  // 5. Seasonal Hold Patterns
-  const holdsByMonth = holds.reduce<Record<string, number>>((acc, hold) => {
-    if (hold.month) {
-      acc[hold.month] = (acc[hold.month] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  const peakHoldMonth = Object.entries(holdsByMonth).sort((a, b) => b[1] - a[1])[0];
-
-  if (peakHoldMonth && (peakHoldMonth[1] as number) > 5) {
-    insights.push({
-      icon: 'Calendar',
-      title: 'Seasonal Hold Pattern Detected',
-      message: `${peakHoldMonth[1]} holds in ${peakHoldMonth[0]}. Plan promotions or special events during this period to minimize seasonal drops.`,
-      color: 'blue',
-    });
-  }
-
-  // 6. Conversion Opportunity (but only for active, uncontacted intros)
-  const attendedNotSigned = intros.filter(
-    (i) =>
-      i.attended === 'Yes' &&
-      i.signed_up !== 'Yes' &&
-      i.status !== 'Completed' &&
-      i.status !== 'Cancelled'
-  ).length;
-
-  if (attendedNotSigned > 5) {
-    insights.push({
-      icon: 'Target',
-      title: 'Conversion Opportunity',
-      message: `${attendedNotSigned} active prospects attended but haven't signed up. Focus conversion efforts here for quick wins.`,
-      color: 'blue',
-    });
-  }
+  // Top insights from the shared engine (same rules as the Insights tab) —
+  // this used to be a hand-rolled fork with its own thresholds that drifted
+  // from the real rules over time (e.g. >3 vs ≥5 for top cancellation reason)
+  const { insights: sharedInsights } = useInsights({
+    intros,
+    signups,
+    cancellations,
+    holds,
+    revenuePerMember,
+  });
+  const insights = sharedInsights.slice(0, 4);
 
   // Export functionality
   const handleExportAllData = () => {
@@ -539,66 +494,17 @@ export default function OverviewTab() {
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-3 items-center">
-          {[
-            { value: 'all', label: 'All Time' },
-            { value: '1month', label: 'Last Month' },
-            { value: '3months', label: 'Last 3 Months' },
-            { value: '6months', label: 'Last 6 Months' },
-            { value: 'year', label: 'Last Year' },
-            { value: 'ytd', label: 'Year to Date' },
-            { value: 'custom', label: 'Custom Range' },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setDateRange(option.value)}
-              className={`btn ${
-                dateRange === option.value
-                  ? 'btn-primary'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom Date Range Inputs */}
-        {dateRange === 'custom' && (
-          <div className="mt-4 section-nested border border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="form-label" htmlFor="overview-start-date">
-                  Start Date
-                </label>
-                <input
-                  id="overview-start-date"
-                  type="date"
-                  value={tempStartDate}
-                  onChange={(e) => setTempStartDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="form-label" htmlFor="overview-end-date">
-                  End Date
-                </label>
-                <input
-                  id="overview-end-date"
-                  type="date"
-                  value={tempEndDate}
-                  onChange={(e) => setTempEndDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <button type="button" onClick={handleApplyCustomDates} className="btn btn-primary">
-                Apply Filter
-              </button>
-            </div>
-          </div>
-        )}
+        <DateRangeFilter
+          idPrefix="overview"
+          options={OVERVIEW_DATE_RANGE_OPTIONS}
+          dateRange={dateRange}
+          onSelectRange={setDateRange}
+          tempStartDate={tempStartDate}
+          tempEndDate={tempEndDate}
+          onTempStartDateChange={setTempStartDate}
+          onTempEndDateChange={setTempEndDate}
+          onApplyCustomDates={handleApplyCustomDates}
+        />
       </div>
 
       {/* Summary Cards */}
@@ -607,7 +513,10 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Intros</p>
-              <p className="text-3xl font-bold mt-1">{totalIntros}</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {totalIntros}
+                <DeltaBadge current={totalIntros} previous={previous?.totalIntros ?? null} />
+              </p>
             </div>
             <OverviewIcons.Users className="summary-card-icon w-8 h-8 text-blue-600" />
           </div>
@@ -617,7 +526,10 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Sign-ups</p>
-              <p className="text-3xl font-bold mt-1">{totalSignups}</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {totalSignups}
+                <DeltaBadge current={totalSignups} previous={previous?.totalSignups ?? null} />
+              </p>
             </div>
             <OverviewIcons.UserPlus className="summary-card-icon w-8 h-8 text-green-600" />
           </div>
@@ -627,7 +539,14 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Cancellations</p>
-              <p className="text-3xl font-bold mt-1">{totalCancellations}</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {totalCancellations}
+                <DeltaBadge
+                  current={totalCancellations}
+                  previous={previous?.totalCancellations ?? null}
+                  goodDirection="down"
+                />
+              </p>
             </div>
             <OverviewIcons.UserMinus className="summary-card-icon w-8 h-8 text-red-600" />
           </div>
@@ -640,10 +559,11 @@ export default function OverviewTab() {
             <div>
               <p className="text-sm text-gray-600">Net Growth</p>
               <p
-                className={`text-3xl font-bold mt-1 ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                className={`text-3xl font-bold mt-1 flex items-baseline ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
                 {netGrowth >= 0 ? '+' : ''}
                 {netGrowth}
+                <DeltaBadge current={netGrowth} previous={previous?.netGrowth ?? null} />
               </p>
             </div>
             {netGrowth >= 0 ? (
@@ -658,7 +578,13 @@ export default function OverviewTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Conversion Rate</p>
-              <p className="text-3xl font-bold mt-1">{conversionRate}%</p>
+              <p className="text-3xl font-bold mt-1 flex items-baseline">
+                {conversionRate}%
+                <DeltaBadge
+                  current={current.conversionRate}
+                  previous={previous?.conversionRate ?? null}
+                />
+              </p>
             </div>
             <OverviewIcons.Target className="summary-card-icon w-8 h-8 text-purple-600" />
           </div>
@@ -675,27 +601,31 @@ export default function OverviewTab() {
         </div>
       </div>
 
-      {/* Smart Insights */}
+      {/* Top Insights — same engine and rules as the Insights tab */}
       {insights.length > 0 && (
         <div className="section-container">
           <h2 className="text-xl font-bold mb-4 flex items-center">
             <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
-            Smart Insights & Recommendations
+            Top Insights
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {insights.map((insight) => {
-              const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
+              const Icon =
+                OverviewIcons[insight.icon as keyof typeof OverviewIcons] ??
+                OverviewIcons.AlertCircle;
               const style = insightStyles[insight.color];
               return (
                 <div
-                  key={`${insight.title}-${insight.color}`}
+                  key={insight.id}
                   className={`insight-card p-4 rounded-lg border-l-4 ${style.card}`}
                 >
                   <div className="flex items-start">
                     <Icon className={`w-5 h-5 mr-3 mt-0.5 ${style.icon}`} />
                     <div>
                       <h3 className="font-semibold text-sm">{insight.title}</h3>
-                      <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
+                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">
+                        {insight.message}
+                      </p>
                     </div>
                   </div>
                 </div>

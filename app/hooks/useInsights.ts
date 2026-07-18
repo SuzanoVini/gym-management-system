@@ -22,6 +22,7 @@ export const useInsights = ({
   intros,
   signups,
   cancellations,
+  holds,
   revenuePerMember = DEFAULT_MONTHLY_MEMBERSHIP_REVENUE,
 }: UseInsightsProps) => {
   const insights = useMemo(() => {
@@ -34,6 +35,7 @@ export const useInsights = ({
       activeIntros,
       signups,
       cancellations,
+      holds,
       now: new Date(),
       revenuePerMember,
     };
@@ -44,7 +46,7 @@ export const useInsights = ({
 
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     return generatedInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  }, [intros, signups, cancellations, revenuePerMember]);
+  }, [intros, signups, cancellations, holds, revenuePerMember]);
 
   return { insights };
 };
