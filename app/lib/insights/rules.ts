@@ -1,4 +1,5 @@
-import type { Cancellation, Insight, Intro, Signup } from '@/types';
+import { businessDaysBetween } from '@/lib/utils/businessDays';
+import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
 
 export const DEFAULT_MONTHLY_MEMBERSHIP_REVENUE = 180;
 
@@ -7,6 +8,7 @@ export interface InsightRuleInput {
   activeIntros: Intro[];
   signups: Signup[];
   cancellations: Cancellation[];
+  holds: Hold[];
   now: Date;
   /** Configurable via the settings modal — replaces the old hardcoded $180/mo. */
   revenuePerMember: number;
@@ -350,11 +352,214 @@ The 60-day window is critical — after that, habits change and re-engagement be
   };
 };
 
+export const speedToFirstContact: InsightRule = ({ intros }) => {
+  const latenciesByStaff = new Map<string, number[]>();
+
+  for (const intro of intros) {
+    if (intro.attended !== 'Yes' || !intro.date || !intro.followup_1_at) {
+      continue;
+    }
+    const introDate = new Date(intro.date);
+    const contactDate = new Date(intro.followup_1_at);
+    if (Number.isNaN(introDate.getTime()) || Number.isNaN(contactDate.getTime())) {
+      continue;
+    }
+    const latency = businessDaysBetween(introDate, contactDate);
+    const staff = intro.staff || 'Unassigned';
+    const list = latenciesByStaff.get(staff) ?? [];
+    list.push(latency);
+    latenciesByStaff.set(staff, list);
+  }
+
+  const allLatencies = [...latenciesByStaff.values()].flat();
+  if (allLatencies.length < 5) {
+    return null;
+  }
+
+  const median = (values: number[]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const midValue = sorted[mid];
+    if (midValue === undefined) {
+      return 0;
+    }
+    return sorted.length % 2 === 0 ? ((sorted[mid - 1] ?? midValue) + midValue) / 2 : midValue;
+  };
+
+  const overallMedian = median(allLatencies);
+  if (overallMedian <= 2) {
+    return null;
+  }
+
+  const staffBreakdown = [...latenciesByStaff.entries()]
+    .map(([staff, list]) => ({ staff, median: median(list) }))
+    .sort((a, b) => b.median - a.median)
+    .map(({ staff, median: m }) => `• ${staff}: ${m.toFixed(1)} business days`)
+    .join('\n');
+
+  return {
+    id: 'speed-to-first-contact',
+    title: `Slow First Contact — ${overallMedian.toFixed(1)} Business Days Median`,
+    message: `Median time from intro to first follow-up is ${overallMedian.toFixed(1)} business days, above the 2-day target.\n\n${staffBreakdown}\n\nContact speed is the #1 lever for intro-to-signup conversion.`,
+    icon: 'Clock',
+    color: 'orange',
+    priority: 'medium',
+    impact: 'Faster first contact directly improves conversion rate',
+    actions: [
+      'Set a same-day or next-day follow-up habit for every attended intro',
+      'Use the Follow Ups tab tiers to catch anyone slipping past 2 days',
+      'Consider a same-day text template for instructors after class',
+    ],
+    category: 'conversion',
+  };
+};
+
+export const holdExpiryWatchlist: InsightRule = ({ holds, now }) => {
+  const sevenDaysOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const expiringSoon = holds.filter((h) => {
+    if (!h.end) {
+      return false;
+    }
+    const end = new Date(h.end);
+    return !Number.isNaN(end.getTime()) && end >= now && end <= sevenDaysOut;
+  });
+
+  if (expiringSoon.length === 0) {
+    return null;
+  }
+
+  const names = expiringSoon
+    .slice(0, 8)
+    .map((h) => `• ${h.name}`)
+    .join('\n');
+
+  return {
+    id: 'hold-expiry-watchlist',
+    title: `${expiringSoon.length} Hold${expiringSoon.length === 1 ? '' : 's'} Ending This Week`,
+    message: `${expiringSoon.length} membership hold${expiringSoon.length === 1 ? '' : 's'} end${expiringSoon.length === 1 ? 's' : ''} in the next 7 days:\n\n${names}\n\nA hold that ends without the member returning is the churn moment — reach out before it lapses.`,
+    icon: 'Clock',
+    color: 'yellow',
+    priority: 'high',
+    impact: 'Win-back outreach before lapse is far cheaper than re-acquiring the member',
+    actions: [
+      'Reach out to each person before their hold ends',
+      'Confirm they know their membership is resuming',
+      'Offer to extend the hold if they need more time',
+    ],
+    category: 'retention',
+  };
+};
+
+function monthKey(date: Date): number {
+  return date.getFullYear() * 12 + date.getMonth();
+}
+
+export const cancellationSpikeVsBaseline: InsightRule = ({ cancellations, now }) => {
+  const currentKey = monthKey(now);
+  const countsByMonth = new Map<number, number>();
+
+  for (const c of cancellations) {
+    if (!c.created_at) {
+      continue;
+    }
+    const d = new Date(c.created_at);
+    if (Number.isNaN(d.getTime())) {
+      continue;
+    }
+    const key = monthKey(d);
+    if (key > currentKey || key <= currentKey - 6) {
+      continue;
+    }
+    countsByMonth.set(key, (countsByMonth.get(key) ?? 0) + 1);
+  }
+
+  const currentCount = countsByMonth.get(currentKey) ?? 0;
+  const priorKeys = Array.from({ length: 5 }, (_, i) => currentKey - 1 - i);
+  const priorCounts = priorKeys.map((k) => countsByMonth.get(k) ?? 0);
+  const monthsWithData = priorCounts.filter((n) => n > 0).length;
+  if (monthsWithData < 3) {
+    return null;
+  }
+
+  const baseline = priorCounts.reduce((sum, n) => sum + n, 0) / priorCounts.length;
+  if (baseline <= 0 || currentCount < baseline * 1.5 || currentCount - baseline < 3) {
+    return null;
+  }
+
+  return {
+    id: 'cancellation-spike-vs-baseline',
+    title: `Cancellations Spiking — ${currentCount} vs ${baseline.toFixed(1)} Average`,
+    message: `This month's ${currentCount} cancellations are well above the trailing 5-month average of ${baseline.toFixed(1)}.\n\nA spike this size is worth investigating before it becomes a trend.`,
+    icon: 'AlertTriangle',
+    color: 'red',
+    priority: 'high',
+    impact: 'Catching a spike early keeps it from compounding next month',
+    actions: [
+      "Review this month's cancellation reasons for a common thread",
+      'Check for a recent pricing, schedule, or staffing change',
+      'Call the 3 most recent cancellations to ask what changed',
+    ],
+    category: 'retention',
+  };
+};
+
+export const positiveMilestone: InsightRule = ({ signups, now }) => {
+  const currentKey = monthKey(now);
+  const countsByMonth = new Map<number, number>();
+
+  for (const s of signups) {
+    if (!s.created_at) {
+      continue;
+    }
+    const d = new Date(s.created_at);
+    if (Number.isNaN(d.getTime())) {
+      continue;
+    }
+    const key = monthKey(d);
+    if (key > currentKey || key <= currentKey - 12) {
+      continue;
+    }
+    countsByMonth.set(key, (countsByMonth.get(key) ?? 0) + 1);
+  }
+
+  const currentCount = countsByMonth.get(currentKey) ?? 0;
+  const priorKeys = Array.from({ length: 11 }, (_, i) => currentKey - 1 - i);
+  const priorCounts = priorKeys.map((k) => countsByMonth.get(k) ?? 0).filter((n) => n > 0);
+
+  if (currentCount < 5 || priorCounts.length < 6) {
+    return null;
+  }
+  const best = Math.max(...priorCounts);
+  if (currentCount <= best) {
+    return null;
+  }
+
+  return {
+    id: 'positive-milestone-best-signup-month',
+    title: `Best Signup Month in Over a Year — ${currentCount} Sign-ups`,
+    message: `This month's ${currentCount} sign-ups beat every month in the trailing year (previous best: ${best}).\n\nWorth celebrating — and worth understanding what worked so it can be repeated.`,
+    icon: 'TrendingUp',
+    color: 'green',
+    priority: 'low',
+    impact: 'Recognizing what worked helps repeat it',
+    actions: [
+      'Note what changed this month (promotion, season, staffing, referrals)',
+      'Share the win with the team',
+      'Consider repeating whatever drove the increase',
+    ],
+    category: 'growth',
+  };
+};
+
 export const INSIGHT_RULES: InsightRule[] = [
   seasonalTravelCancellations,
   topCancellationReason,
   negativeGrowth,
   lowConversionRate,
+  speedToFirstContact,
+  holdExpiryWatchlist,
+  cancellationSpikeVsBaseline,
+  positiveMilestone,
   retentionMomentumNegative,
   ageGroupCancellationConcentration,
   reEngagementWindow,

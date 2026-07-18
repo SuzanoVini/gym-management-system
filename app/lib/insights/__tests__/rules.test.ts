@@ -1,12 +1,16 @@
-import type { Cancellation, Intro, Signup } from '@/types';
+import type { Cancellation, Hold, Intro, Signup } from '@/types';
 import {
   ageGroupCancellationConcentration,
+  cancellationSpikeVsBaseline,
+  holdExpiryWatchlist,
   type InsightRuleInput,
   lowConversionRate,
   negativeGrowth,
+  positiveMilestone,
   reEngagementWindow,
   retentionMomentumNegative,
   seasonalTravelCancellations,
+  speedToFirstContact,
   topCancellationReason,
 } from '../rules';
 
@@ -51,16 +55,35 @@ function intro(overrides: Partial<Intro> = {}): Intro {
   } as Intro;
 }
 
+function hold(overrides: Partial<Hold> = {}): Hold {
+  return {
+    id: `hold-${Math.random()}`,
+    created_at: isoDaysAgo(1),
+    month: 'Jul',
+    name: 'Test Person',
+    ...overrides,
+  } as Hold;
+}
+
 function baseInput(overrides: Partial<InsightRuleInput> = {}): InsightRuleInput {
   return {
     intros: [],
     activeIntros: [],
     signups: [],
     cancellations: [],
+    holds: [],
     now: NOW,
     revenuePerMember: 180,
     ...overrides,
   };
+}
+
+function isoMonthsAgo(months: number, day = 15): string {
+  const d = new Date(NOW);
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() - months);
+  d.setUTCDate(day);
+  return d.toISOString();
 }
 
 describe('seasonalTravelCancellations', () => {
@@ -195,5 +218,134 @@ describe('reEngagementWindow', () => {
     const insight = reEngagementWindow(baseInput({ cancellations }));
     expect(insight?.id).toBe('re-engagement-window');
     expect(insight?.title).toContain('2 Recently Cancelled');
+  });
+});
+
+describe('speedToFirstContact', () => {
+  it('returns null with fewer than 5 followed-up intros', () => {
+    const intros = Array.from({ length: 4 }, () =>
+      intro({
+        attended: 'Yes',
+        date: '2026-07-01',
+        followup_1_at: '2026-07-06T00:00:00Z', // 3 business days later
+      })
+    );
+    expect(speedToFirstContact(baseInput({ intros }))).toBeNull();
+  });
+
+  it('returns null when median latency is at or below 2 business days', () => {
+    const intros = Array.from({ length: 6 }, () =>
+      intro({
+        attended: 'Yes',
+        date: '2026-07-06', // Monday
+        followup_1_at: '2026-07-08T00:00:00Z', // Wednesday = 2 business days
+      })
+    );
+    expect(speedToFirstContact(baseInput({ intros }))).toBeNull();
+  });
+
+  it('fires with a per-staff breakdown when median latency exceeds 2 business days', () => {
+    const intros = Array.from({ length: 6 }, () =>
+      intro({
+        attended: 'Yes',
+        date: '2026-07-06', // Monday
+        followup_1_at: '2026-07-10T00:00:00Z', // Friday = 4 business days
+        staff: 'Staff Member 3',
+      })
+    );
+    const insight = speedToFirstContact(baseInput({ intros }));
+    expect(insight?.id).toBe('speed-to-first-contact');
+    expect(insight?.message).toContain('Staff Member 3');
+  });
+
+  it('ignores intros that never got followed up', () => {
+    const intros = Array.from({ length: 6 }, () => intro({ attended: 'Yes' }));
+    expect(speedToFirstContact(baseInput({ intros }))).toBeNull();
+  });
+});
+
+describe('holdExpiryWatchlist', () => {
+  it('returns null when no holds end within 7 days', () => {
+    const holds = [hold({ end: isoDaysAgo(-30).slice(0, 10) })];
+    expect(holdExpiryWatchlist(baseInput({ holds }))).toBeNull();
+  });
+
+  it('fires for holds ending within the next 7 days', () => {
+    const soon = new Date(NOW);
+    soon.setUTCDate(soon.getUTCDate() + 3);
+    const holds = [hold({ end: soon.toISOString().slice(0, 10), name: 'Alex Rivera' })];
+    const insight = holdExpiryWatchlist(baseInput({ holds }));
+    expect(insight?.id).toBe('hold-expiry-watchlist');
+    expect(insight?.message).toContain('Alex Rivera');
+  });
+
+  it('ignores open-ended holds with no end date', () => {
+    const holds = [hold()];
+    expect(holdExpiryWatchlist(baseInput({ holds }))).toBeNull();
+  });
+});
+
+describe('cancellationSpikeVsBaseline', () => {
+  it('returns null without at least 3 months of prior baseline data', () => {
+    const cancellations = Array.from({ length: 10 }, () =>
+      cancellation({ created_at: isoMonthsAgo(0) })
+    );
+    expect(cancellationSpikeVsBaseline(baseInput({ cancellations, now: NOW }))).toBeNull();
+  });
+
+  it('returns null when the current month is not a meaningful spike', () => {
+    const cancellations = [
+      ...Array.from({ length: 3 }, () => cancellation({ created_at: isoMonthsAgo(0) })),
+      ...Array.from({ length: 3 }, () => cancellation({ created_at: isoMonthsAgo(1) })),
+      ...Array.from({ length: 3 }, () => cancellation({ created_at: isoMonthsAgo(2) })),
+      ...Array.from({ length: 3 }, () => cancellation({ created_at: isoMonthsAgo(3) })),
+    ];
+    expect(cancellationSpikeVsBaseline(baseInput({ cancellations, now: NOW }))).toBeNull();
+  });
+
+  it('fires when the current month well exceeds the trailing baseline', () => {
+    const cancellations = [
+      ...Array.from({ length: 10 }, () => cancellation({ created_at: isoMonthsAgo(0) })),
+      ...Array.from({ length: 2 }, () => cancellation({ created_at: isoMonthsAgo(1) })),
+      ...Array.from({ length: 2 }, () => cancellation({ created_at: isoMonthsAgo(2) })),
+      ...Array.from({ length: 2 }, () => cancellation({ created_at: isoMonthsAgo(3) })),
+    ];
+    const insight = cancellationSpikeVsBaseline(baseInput({ cancellations, now: NOW }));
+    expect(insight?.id).toBe('cancellation-spike-vs-baseline');
+  });
+});
+
+describe('positiveMilestone', () => {
+  it('returns null without at least 6 months of prior history', () => {
+    const signups = Array.from({ length: 10 }, () => signup({ created_at: isoMonthsAgo(0) }));
+    expect(positiveMilestone(baseInput({ signups, now: NOW }))).toBeNull();
+  });
+
+  it('returns null when the current month does not beat the trailing best', () => {
+    const signups = [
+      ...Array.from({ length: 5 }, () => signup({ created_at: isoMonthsAgo(0) })),
+      ...Array.from({ length: 10 }, () => signup({ created_at: isoMonthsAgo(1) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(2) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(3) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(4) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(5) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(6) })),
+    ];
+    expect(positiveMilestone(baseInput({ signups, now: NOW }))).toBeNull();
+  });
+
+  it('fires when the current month beats every month in the trailing year', () => {
+    const signups = [
+      ...Array.from({ length: 12 }, () => signup({ created_at: isoMonthsAgo(0) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(1) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(2) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(3) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(4) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(5) })),
+      ...Array.from({ length: 3 }, () => signup({ created_at: isoMonthsAgo(6) })),
+    ];
+    const insight = positiveMilestone(baseInput({ signups, now: NOW }));
+    expect(insight?.id).toBe('positive-milestone-best-signup-month');
+    expect(insight?.priority).toBe('low');
   });
 });

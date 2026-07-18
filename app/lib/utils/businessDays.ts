@@ -18,3 +18,20 @@ export function addBusinessDays(
 
   return result;
 }
+
+/** Count of weekdays strictly between two dates (0 if end <= start). */
+export function businessDaysBetween(start: Date, end: Date): number {
+  if (end <= start) {
+    return 0;
+  }
+  let count = 0;
+  const cur = new Date(start);
+  while (cur < end) {
+    cur.setUTCDate(cur.getUTCDate() + 1);
+    const day = cur.getUTCDay();
+    if (day !== 0 && day !== 6 && cur <= end) {
+      count++;
+    }
+  }
+  return count;
+}
