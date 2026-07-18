@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   CheckCircle,
   Clock,
@@ -38,13 +39,17 @@ import {
   YAxis,
 } from 'recharts';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import { useInsights } from '@/hooks/useInsights';
+import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 import { isActiveHold } from '@/lib/utils/holds';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import type { InsightColor } from '@/types';
 
 const OverviewIcons = {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   CheckCircle,
   Clock,
@@ -105,15 +110,13 @@ function DeltaBadge({
   );
 }
 
-const insightStyles: Record<
-  'red' | 'orange' | 'yellow' | 'green' | 'blue',
-  { card: string; icon: string }
-> = {
+const insightStyles: Record<InsightColor, { card: string; icon: string }> = {
   red: { card: 'bg-red-50 border-red-500', icon: 'text-red-600' },
   orange: { card: 'bg-orange-50 border-orange-500', icon: 'text-orange-600' },
   yellow: { card: 'bg-yellow-50 border-yellow-500', icon: 'text-yellow-600' },
   green: { card: 'bg-green-50 border-green-500', icon: 'text-green-600' },
   blue: { card: 'bg-blue-50 border-blue-500', icon: 'text-blue-600' },
+  purple: { card: 'bg-purple-50 border-purple-500', icon: 'text-purple-600' },
 };
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Overview combines multiple analytics blocks.
@@ -132,6 +135,7 @@ export default function OverviewTab() {
     customEndDate,
   });
   const staffMembers = useSettingsStore((s) => s.staffMembers);
+  const revenuePerMember = useRevenueSetting();
 
   const handleApplyCustomDates = () => {
     setCustomStartDate(tempStartDate);
@@ -384,146 +388,17 @@ export default function OverviewTab() {
     }))
     .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
 
-  // ENHANCED: Smart Business Insights - Focus on Retention, Conversion, and Business Health
-  const insights: Array<{
-    icon: keyof typeof OverviewIcons;
-    title: string;
-    message: string;
-    color: 'red' | 'orange' | 'yellow' | 'green' | 'blue';
-  }> = [];
-
-  // 1. Conversion Rate Analysis
-  if (parseFloat(conversionRate) < 30 && attendedIntros > 10) {
-    insights.push({
-      icon: 'TrendingDown',
-      title: 'Low Conversion Rate',
-      message: `Your conversion rate is ${conversionRate}%. Review intro class quality, instructor engagement, and pricing strategy to improve conversions.`,
-      color: 'red',
-    });
-  } else if (parseFloat(conversionRate) >= 50 && attendedIntros > 5) {
-    insights.push({
-      icon: 'CheckCircle',
-      title: 'Excellent Conversion Rate',
-      message: `Outstanding ${conversionRate}% conversion rate! Your intro program is highly effective. Consider scaling your marketing efforts.`,
-      color: 'green',
-    });
-  }
-
-  // 2. Retention & Growth Analysis
-  if (netGrowth < 0) {
-    const churnRate =
-      totalSignups > 0 ? ((totalCancellations / totalSignups) * 100).toFixed(1) : '0';
-    insights.push({
-      icon: 'UserMinus',
-      title: 'Negative Member Growth',
-      message: `Net loss of ${Math.abs(netGrowth)} members (${churnRate}% churn rate). Priority: improve retention programs and address cancellation reasons.`,
-      color: 'red',
-    });
-  } else if (netGrowth > 10) {
-    insights.push({
-      icon: 'TrendingUp',
-      title: 'Strong Growth Trajectory',
-      message: `Net gain of ${netGrowth} members! Maintain this momentum with consistent intro quality and member engagement.`,
-      color: 'green',
-    });
-  }
-
-  // 3. Cancellation Reason Analysis
-  const cancellationReasonsForInsights = cancellations.reduce<Record<string, number>>(
-    (acc, cancel) => {
-      if (cancel.reason) {
-        acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
-      }
-      return acc;
-    },
-    {}
-  );
-
-  const topCancellationReason = Object.entries(cancellationReasonsForInsights).sort(
-    (a, b) => b[1] - a[1]
-  )[0];
-
-  if (topCancellationReason && (topCancellationReason[1] as number) > 3) {
-    const [reason, count] = topCancellationReason;
-    let actionableAdvice = '';
-
-    if (reason.toLowerCase().includes('time')) {
-      actionableAdvice =
-        'Consider offering more flexible class schedules or virtual training options.';
-    } else if (
-      reason.toLowerCase().includes('financial') ||
-      reason.toLowerCase().includes('money')
-    ) {
-      actionableAdvice =
-        'Review pricing tiers and consider introducing budget-friendly membership options or payment plans.';
-    } else if (
-      reason.toLowerCase().includes('injury') ||
-      reason.toLowerCase().includes('medical')
-    ) {
-      actionableAdvice =
-        'Emphasize injury prevention training and consider specialized classes for recovery.';
-    } else if (reason.toLowerCase().includes('moving')) {
-      actionableAdvice =
-        'Offer temporary holds for relocations and promote your gym network if applicable.';
-    } else {
-      actionableAdvice = 'Schedule exit interviews to better understand this cancellation pattern.';
-    }
-
-    insights.push({
-      icon: 'AlertCircle',
-      title: `Top Cancellation: ${reason}`,
-      message: `${count} cancellations due to "${reason}". ${actionableAdvice}`,
-      color: 'orange',
-    });
-  }
-
-  // 4. Hold Rate Analysis
-  const holdRate = totalSignups > 0 ? (activeHolds / totalSignups) * 100 : 0;
-  if (holdRate > 15) {
-    insights.push({
-      icon: 'Clock',
-      title: 'High Hold Rate Alert',
-      message: `${activeHolds} members on hold (${holdRate.toFixed(0)}% of active base). Implement re-engagement campaigns to bring them back.`,
-      color: 'yellow',
-    });
-  }
-
-  // 5. Seasonal Hold Patterns
-  const holdsByMonth = holds.reduce<Record<string, number>>((acc, hold) => {
-    if (hold.month) {
-      acc[hold.month] = (acc[hold.month] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  const peakHoldMonth = Object.entries(holdsByMonth).sort((a, b) => b[1] - a[1])[0];
-
-  if (peakHoldMonth && (peakHoldMonth[1] as number) > 5) {
-    insights.push({
-      icon: 'Calendar',
-      title: 'Seasonal Hold Pattern Detected',
-      message: `${peakHoldMonth[1]} holds in ${peakHoldMonth[0]}. Plan promotions or special events during this period to minimize seasonal drops.`,
-      color: 'blue',
-    });
-  }
-
-  // 6. Conversion Opportunity (but only for active, uncontacted intros)
-  const attendedNotSigned = intros.filter(
-    (i) =>
-      i.attended === 'Yes' &&
-      i.signed_up !== 'Yes' &&
-      i.status !== 'Completed' &&
-      i.status !== 'Cancelled'
-  ).length;
-
-  if (attendedNotSigned > 5) {
-    insights.push({
-      icon: 'Target',
-      title: 'Conversion Opportunity',
-      message: `${attendedNotSigned} active prospects attended but haven't signed up. Focus conversion efforts here for quick wins.`,
-      color: 'blue',
-    });
-  }
+  // Top insights from the shared engine (same rules as the Insights tab) —
+  // this used to be a hand-rolled fork with its own thresholds that drifted
+  // from the real rules over time (e.g. >3 vs ≥5 for top cancellation reason)
+  const { insights: sharedInsights } = useInsights({
+    intros,
+    signups,
+    cancellations,
+    holds,
+    revenuePerMember,
+  });
+  const insights = sharedInsights.slice(0, 4);
 
   // Export functionality
   const handleExportAllData = () => {
@@ -764,27 +639,31 @@ export default function OverviewTab() {
         </div>
       </div>
 
-      {/* Smart Insights */}
+      {/* Top Insights — same engine and rules as the Insights tab */}
       {insights.length > 0 && (
         <div className="section-container">
           <h2 className="text-xl font-bold mb-4 flex items-center">
             <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
-            Smart Insights & Recommendations
+            Top Insights
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {insights.map((insight) => {
-              const Icon = OverviewIcons[insight.icon as keyof typeof OverviewIcons];
+              const Icon =
+                OverviewIcons[insight.icon as keyof typeof OverviewIcons] ??
+                OverviewIcons.AlertCircle;
               const style = insightStyles[insight.color];
               return (
                 <div
-                  key={`${insight.title}-${insight.color}`}
+                  key={insight.id}
                   className={`insight-card p-4 rounded-lg border-l-4 ${style.card}`}
                 >
                   <div className="flex items-start">
                     <Icon className={`w-5 h-5 mr-3 mt-0.5 ${style.icon}`} />
                     <div>
                       <h3 className="font-semibold text-sm">{insight.title}</h3>
-                      <p className="text-sm text-gray-700 mt-1">{insight.message}</p>
+                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">
+                        {insight.message}
+                      </p>
                     </div>
                   </div>
                 </div>
