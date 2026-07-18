@@ -38,6 +38,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useInsights } from '@/hooks/useInsights';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
@@ -64,6 +65,16 @@ const OverviewIcons = {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
+  { value: 'all', label: 'All Time' },
+  { value: '1month', label: 'Last Month' },
+  { value: '3months', label: 'Last 3 Months' },
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'year', label: 'Last Year' },
+  { value: 'ytd', label: 'Year to Date' },
+  { value: 'custom', label: 'Custom Range' },
+];
 
 // Period-over-period delta badge for a summary card. `goodDirection` flips
 // the color (an increase in Cancellations is bad, not good).
@@ -483,66 +494,17 @@ export default function OverviewTab() {
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-3 items-center">
-          {[
-            { value: 'all', label: 'All Time' },
-            { value: '1month', label: 'Last Month' },
-            { value: '3months', label: 'Last 3 Months' },
-            { value: '6months', label: 'Last 6 Months' },
-            { value: 'year', label: 'Last Year' },
-            { value: 'ytd', label: 'Year to Date' },
-            { value: 'custom', label: 'Custom Range' },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setDateRange(option.value)}
-              className={`btn ${
-                dateRange === option.value
-                  ? 'btn-primary'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom Date Range Inputs */}
-        {dateRange === 'custom' && (
-          <div className="mt-4 section-nested border border-gray-200">
-            <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
-            <div className="flex flex-wrap gap-4 items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="form-label" htmlFor="overview-start-date">
-                  Start Date
-                </label>
-                <input
-                  id="overview-start-date"
-                  type="date"
-                  value={tempStartDate}
-                  onChange={(e) => setTempStartDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="form-label" htmlFor="overview-end-date">
-                  End Date
-                </label>
-                <input
-                  id="overview-end-date"
-                  type="date"
-                  value={tempEndDate}
-                  onChange={(e) => setTempEndDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-              <button type="button" onClick={handleApplyCustomDates} className="btn btn-primary">
-                Apply Filter
-              </button>
-            </div>
-          </div>
-        )}
+        <DateRangeFilter
+          idPrefix="overview"
+          options={OVERVIEW_DATE_RANGE_OPTIONS}
+          dateRange={dateRange}
+          onSelectRange={setDateRange}
+          tempStartDate={tempStartDate}
+          tempEndDate={tempEndDate}
+          onTempStartDateChange={setTempStartDate}
+          onTempEndDateChange={setTempEndDate}
+          onApplyCustomDates={handleApplyCustomDates}
+        />
       </div>
 
       {/* Summary Cards */}

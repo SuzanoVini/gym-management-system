@@ -3,6 +3,7 @@
 import { CheckCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useDismissedInsights } from '@/hooks/useDismissedInsights';
 import type { FollowUpRow } from '@/hooks/useFollowUps';
@@ -11,6 +12,14 @@ import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import { addBusinessDays } from '@/lib/utils/businessDays';
 import type { Insight } from '@/types';
 import { InsightCard } from './InsightCard';
+
+const INSIGHTS_DATE_RANGE_OPTIONS: DateRangeOption[] = [
+  { value: '1month', label: 'Last Month' },
+  { value: '3months', label: 'Last 3 Months' },
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'all', label: 'All Time' },
+  { value: 'custom', label: 'Custom Range' },
+];
 
 // Compute a stable hash from serialized insight data — defined at module level
 // to avoid Biome's no-unstable-dependencies lint error inside components.
@@ -286,64 +295,20 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
           </div>
 
           {/* Date Range Filter */}
-          <div className="flex flex-wrap gap-2 items-center mt-4">
-            {[
-              { value: '1month', label: 'Last Month' },
-              { value: '3months', label: 'Last 3 Months' },
-              { value: '6months', label: 'Last 6 Months' },
-              { value: 'all', label: 'All Time' },
-              { value: 'custom', label: 'Custom Range' },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setDateRange(option.value)}
-                className={`btn ${
-                  dateRange === option.value
-                    ? 'btn-primary'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="mt-4">
+            <DateRangeFilter
+              idPrefix="insights"
+              options={INSIGHTS_DATE_RANGE_OPTIONS}
+              dateRange={dateRange}
+              onSelectRange={setDateRange}
+              tempStartDate={tempStartDate}
+              tempEndDate={tempEndDate}
+              onTempStartDateChange={setTempStartDate}
+              onTempEndDateChange={setTempEndDate}
+              onApplyCustomDates={handleApplyCustomDates}
+              customRangeBoxClassName="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-red-200"
+            />
           </div>
-
-          {/* Custom Date Range Inputs */}
-          {dateRange === 'custom' && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-red-200">
-              <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
-              <div className="flex flex-wrap gap-4 items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="form-label" htmlFor="insights-start-date">
-                    Start Date
-                  </label>
-                  <input
-                    id="insights-start-date"
-                    type="date"
-                    value={tempStartDate}
-                    onChange={(e) => setTempStartDate(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="form-label" htmlFor="insights-end-date">
-                    End Date
-                  </label>
-                  <input
-                    id="insights-end-date"
-                    type="date"
-                    value={tempEndDate}
-                    onChange={(e) => setTempEndDate(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-                <button type="button" onClick={handleApplyCustomDates} className="btn btn-primary">
-                  Apply Filter
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Insights */}
