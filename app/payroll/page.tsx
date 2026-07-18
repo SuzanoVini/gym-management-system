@@ -6,6 +6,9 @@ import { useState } from 'react';
 import ExportTab from '@/components/payroll/ExportTab';
 import ImportTab from '@/components/payroll/ImportTab';
 import PayrollTable from '@/components/payroll/PayrollTable';
+import PeriodCreateModal, {
+  computeSuggestedNextPeriod,
+} from '@/components/payroll/PeriodCreateModal';
 import PeriodHoursForm from '@/components/payroll/PeriodHoursForm';
 import PeriodSelector from '@/components/payroll/PeriodSelector';
 import StaffForm from '@/components/payroll/StaffForm';
@@ -24,7 +27,7 @@ import {
   setManualHours,
 } from '@/lib/services/hours.service';
 import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
-import { parseDate } from '@/lib/utils/date.utils';
+import { getPayrollPeriodForDate, parseDate } from '@/lib/utils/date.utils';
 import { escapeCsvValue } from '@/lib/utils/export.utils';
 import type { StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
@@ -32,6 +35,7 @@ export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState('import');
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
+  const [periodModalOpen, setPeriodModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -45,10 +49,12 @@ export default function PayrollPage() {
     finalizePeriod,
   } = usePayrollPeriod();
   const periodClosed = currentPeriod?.is_closed ?? false;
+  const suggestedNextPeriod = computeSuggestedNextPeriod(periods, getPayrollPeriodForDate);
 
   const {
     staff,
     loading: staffLoading,
+    refresh: refreshStaff,
     addStaff,
     editStaff,
     removeStaff,
@@ -69,16 +75,16 @@ export default function PayrollPage() {
     }
   };
 
-  const handleCreatePeriod = async () => {
-    const startDate = prompt('Enter start date (YYYY-MM-DD):');
-    const endDate = prompt('Enter end date (YYYY-MM-DD):');
+  const handleCreatePeriod = () => {
+    setPeriodModalOpen(true);
+  };
 
-    if (startDate && endDate) {
-      try {
-        await addPeriod(startDate, endDate);
-      } catch (err) {
-        errorHandler.handle(err, 'handleCreatePeriod');
-      }
+  const handleSubmitNewPeriod = async (startDate: string, endDate: string) => {
+    try {
+      await addPeriod(startDate, endDate);
+      setPeriodModalOpen(false);
+    } catch (err) {
+      errorHandler.handle(err, 'handleSubmitNewPeriod');
     }
   };
 
@@ -139,7 +145,7 @@ export default function PayrollPage() {
         const result = await importStaffCSV(file);
         if (result.success) {
           errorHandler.notify(`Successfully imported ${result.imported} staff members`, 'success');
-          // Refresh staff list (would need a refresh method from staff service)
+          await refreshStaff();
         } else {
           throw new Error(result.errors.join('\n'));
         }
@@ -664,6 +670,22 @@ export default function PayrollPage() {
           onSubmit={handleSubmitHours}
           loading={hoursLoading}
           onCancel={() => setHoursModalOpen(false)}
+        />
+      </Modal>
+
+      {/* Create Period Modal */}
+      <Modal
+        isOpen={periodModalOpen}
+        onClose={() => setPeriodModalOpen(false)}
+        title="Create Payroll Period"
+      >
+        <PeriodCreateModal
+          suggestedStartDate={suggestedNextPeriod.startDate}
+          suggestedEndDate={suggestedNextPeriod.endDate}
+          existingPeriods={periods}
+          onSubmit={handleSubmitNewPeriod}
+          onCancel={() => setPeriodModalOpen(false)}
+          loading={periodsLoading}
         />
       </Modal>
     </ProtectedRoute>
