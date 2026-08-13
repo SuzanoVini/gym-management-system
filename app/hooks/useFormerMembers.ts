@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { hasRejoinedSinceCancellation, type RosterEntry } from '@/lib/supabase/memberStatus';
 
 interface SignupRecord {
   name: string | null;
@@ -9,6 +10,10 @@ interface SignupRecord {
 interface CancellationRecord {
   name: string | null;
   date: string | null;
+}
+
+interface MemberRecord extends RosterEntry {
+  name: string | null;
 }
 
 function buildMostRecentMap(
@@ -30,12 +35,17 @@ function buildMostRecentMap(
 
 function filterFormerMembers(
   signupMap: Map<string, string>,
-  cancellationMap: Map<string, string>
+  cancellationMap: Map<string, string>,
+  roster: Map<string, RosterEntry>
 ): Map<string, string> {
   const result = new Map<string, string>();
   for (const [name, cancellationDate] of cancellationMap) {
     const signupDate = signupMap.get(name);
-    if (signupDate && cancellationDate >= signupDate) {
+    if (
+      signupDate &&
+      cancellationDate >= signupDate &&
+      !hasRejoinedSinceCancellation(roster.get(name), cancellationDate)
+    ) {
       result.set(name, cancellationDate);
     }
   }
@@ -50,9 +60,10 @@ export function useFormerMembers(): Map<string, string> {
 
     const load = async () => {
       try {
-        const [signupsResult, cancellationsResult] = await Promise.all([
+        const [signupsResult, cancellationsResult, membersResult] = await Promise.all([
           supabase.from('signups').select('name, membership_date'),
           supabase.from('cancellations').select('name, date'),
+          supabase.from('members').select('name, status, last_sync_at'),
         ]);
 
         if (cancelled) {
@@ -61,6 +72,7 @@ export function useFormerMembers(): Map<string, string> {
 
         const signups = (signupsResult.data ?? []) as SignupRecord[];
         const cancellations = (cancellationsResult.data ?? []) as CancellationRecord[];
+        const members = (membersResult.data ?? []) as MemberRecord[];
 
         const signupMap = buildMostRecentMap(
           signups.map((s) => ({ name: s.name, date: s.membership_date }))
@@ -68,8 +80,13 @@ export function useFormerMembers(): Map<string, string> {
         const cancellationMap = buildMostRecentMap(
           cancellations.map((c) => ({ name: c.name, date: c.date }))
         );
+        const roster = new Map<string, RosterEntry>(
+          members
+            .filter((m): m is MemberRecord & { name: string } => Boolean(m.name))
+            .map((m) => [m.name.toLowerCase().trim(), m])
+        );
 
-        const result = filterFormerMembers(signupMap, cancellationMap);
+        const result = filterFormerMembers(signupMap, cancellationMap, roster);
         setMap(result);
       } catch (err) {
         console.error('useFormerMembers: failed to load', err);

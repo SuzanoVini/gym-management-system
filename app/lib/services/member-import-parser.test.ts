@@ -82,6 +82,56 @@ describe('member import parser', () => {
     ]);
   });
 
+  it.each([
+    ['EXPIRED', 'NOT STARTED'],
+    ['NOT STARTED', 'EXPIRED'],
+    ['CANCELLED', 'CURRENT'],
+  ])('imports a rejoining member as active when rows are ordered %s then %s', (first, second) => {
+    const base = {
+      'First Name': 'Nina',
+      'Last Name': 'Reyes',
+      'Signup Date': '3-Mar-2022',
+      'Membership Label': 'Integrity - Adults',
+    };
+
+    const { rows, skipped } = mapMemberCsvRows([
+      { ...base, 'Mbr. Status': first },
+      { ...base, 'Signup Date': '1-Aug-2026', 'Mbr. Status': second },
+    ]);
+
+    expect(skipped).toBe(1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ name: 'Nina Reyes', status: 'Active' });
+  });
+
+  it('keeps the current membership over an upcoming one for the same member', () => {
+    const { rows } = mapMemberCsvRows([
+      {
+        'First Name': 'Member',
+        'Last Name': 'Two',
+        'Signup Date': '5-May-2023',
+        'Membership Label': 'Integrity - Kids/Youth',
+        'Mbr. Status': 'NOT STARTED',
+      },
+      {
+        'First Name': 'Member',
+        'Last Name': 'Two',
+        'Signup Date': '5-May-2023',
+        'Membership Label': 'Legacy - Kids/Youth',
+        'Mbr. Status': 'CURRENT',
+      },
+    ]);
+
+    expect(rows).toEqual([
+      {
+        name: 'Member Two',
+        join_date: '5-May-2023',
+        membership_type: 'Legacy - Kids/Youth',
+        status: 'Active',
+      },
+    ]);
+  });
+
   it('maps HOLD rows to On Hold and preserves plan and signup date', () => {
     const { rows } = mapMemberCsvRows([
       {
