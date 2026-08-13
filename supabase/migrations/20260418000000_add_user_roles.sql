@@ -5,22 +5,33 @@ ALTER TABLE user_profiles
   CHECK (role IN ('owner', 'staff'));
 
 -- Existing rows get 'staff' automatically via the DEFAULT above.
--- Promote owner. RAISE EXCEPTION aborts migration if email not found,
--- preventing silent security failure.
+-- The owner account is environment-specific, so it is read from a setting
+-- rather than hardcoded:
+--   ALTER DATABASE <db> SET app.owner_email = 'owner@yourdomain.com';
+-- A missing setting warns instead of aborting: the column is still added, but
+-- no owner is promoted, so the failure is loud rather than silent.
 DO $$
 DECLARE
+  owner_email TEXT := current_setting('app.owner_email', true);
   owner_id UUID;
 BEGIN
+  IF owner_email IS NULL OR owner_email = '' THEN
+    RAISE WARNING
+      'app.owner_email is not set — role column added but no owner promoted. '
+      'Promote manually with: '
+      'UPDATE user_profiles SET role = ''owner'' WHERE id = '
+      '(SELECT id FROM auth.users WHERE email = ''<owner email>'');';
+    RETURN;
+  END IF;
+
   SELECT id INTO owner_id
   FROM auth.users
-  WHERE email = 'owner@example.com';
+  WHERE email = owner_email;
 
   IF owner_id IS NULL THEN
     RAISE WARNING
-      'Owner user owner@example.com not found in auth.users — '
-      'role column added but no owner promoted. '
-      'On production, create the account and run: '
-      'UPDATE user_profiles SET role = ''owner'' WHERE id = (SELECT id FROM auth.users WHERE email = ''owner@example.com'');';
+      'Owner account % not found in auth.users — role column added '
+      'but no owner promoted.', owner_email;
     RETURN;
   END IF;
 

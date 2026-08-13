@@ -50,7 +50,7 @@ function intro(overrides: Partial<Intro> = {}): Intro {
     month: 'Jul',
     class: 'GB1',
     name: 'Test Person',
-    staff: 'Staff Member 3',
+    staff: 'Alpha Instructor',
     ...overrides,
   } as Intro;
 }
@@ -250,12 +250,12 @@ describe('speedToFirstContact', () => {
         attended: 'Yes',
         date: '2026-07-06', // Monday
         followup_1_at: '2026-07-10T00:00:00Z', // Friday = 4 business days
-        staff: 'Staff Member 3',
+        staff: 'Alpha Instructor',
       })
     );
     const insight = speedToFirstContact(baseInput({ intros }));
     expect(insight?.id).toBe('speed-to-first-contact');
-    expect(insight?.message).toContain('Staff Member 3');
+    expect(insight?.message).toContain('Alpha Instructor');
   });
 
   it('ignores intros that never got followed up', () => {

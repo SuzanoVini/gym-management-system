@@ -1,25 +1,26 @@
 -- ============================================
 -- PAYROLL SYSTEM - INITIAL STAFF DATA
 -- ============================================
--- This migration inserts the default staff members from the original system
--- These are the 11 staff members that were hardcoded in app.js
+-- This migration seeds placeholder staff members so a fresh environment has a
+-- working roster. Real staff records live only in the database — they are
+-- entered through the app and are deliberately not committed to this repo.
 
 -- ==============================================
 -- INSERT INITIAL STAFF MEMBERS
 -- ==============================================
 
 INSERT INTO staff_members (employee_id, full_name, job_title, is_active) VALUES
-  ('1023', 'Staff Member 1', 'Marketing Coordinator', true),
-  ('1030', 'Staff Member 2', 'Instructor', true),
-  ('1014', 'Staff Member 3', 'Special Class', true),
-  ('1035', 'Staff Member 4', 'Instructor', true),
-  ('1033', 'Staff Member 5', 'Helper', true),
-  ('1037', 'Staff Member 6', 'Instructor', true),
-  ('1009', 'Staff Member 7', 'After School Program Helper', true),
-  ('1009', 'Staff Member 7', 'Instructor', true),
-  ('1020', 'Staff Member 8', 'After School Program Helper', true),
-  ('1020', 'Staff Member 8', 'Instructor', true),
-  ('1041', 'Staff Member 9', 'Instructor', true)
+  ('1001', 'Staff Member 1', 'Coordinator', true),
+  ('1002', 'Staff Member 2', 'Instructor', true),
+  ('1003', 'Staff Member 3', 'Special Class', true),
+  ('1004', 'Staff Member 4', 'Instructor', true),
+  ('1005', 'Staff Member 5', 'Helper', true),
+  ('1006', 'Staff Member 6', 'Instructor', true),
+  ('1007', 'Staff Member 7', 'After School Program Helper', true),
+  ('1007', 'Staff Member 7', 'Instructor', true),
+  ('1008', 'Staff Member 8', 'After School Program Helper', true),
+  ('1008', 'Staff Member 8', 'Instructor', true),
+  ('1009', 'Staff Member 9', 'Instructor', true)
 ON CONFLICT (employee_id) DO NOTHING;
 
 -- Note: Some staff members have multiple entries with the same employee_id but different job titles

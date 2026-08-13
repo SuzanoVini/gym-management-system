@@ -3,7 +3,7 @@ import { buildFollowUpInsight } from '../InsightsTab';
 
 function row(partial: Partial<FollowUpRow>): FollowUpRow {
   return {
-    staff: 'Staff Member 3',
+    staff: 'Alpha Instructor',
     tier: 1,
     firstDueDate: new Date(),
     secondDueDate: null,
@@ -40,7 +40,7 @@ describe('buildFollowUpInsight', () => {
     expect(insight?.title).toBe('3 Follow-Ups Overdue');
     expect(insight?.message).toContain('2 never contacted (overdue)');
     expect(insight?.message).toContain('1 awaiting 2nd contact (overdue)');
-    expect(insight?.message).toContain("2 from Staff Member 3's classes");
+    expect(insight?.message).toContain("2 from Alpha Instructor's classes");
     expect(insight?.message).toContain("1 from Unassigned's classes");
     expect(insight?.priority).toBe('high');
   });

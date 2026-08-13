@@ -28,7 +28,7 @@ const authUrl = oauth2Client.generateAuthUrl({
   prompt: 'consent',
 });
 
-console.log('\nOpen this URL in your browser (use the owner@example.com account):\n');
+console.log("\nOpen this URL in your browser (sign in with the gym's shared inbox account):\n");
 console.log(authUrl);
 console.log('\nWaiting for authorization...\n');
 
