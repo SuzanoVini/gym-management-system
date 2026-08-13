@@ -45,29 +45,16 @@ function memberName(row: ZpMemberCsvRow): string {
   return `${getField(row, 'First Name')} ${getField(row, 'Last Name')}`.trim();
 }
 
-function buildCurrentNames(rows: ZpMemberCsvRow[]): Set<string> {
-  const set = new Set<string>();
-  for (const row of rows) {
-    if (getField(row, 'Mbr. Status').toUpperCase() === 'CURRENT') {
-      const name = memberName(row);
-      if (name) {
-        set.add(name.toLowerCase());
-      }
-    }
-  }
-  return set;
-}
+// A live membership outranks an upcoming one, which outranks an expired/cancelled one.
+const ZP_STATUS_RANK: Record<string, number> = { CURRENT: 3, HOLD: 2, 'NOT STARTED': 1 };
 
-function mapCsvRow(row: ZpMemberCsvRow, currentNames: Set<string>): MemberImportRow | null {
+function mapCsvRow(row: ZpMemberCsvRow): MemberImportRow | null {
   const name = memberName(row);
   if (!name) {
     return null;
   }
 
   const mbrStatus = getField(row, 'Mbr. Status').toUpperCase();
-  if (mbrStatus === 'NOT STARTED' && currentNames.has(name.toLowerCase())) {
-    return null;
-  }
 
   let status: MemberImportRow['status'];
   if (mbrStatus === 'CURRENT' || mbrStatus === 'NOT STARTED') {
@@ -103,10 +90,33 @@ export function mapMemberCsvRows(rows: ZpMemberCsvRow[]): {
   rows: MemberImportRow[];
   skipped: number;
 } {
-  const currentNames = buildCurrentNames(rows);
-  const mapped = rows.map((row) => mapCsvRow(row, currentNames));
-  return {
-    rows: mapped.filter((row): row is MemberImportRow => row !== null),
-    skipped: mapped.filter((row) => row === null).length,
-  };
+  // A member can appear on several rows (renewal, or a rejoiner whose expired membership is
+  // still listed alongside the new one). Keep the highest-ranked row so a returning member
+  // imports as active instead of losing to whichever row happens to be upserted last.
+  const best = new Map<string, MemberImportRow>();
+  const bestRank = new Map<string, number>();
+  let skipped = 0;
+
+  for (const row of rows) {
+    const mapped = mapCsvRow(row);
+    if (!mapped) {
+      skipped++;
+      continue;
+    }
+
+    const key = mapped.name.toLowerCase();
+    const rank = ZP_STATUS_RANK[getField(row, 'Mbr. Status').toUpperCase()] ?? 0;
+    const currentRank = bestRank.get(key);
+    if (currentRank !== undefined) {
+      skipped++;
+      if (currentRank >= rank) {
+        continue;
+      }
+    }
+
+    best.set(key, mapped);
+    bestRank.set(key, rank);
+  }
+
+  return { rows: [...best.values()], skipped };
 }

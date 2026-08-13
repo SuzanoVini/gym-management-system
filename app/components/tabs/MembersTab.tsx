@@ -9,6 +9,7 @@ import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
 import { useSignups } from '@/hooks/useSignups';
 import { supabase } from '@/lib/supabase/client';
+import { hasRejoinedSinceCancellation } from '@/lib/supabase/memberStatus';
 import { isActiveHold } from '@/lib/utils/holds';
 import { escapeIlike } from '@/lib/utils/normalizePersonKey';
 import type { Cancellation, Hold, Intro, Member, Signup } from '@/types';
@@ -284,10 +285,13 @@ export default function MembersTab() {
       const latestSignup = latestSignupByName.get(key);
       const latestCancellation = latestCancellationByName.get(key);
 
+      const rejoinedPerRoster = hasRejoinedSinceCancellation(member, latestCancellation);
+
       let derivedStatus: DerivedMemberStatus;
       if (
         latestCancellation !== undefined &&
-        (latestSignup === undefined || latestCancellation > latestSignup)
+        (latestSignup === undefined || latestCancellation > latestSignup) &&
+        !rejoinedPerRoster
       ) {
         derivedStatus = 'Alumni';
       } else if (activeHoldKeys.has(key)) {
