@@ -1,7 +1,7 @@
 /**
  * Canonical staff name = full name (mirrors the class_mappings approach).
  * Old Zen Planner booking emails carried bare first names while current ones
- * carry full names, splitting one coach into two ("Jack" vs "Staff Member 3").
+ * carry full names, splitting one coach into two ("Alpha" vs "Alpha Instructor").
  *
  * A bare name maps to a vocabulary entry only when it matches the first name
  * of exactly ONE entry — zero or two-plus matches return the name unchanged,

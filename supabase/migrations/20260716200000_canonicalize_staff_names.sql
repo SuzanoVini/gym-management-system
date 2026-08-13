@@ -1,7 +1,7 @@
 -- Canonicalize staff names: full name is canonical.
 -- Old Zen Planner booking emails stored bare first names in intros.staff while
--- current ones store full names, splitting one coach into two ("Jack" vs
--- "Staff Member 3"). A bare first name is mapped to a full name only when exactly
+-- current ones store full names, splitting one coach into two ("Alpha" vs
+-- "Alpha Instructor"). A bare first name is mapped to a full name only when exactly
 -- ONE distinct full name in the data starts with it — the same ambiguity guard
 -- as canonicalizeStaffName() in the app, so coaches sharing a first name are
 -- never merged.

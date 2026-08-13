@@ -8,9 +8,9 @@ describe('member import parser', () => {
   it('maps the current Zen Planner member columns into member fields', () => {
     const { rows, skipped } = mapMemberCsvRows([
       {
-        'First Name': 'Staff 4',
+        'First Name': 'Member',
         'Last Name': 'One',
-        Email: 'aaron@example.com',
+        Email: 'member1@example.com',
         Phone: '6045550100',
         'Signup Date': '8-Nov-2019',
         'Membership Label': 'Legacy - Adults',
@@ -22,7 +22,7 @@ describe('member import parser', () => {
     expect(rows).toEqual([
       {
         name: 'Member One',
-        email: 'aaron@example.com',
+        email: 'member1@example.com',
         phone: '6045550100',
         join_date: '8-Nov-2019',
         membership_type: 'Legacy - Adults',
@@ -88,8 +88,8 @@ describe('member import parser', () => {
     ['CANCELLED', 'CURRENT'],
   ])('imports a rejoining member as active when rows are ordered %s then %s', (first, second) => {
     const base = {
-      'First Name': 'Nina',
-      'Last Name': 'Reyes',
+      'First Name': 'Member',
+      'Last Name': 'Six',
       'Signup Date': '3-Mar-2022',
       'Membership Label': 'Integrity - Adults',
     };
@@ -101,7 +101,7 @@ describe('member import parser', () => {
 
     expect(skipped).toBe(1);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ name: 'Nina Reyes', status: 'Active' });
+    expect(rows[0]).toMatchObject({ name: 'Member Six', status: 'Active' });
   });
 
   it('keeps the current membership over an upcoming one for the same member', () => {
@@ -176,8 +176,8 @@ describe('member import parser', () => {
       getMissingMemberCsvHeaders([
         {
           'First Name': 'Member',
-          'Last Name': 'Four',
-          Email: 'aarav@example.com',
+          'Last Name': 'One',
+          Email: 'member4@example.com',
           Phone: '6045551212',
         },
       ])
