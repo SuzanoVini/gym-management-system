@@ -42,12 +42,12 @@ import {
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import InfoTip from '@/components/ui/InfoTip';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
-import { useDefaultFilters } from '@/hooks/useDefaultFilters';
 import { useInsights } from '@/hooks/useInsights';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import { exportToCSV } from '@/lib/supabase/utils';
 import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 import { isActiveHold } from '@/lib/utils/holds';
+import { useFilterStore } from '@/store/useFilterStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import type { InsightColor } from '@/types';
 import SettingsModal from './modals/SettingsModal';
@@ -138,7 +138,8 @@ const insightStyles: Record<InsightColor, { card: string; icon: string }> = {
 export default function OverviewTab() {
   const [dateRange, setDateRange] = useState('all');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { overviewDateRange, loading: prefsLoading } = useDefaultFilters();
+  const overviewDateRange = useFilterStore((s) => s.overviewDateRange);
+  const prefsHydrated = useFilterStore((s) => s.hydrated);
   const [rangeInitialised, setRangeInitialised] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -148,11 +149,11 @@ export default function OverviewTab() {
   const [activeReasonIndex, setActiveReasonIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!(prefsLoading || rangeInitialised)) {
+    if (prefsHydrated && !rangeInitialised) {
       setDateRange(overviewDateRange);
       setRangeInitialised(true);
     }
-  }, [prefsLoading, overviewDateRange, rangeInitialised]);
+  }, [prefsHydrated, overviewDateRange, rangeInitialised]);
 
   const { filteredData, previousPeriodData, loading, error, refresh } = useAnalyticsData({
     dateRange,
@@ -498,18 +499,25 @@ export default function OverviewTab() {
             <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
             Date Range Filter
           </h2>
-          <button
-            type="button"
-            onClick={handleExportAllData}
-            className="btn btn-primary bg-green-600 hover:bg-green-700"
-          >
-            <OverviewIcons.Download className="w-4 h-4" />
-            Export All Data
-          </button>
-          <button type="button" onClick={() => setSettingsOpen(true)} className="btn btn-secondary">
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
+          {/* Grouped so justify-between keeps the heading left and both actions together right. */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExportAllData}
+              className="btn btn-primary bg-green-600 hover:bg-green-700"
+            >
+              <OverviewIcons.Download className="w-4 h-4" />
+              Export All Data
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="btn btn-secondary"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </button>
+          </div>
         </div>
 
         <SettingsModal

@@ -25,10 +25,12 @@ interface FilterState {
   defaultsByTab: FiltersByTab;
   setFilters: (tab: FilterTabKey, filters: Partial<TabFilters>) => void;
   clearFilters: (tab: FilterTabKey) => void;
+  /** Overview's saved default date range — kept here so hydration has one home. */
+  overviewDateRange: string;
   /** True once saved preferences have been applied, so hydration only resets filters once. */
   hydrated: boolean;
   /** Applies saved preferences once they arrive from the database. */
-  applyDefaults: (defaults: FiltersByTab, resetActive?: boolean) => void;
+  applyDefaults: (defaults: FiltersByTab, overviewDateRange: string, resetActive?: boolean) => void;
 }
 
 function defaultFilters(): TabFilters {
@@ -57,6 +59,7 @@ export const useFilterStore = create<FilterState>()(
     (set) => ({
       filtersByTab: initialFiltersByTab(),
       defaultsByTab: initialFiltersByTab(),
+      overviewDateRange: 'all',
       hydrated: false,
       setFilters: (tab, filters) =>
         set((state) => ({
@@ -76,11 +79,12 @@ export const useFilterStore = create<FilterState>()(
       // mount of Overview and of the settings panel, so an unconditional reset would wipe an
       // in-progress filter the moment they opened Settings. Only the first hydration seeds
       // the active filters; an explicit save passes resetActive to apply the new choice now.
-      applyDefaults: (defaults, resetActive) =>
+      applyDefaults: (defaults, overviewDateRange, resetActive) =>
         set((state) => {
           const shouldReset = resetActive ?? !state.hydrated;
           return {
             defaultsByTab: defaults,
+            overviewDateRange,
             filtersByTab: shouldReset ? defaults : state.filtersByTab,
             hydrated: true,
           };
