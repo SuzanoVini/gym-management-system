@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { useHydrateDefaultFilters } from '@/hooks/useDefaultFilters';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import ProtectedRoute from './components/providers/ProtectedRoute';
@@ -98,6 +99,9 @@ function HomeContent() {
 }
 
 export default function Home() {
+  // Load this user's saved default filters before any tab reads them.
+  useHydrateDefaultFilters();
+
   return (
     <Suspense>
       <HomeContent />
