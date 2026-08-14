@@ -4,6 +4,10 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { isSessionExpired } from '@/lib/auth/session';
+
+// How often an open tab re-checks its own session age.
+const SESSION_CHECK_INTERVAL_MS = 60_000;
 
 interface AuthContextType {
   user: User | null;
@@ -36,8 +40,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: mount-once subscription effect; fetchRole only closes over stable client state
   useEffect(() => {
+    // Signing out is enough to bounce the user: ProtectedRoute redirects to /login
+    // once `user` goes null, so the redirect lives in one place.
+    const signOutIfExpired = async (): Promise<boolean> => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session && isSessionExpired(session.user?.last_sign_in_at)) {
+        await supabase.auth.signOut();
+        return true;
+      }
+      return false;
+    };
+
     const getSession = async () => {
       try {
+        if (await signOutIfExpired()) {
+          setUser(null);
+          return;
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -55,6 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getSession();
 
+    const expiryTimer = setInterval(() => {
+      signOutIfExpired().catch((error) => console.error('Session expiry check failed:', error));
+    }, SESSION_CHECK_INTERVAL_MS);
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -67,7 +93,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearInterval(expiryTimer);
+      subscription.unsubscribe();
+    };
   }, [supabase.auth]);
 
   const signOut = async () => {
