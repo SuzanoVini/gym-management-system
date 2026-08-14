@@ -754,7 +754,11 @@ export default function IntrosTab() {
         intro={selectedIntro}
       />
 
-      <SettingsModal isOpen={modals.settings} onClose={() => closeModal('settings')} />
+      <SettingsModal
+        isOpen={modals.settings}
+        onClose={() => closeModal('settings')}
+        scope="intros"
+      />
 
       <NotesManagerModal
         isOpen={modals.notesManager}

@@ -21,8 +21,12 @@ type FiltersByTab = Record<FilterTabKey, TabFilters>;
 
 interface FilterState {
   filtersByTab: FiltersByTab;
+  /** Baseline each tab resets to — user preferences when set, shipped defaults otherwise. */
+  defaultsByTab: FiltersByTab;
   setFilters: (tab: FilterTabKey, filters: Partial<TabFilters>) => void;
   clearFilters: (tab: FilterTabKey) => void;
+  /** Applies saved preferences once they arrive from the database. */
+  applyDefaults: (defaults: FiltersByTab, resetActive?: boolean) => void;
 }
 
 function defaultFilters(): TabFilters {
@@ -50,6 +54,7 @@ export const useFilterStore = create<FilterState>()(
   devtools(
     (set) => ({
       filtersByTab: initialFiltersByTab(),
+      defaultsByTab: initialFiltersByTab(),
       setFilters: (tab, filters) =>
         set((state) => ({
           filtersByTab: {
@@ -61,8 +66,13 @@ export const useFilterStore = create<FilterState>()(
         set((state) => ({
           filtersByTab: {
             ...state.filtersByTab,
-            [tab]: defaultFilters(),
+            [tab]: state.defaultsByTab[tab],
           },
+        })),
+      applyDefaults: (defaults, resetActive = true) =>
+        set((state) => ({
+          defaultsByTab: defaults,
+          filtersByTab: resetActive ? defaults : state.filtersByTab,
         })),
     }),
     {
@@ -71,8 +81,10 @@ export const useFilterStore = create<FilterState>()(
   )
 );
 
-export function isDefaultFilters(filters: TabFilters): boolean {
-  const defaults = defaultFilters();
+export function isDefaultFilters(filters: TabFilters, tab?: FilterTabKey): boolean {
+  const defaults = tab
+    ? useFilterStore.getState().defaultsByTab[tab]
+    : useFilterStore.getState().defaultsByTab.intros;
   return Object.entries(defaults).every(
     ([key, value]) => filters[key as keyof TabFilters] === value
   );

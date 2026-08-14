@@ -19,10 +19,11 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Hold } from '@/types';
 import { HoldModals } from './modals/HoldModals';
+import SettingsModal from './modals/SettingsModal';
 
 export default function HoldsTab() {
   const { holds, loading, error, addHold, editHold, removeHold, refresh } = useHolds();
-  const { openModal, closeModal } = useUIStore();
+  const { modals, openModal, closeModal } = useUIStore();
   const filters = useFilterStore((s) => s.filtersByTab.holds);
   const setFiltersForTab = useFilterStore((s) => s.setFilters);
   const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
@@ -586,6 +587,11 @@ export default function HoldsTab() {
         }}
         addHold={addHold}
         editHold={editHold}
+      />
+      <SettingsModal
+        isOpen={modals.settings}
+        onClose={() => closeModal('settings')}
+        scope="holds"
       />
     </div>
   );

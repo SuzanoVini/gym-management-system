@@ -21,6 +21,7 @@ import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionSto
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Signup } from '@/types';
+import SettingsModal from './modals/SettingsModal';
 import { SignupModals } from './modals/SignupModals';
 
 function daysBetween(from: string, to: string): number {
@@ -30,7 +31,7 @@ function daysBetween(from: string, to: string): number {
 export default function SignupsTab() {
   const { signups, loading, error, addSignup, editSignup, removeSignup, refresh } = useSignups();
   const { intros } = useIntros();
-  const { openModal, closeModal } = useUIStore();
+  const { modals, openModal, closeModal } = useUIStore();
   const filters = useFilterStore((s) => s.filtersByTab.signups);
   const setFiltersForTab = useFilterStore((s) => s.setFilters);
   const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
@@ -598,6 +599,11 @@ export default function SignupsTab() {
         }}
         addSignup={addSignup}
         editSignup={editSignup}
+      />
+      <SettingsModal
+        isOpen={modals.settings}
+        onClose={() => closeModal('settings')}
+        scope="signups"
       />
     </div>
   );
