@@ -16,12 +16,15 @@ type Option = { value: string; label: string };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Must stay in step with OVERVIEW_DATE_RANGE_OPTIONS in OverviewTab: a value that is not
+// one of those would be saved happily and then silently never match.
 const OVERVIEW_RANGES: Option[] = [
-  { value: 'all', label: 'All time' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: '6m', label: 'Last 6 months' },
-  { value: '1y', label: 'Last 12 months' },
+  { value: 'all', label: 'All Time' },
+  { value: '1month', label: 'Last Month' },
+  { value: '3months', label: 'Last 3 Months' },
+  { value: '6months', label: 'Last 6 Months' },
+  { value: 'year', label: 'Last Year' },
+  { value: 'ytd', label: 'Year to Date' },
 ];
 
 const HOLD_STATUSES: Option[] = [

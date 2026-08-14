@@ -40,6 +40,7 @@ import {
   YAxis,
 } from 'recharts';
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
+import InfoTip from '@/components/ui/InfoTip';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useDefaultFilters } from '@/hooks/useDefaultFilters';
 import { useInsights } from '@/hooks/useInsights';
@@ -535,7 +536,10 @@ export default function OverviewTab() {
         <div className="section-container summary-card border-l-4 border-blue-600">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Intros</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                Total Intros
+                <InfoTip label="Intro classes booked in the selected range, whether or not the person showed up. Attendance is tracked separately in the funnel." />
+              </p>
               <p className="text-3xl font-bold mt-1 flex items-baseline">
                 {totalIntros}
                 <DeltaBadge current={totalIntros} previous={previous?.totalIntros ?? null} />
@@ -548,7 +552,10 @@ export default function OverviewTab() {
         <div className="section-container summary-card border-l-4 border-green-600">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Sign-ups</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                Sign-ups
+                <InfoTip label="New memberships started in the selected range, counted on the membership start date rather than when the record was entered." />
+              </p>
               <p className="text-3xl font-bold mt-1 flex items-baseline">
                 {totalSignups}
                 <DeltaBadge current={totalSignups} previous={previous?.totalSignups ?? null} />
@@ -561,7 +568,10 @@ export default function OverviewTab() {
         <div className="section-container summary-card border-l-4 border-red-600">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Cancellations</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                Cancellations
+                <InfoTip label="Memberships cancelled in the selected range, counted on the cancellation date. A membership that simply lapsed without notice is not counted here — it shows as Expired on the roster instead." />
+              </p>
               <p className="text-3xl font-bold mt-1 flex items-baseline">
                 {totalCancellations}
                 <DeltaBadge
@@ -580,7 +590,10 @@ export default function OverviewTab() {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Net Growth</p>
+              <p className="text-sm text-gray-600 flex items-center gap-1.5">
+                Net Growth
+                <InfoTip label="Signups minus cancellations for the selected range. Positive means the gym grew; negative means it shrank. Holds are not counted either way, since a paused member has not left." />
+              </p>
               <p
                 className={`text-3xl font-bold mt-1 flex items-baseline ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
               >
@@ -660,7 +673,10 @@ export default function OverviewTab() {
 
       {/* Monthly Trends */}
       <div className="section-container">
-        <h2 className="text-xl font-bold mb-4">Monthly Trends</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          Monthly Trends
+          <InfoTip label="Counts intros, signups and cancellations per month over the selected range. Each person is counted in the month their record is dated, so a signup logged late lands in the month it happened, not the month it was entered." />
+        </h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={monthlyData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -710,7 +726,10 @@ export default function OverviewTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Conversion Funnel */}
         <div className="section-container">
-          <h2 className="text-xl font-bold mb-4">Conversion Funnel</h2>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            Conversion Funnel
+            <InfoTip label="Follows people through the journey: intros booked, how many attended, and how many then signed up. The percentage at each step is of the step above it, not of the original total." />
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={funnelData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -732,7 +751,10 @@ export default function OverviewTab() {
 
         {/* Top Classes */}
         <div className="section-container">
-          <h2 className="text-xl font-bold mb-4">Top Classes by Sign-ups</h2>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            Top Classes by Sign-ups
+            <InfoTip label="Which class a member first attended as an intro before they signed up. It credits the class that brought them in, not every class they have taken since." />
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topClasses}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -752,7 +774,10 @@ export default function OverviewTab() {
 
         {/* Membership Breakdown */}
         <div className="section-container">
-          <h2 className="text-xl font-bold mb-4">Membership Types</h2>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            Membership Types
+            <InfoTip label="The plan each active member is currently on, taken from the last roster import. Alumni and expired memberships are excluded, so this reflects who is training now." />
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <PieWithActive
@@ -783,7 +808,10 @@ export default function OverviewTab() {
 
         {/* Cancellation Reasons */}
         <div className="section-container">
-          <h2 className="text-xl font-bold mb-4">Top Cancellation Reasons</h2>
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            Top Cancellation Reasons
+            <InfoTip label="The reason recorded on each cancellation in the selected range. Cancellations logged without a reason are grouped as unspecified rather than dropped." />
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <PieWithActive
@@ -815,7 +843,10 @@ export default function OverviewTab() {
 
       {/* Staff Performance with Absolute Numbers + Percentages */}
       <div className="section-container">
-        <h2 className="text-xl font-bold mb-4">Staff Performance (Conversion Rates)</h2>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          Staff Performance (Conversion Rates)
+          <InfoTip label="For each coach, the share of their intro classes that turned into signups. Only intros marked as attended count, so a no-show does not drag a coach down." />
+        </h2>
         <ResponsiveContainer width="100%" height={350}>
           <BarChart data={staffPerformance}>
             <CartesianGrid strokeDasharray="3 3" />
