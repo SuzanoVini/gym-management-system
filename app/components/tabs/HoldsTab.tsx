@@ -534,7 +534,7 @@ export default function HoldsTab() {
             { value: 'oldest', label: 'Oldest First' },
           ],
         }}
-        hasActiveFilters={!isDefaultFilters(filters)}
+        hasActiveFilters={!isDefaultFilters(filters, 'holds')}
         onClear={() => clearFiltersForTab('holds')}
       />
 

@@ -574,7 +574,7 @@ export default function CancellationsTab() {
             { value: 'oldest', label: 'Oldest First' },
           ],
         }}
-        hasActiveFilters={!isDefaultFilters(filters)}
+        hasActiveFilters={!isDefaultFilters(filters, 'cancellations')}
         onClear={() => clearFiltersForTab('cancellations')}
       />
 

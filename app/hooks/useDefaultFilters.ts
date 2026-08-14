@@ -41,7 +41,8 @@ export function useDefaultFilters() {
     async (next: DefaultFilterPreferences) => {
       await savePreferences(next);
       setPreferences(next);
-      applyDefaults(toFiltersByTab(next));
+      // An explicit save is the user choosing defaults now, so apply them immediately.
+      applyDefaults(toFiltersByTab(next), true);
     },
     [applyDefaults]
   );

@@ -642,7 +642,7 @@ export default function IntrosTab() {
             { value: 'oldest', label: 'Oldest First' },
           ],
         }}
-        hasActiveFilters={!isDefaultFilters(filters)}
+        hasActiveFilters={!isDefaultFilters(filters, 'intros')}
         onClear={() => clearFiltersForTab('intros')}
       />
 

@@ -533,7 +533,7 @@ export default function SignupsTab() {
             { value: 'oldest', label: 'Oldest First' },
           ],
         }}
-        hasActiveFilters={!isDefaultFilters(filters)}
+        hasActiveFilters={!isDefaultFilters(filters, 'signups')}
         onClear={() => clearFiltersForTab('signups')}
       />
 
