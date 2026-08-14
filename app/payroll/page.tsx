@@ -14,6 +14,7 @@ import PeriodSelector from '@/components/payroll/PeriodSelector';
 import StaffForm from '@/components/payroll/StaffForm';
 import StaffTable from '@/components/payroll/StaffTable';
 import ProtectedRoute from '@/components/providers/ProtectedRoute';
+import InfoTip from '@/components/ui/InfoTip';
 import Modal from '@/components/ui/Modal';
 import { usePayrollPeriod } from '@/hooks/usePayrollPeriod';
 import { usePayrollStaff } from '@/hooks/usePayrollStaff';
@@ -573,25 +574,37 @@ export default function PayrollPage() {
                 <div className="payroll-summary-cards">
                   <div className="payroll-summary-card">
                     <h3 className="text-3xl font-bold mb-1">{summaryStats.staffCount}</h3>
-                    <p className="text-sm opacity-90">Staff Members</p>
+                    <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
+                      Staff Members
+                      <InfoTip label="Every staff member currently marked active, whether or not they logged hours this period. Deactivated staff are excluded but keep their past payroll records." />
+                    </p>
                   </div>
                   <div className="payroll-summary-card">
                     <h3 className="text-3xl font-bold mb-1">
                       {summaryStats.regularHours.toFixed(1)}
                     </h3>
-                    <p className="text-sm opacity-90">Regular Hours</p>
+                    <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
+                      Regular Hours
+                      <InfoTip label="Hours logged as regular across all staff for the selected pay period. Overtime, vacation, sick and mat cleaning are tracked separately and are not included here." />
+                    </p>
                   </div>
                   <div className="payroll-summary-card">
                     <h3 className="text-3xl font-bold mb-1">
                       {summaryStats.overtimeHours.toFixed(1)}
                     </h3>
-                    <p className="text-sm opacity-90">Overtime Hours</p>
+                    <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
+                      Overtime Hours
+                      <InfoTip label="Hours logged specifically as overtime. Overtime is entered by hand rather than derived from a weekly threshold, so it reflects what was actually approved." />
+                    </p>
                   </div>
                   <div className="payroll-summary-card">
                     <h3 className="text-3xl font-bold mb-1">
                       {summaryStats.totalHours.toFixed(1)}
                     </h3>
-                    <p className="text-sm opacity-90">Total Hours</p>
+                    <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
+                      Total Hours
+                      <InfoTip label="Every hour entry for the period added together — regular, overtime, vacation, sick and mat cleaning. It is deliberately more than Regular plus Overtime, because paid leave and mat cleaning count toward pay." />
+                    </p>
                   </div>
                 </div>
 

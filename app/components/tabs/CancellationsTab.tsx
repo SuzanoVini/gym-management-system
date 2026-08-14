@@ -23,6 +23,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Cancellation } from '@/types';
 import { CancellationModals } from './modals/CancellationModals';
+import SettingsModal from './modals/SettingsModal';
 
 const AGE_GROUPS = ['3-6 YO', '7-9 YO', '10-15 YO', 'Adult'];
 
@@ -44,7 +45,7 @@ export default function CancellationsTab() {
   } = useCancellations();
   const { members } = useMembers();
   const { intros } = useIntros();
-  const { openModal, closeModal } = useUIStore();
+  const { modals, openModal, closeModal } = useUIStore();
   const filters = useFilterStore((s) => s.filtersByTab.cancellations);
   const setFiltersForTab = useFilterStore((s) => s.setFilters);
   const clearFiltersForTab = useFilterStore((s) => s.clearFilters);
@@ -573,7 +574,7 @@ export default function CancellationsTab() {
             { value: 'oldest', label: 'Oldest First' },
           ],
         }}
-        hasActiveFilters={!isDefaultFilters(filters)}
+        hasActiveFilters={!isDefaultFilters(filters, 'cancellations')}
         onClear={() => clearFiltersForTab('cancellations')}
       />
 
@@ -641,6 +642,11 @@ export default function CancellationsTab() {
           setImportFile(null);
           setImportPreviewData([]);
         }}
+      />
+      <SettingsModal
+        isOpen={modals.settings}
+        onClose={() => closeModal('settings')}
+        scope="cancellations"
       />
     </div>
   );

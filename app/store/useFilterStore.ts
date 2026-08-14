@@ -21,8 +21,14 @@ type FiltersByTab = Record<FilterTabKey, TabFilters>;
 
 interface FilterState {
   filtersByTab: FiltersByTab;
+  /** Baseline each tab resets to — user preferences when set, shipped defaults otherwise. */
+  defaultsByTab: FiltersByTab;
   setFilters: (tab: FilterTabKey, filters: Partial<TabFilters>) => void;
   clearFilters: (tab: FilterTabKey) => void;
+  /** True once saved preferences have been applied, so hydration only resets filters once. */
+  hydrated: boolean;
+  /** Applies saved preferences once they arrive from the database. */
+  applyDefaults: (defaults: FiltersByTab, resetActive?: boolean) => void;
 }
 
 function defaultFilters(): TabFilters {
@@ -50,6 +56,8 @@ export const useFilterStore = create<FilterState>()(
   devtools(
     (set) => ({
       filtersByTab: initialFiltersByTab(),
+      defaultsByTab: initialFiltersByTab(),
+      hydrated: false,
       setFilters: (tab, filters) =>
         set((state) => ({
           filtersByTab: {
@@ -61,9 +69,22 @@ export const useFilterStore = create<FilterState>()(
         set((state) => ({
           filtersByTab: {
             ...state.filtersByTab,
-            [tab]: defaultFilters(),
+            [tab]: state.defaultsByTab[tab],
           },
         })),
+      // Hydration must not clobber filters the user has already set: this hook runs on every
+      // mount of Overview and of the settings panel, so an unconditional reset would wipe an
+      // in-progress filter the moment they opened Settings. Only the first hydration seeds
+      // the active filters; an explicit save passes resetActive to apply the new choice now.
+      applyDefaults: (defaults, resetActive) =>
+        set((state) => {
+          const shouldReset = resetActive ?? !state.hydrated;
+          return {
+            defaultsByTab: defaults,
+            filtersByTab: shouldReset ? defaults : state.filtersByTab,
+            hydrated: true,
+          };
+        }),
     }),
     {
       name: 'filter-store',
@@ -71,8 +92,9 @@ export const useFilterStore = create<FilterState>()(
   )
 );
 
-export function isDefaultFilters(filters: TabFilters): boolean {
-  const defaults = defaultFilters();
+/** `tab` is required: defaults differ per tab, so comparing against another tab's is wrong. */
+export function isDefaultFilters(filters: TabFilters, tab: FilterTabKey): boolean {
+  const defaults = useFilterStore.getState().defaultsByTab[tab];
   return Object.entries(defaults).every(
     ([key, value]) => filters[key as keyof TabFilters] === value
   );

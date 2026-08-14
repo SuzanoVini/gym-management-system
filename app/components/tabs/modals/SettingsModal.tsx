@@ -14,13 +14,16 @@ import {
   updateSettings,
 } from '@/lib/supabase/settings';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import DefaultFiltersPanel, { type DefaultFilterScope } from './DefaultFiltersPanel';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Which tab opened the modal — decides which default filters are editable here. */
+  scope?: DefaultFilterScope;
 }
 
-export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose, scope }: SettingsModalProps) {
   const { isOwner } = useAuth();
   const refreshSettings = useSettingsStore((s) => s.refresh);
   const [classTypes, setClassTypes] = useState<string[]>([]);
@@ -28,7 +31,9 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [newClassType, setNewClassType] = useState('');
   const [newStaffMember, setNewStaffMember] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'classes' | 'staff' | 'revenue'>('classes');
+  const [activeTab, setActiveTab] = useState<'classes' | 'staff' | 'revenue' | 'filters'>(
+    'classes'
+  );
   const [revenueInput, setRevenueInput] = useState(String(DEFAULT_MONTHLY_MEMBERSHIP_REVENUE));
   const [revenueSaving, setRevenueSaving] = useState(false);
   const [editingClass, setEditingClass] = useState<{ original: string; value: string } | null>(
@@ -261,9 +266,24 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         >
           Revenue
         </button>
+        {scope && (
+          <button
+            type="button"
+            onClick={() => setActiveTab('filters')}
+            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+              activeTab === 'filters'
+                ? 'border-red-600 text-red-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Default Filters
+          </button>
+        )}
       </div>
 
       {/* Content */}
+      {activeTab === 'filters' && scope && <DefaultFiltersPanel scope={scope} />}
+
       {activeTab === 'revenue' && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
