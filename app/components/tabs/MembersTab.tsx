@@ -8,6 +8,11 @@ import { useCancellations } from '@/hooks/useCancellations';
 import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
 import { useSignups } from '@/hooks/useSignups';
+import {
+  type DerivedMemberStatus,
+  deriveMemberStatus,
+  toRosterStatus,
+} from '@/lib/members/derivedStatus';
 import { supabase } from '@/lib/supabase/client';
 import { hasRejoinedSinceCancellation } from '@/lib/supabase/memberStatus';
 import { isActiveHold } from '@/lib/utils/holds';
@@ -36,7 +41,6 @@ const MONTHS_ABBR = [
   'Dec',
 ];
 const ITEMS_PER_PAGE = 50;
-type DerivedMemberStatus = 'Active' | 'On Hold' | 'Alumni';
 type DisplayMember = Member & { derivedStatus: DerivedMemberStatus };
 
 function nameKey(row: { name: string; name_normalized?: string | null }) {
@@ -50,13 +54,6 @@ function parseLifecycleDate(primary?: string | null, fallback?: string | null): 
   }
   const fallbackTime = fallback ? new Date(fallback).getTime() : Number.NaN;
   return Number.isNaN(fallbackTime) ? null : fallbackTime;
-}
-
-function fallbackStatus(status?: Member['status']): DerivedMemberStatus {
-  if (status === 'Active' || status === 'On Hold') {
-    return status;
-  }
-  return 'Alumni';
 }
 
 function PlanBar({ label, count, total }: { label: string; count: number; total: number }) {
@@ -285,22 +282,13 @@ export default function MembersTab() {
       const latestSignup = latestSignupByName.get(key);
       const latestCancellation = latestCancellationByName.get(key);
 
-      const rejoinedPerRoster = hasRejoinedSinceCancellation(member, latestCancellation);
-
-      let derivedStatus: DerivedMemberStatus;
-      if (
-        latestCancellation !== undefined &&
-        (latestSignup === undefined || latestCancellation > latestSignup) &&
-        !rejoinedPerRoster
-      ) {
-        derivedStatus = 'Alumni';
-      } else if (activeHoldKeys.has(key)) {
-        derivedStatus = 'On Hold';
-      } else if (latestSignup !== undefined) {
-        derivedStatus = 'Active';
-      } else {
-        derivedStatus = fallbackStatus(member.status);
-      }
+      const derivedStatus = deriveMemberStatus({
+        rosterStatus: member.status,
+        latestSignup,
+        latestCancellation,
+        hasActiveHold: activeHoldKeys.has(key),
+        rejoinedPerRoster: hasRejoinedSinceCancellation(member, latestCancellation),
+      });
 
       return { ...member, derivedStatus };
     });
@@ -312,7 +300,7 @@ export default function MembersTab() {
   );
 
   const nonAlumniMembers = useMemo(
-    () => derivedMembers.filter((member) => member.derivedStatus !== 'Alumni'),
+    () => derivedMembers.filter((member) => toRosterStatus(member.derivedStatus) !== 'Alumni'),
     [derivedMembers]
   );
 
@@ -405,7 +393,8 @@ export default function MembersTab() {
         member.email?.toLowerCase().includes(query) ||
         member.phone?.toLowerCase().includes(query);
       const matchesPlan = planFilter === 'all' || member.membership_type === planFilter;
-      const matchesStatus = statusFilter === 'all' || member.derivedStatus === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' || toRosterStatus(member.derivedStatus) === statusFilter;
       return matchesSearch && matchesPlan && matchesStatus;
     });
   }, [derivedMembers, planFilter, search, statusFilter]);
@@ -646,7 +635,7 @@ export default function MembersTab() {
                               : 'bg-gray-100 text-gray-600'
                         }`}
                       >
-                        {member.derivedStatus}
+                        {toRosterStatus(member.derivedStatus)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
