@@ -32,6 +32,12 @@ export interface Intro extends BaseRecord {
   followup_reminder_at?: string | null;
   followup_dismissed_at?: string | null;
   created_by?: string;
+  is_spam?: boolean;
+  spam_marked_at?: string | null;
+  spam_signals?: string[];
+  spam_warning_dismissed_at?: string | null;
+  email_normalized?: string | null; // generated column, read-only
+  phone_normalized?: string | null; // generated column, read-only
   // Relations
   follow_up_notes?: FollowUpNote[];
   intro_class_history?: ClassHistory[];
@@ -237,7 +243,17 @@ export interface HoldQueryOptions {
  */
 export type IntroFormData = Omit<
   Intro,
-  'id' | 'created_at' | 'updated_at' | 'follow_up_notes' | 'intro_class_history'
+  | 'id'
+  | 'created_at'
+  | 'updated_at'
+  | 'follow_up_notes'
+  | 'intro_class_history'
+  | 'is_spam'
+  | 'spam_marked_at'
+  | 'spam_signals'
+  | 'spam_warning_dismissed_at'
+  | 'email_normalized'
+  | 'phone_normalized'
 >;
 
 /**
