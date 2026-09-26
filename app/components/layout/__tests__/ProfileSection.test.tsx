@@ -1,3 +1,4 @@
+import type { User } from '@supabase/supabase-js';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProfileSection from '@/components/layout/ProfileSection';
@@ -38,8 +39,7 @@ describe('ProfileSection', () => {
 
     // Default mock implementations
     mockUseAuth.mockReturnValue({
-      // biome-ignore lint/suspicious/noExplicitAny: Test mock requires any type
-      user: mockUser as any,
+      user: mockUser as unknown as User,
       isOwner: false,
       loading: false,
       signOut: jest.fn(),
