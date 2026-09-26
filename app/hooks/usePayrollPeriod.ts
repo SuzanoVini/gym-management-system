@@ -143,7 +143,7 @@ export const usePayrollPeriod = () => {
   );
 
   useEffect(() => {
-    loadAll();
+    void loadAll();
   }, [loadAll]);
 
   return {

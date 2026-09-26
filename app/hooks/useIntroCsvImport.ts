@@ -1,6 +1,7 @@
 import { type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { type ImportBatch, useImportUndo } from '@/hooks/useImportUndo';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
+import { reportConsoleError } from '@/lib/logger';
 import { deleteIntroIds, insertIntroImport } from '@/lib/supabase/introTableActions';
 import type { useUIStore } from '@/store/useUIStore';
 import type { Intro } from '@/types';
@@ -96,6 +97,31 @@ export function useIntroCsvImport({ intros, refresh, openModal, closeModal }: Im
   };
 }
 
+async function finishImport(
+  importedIds: string[],
+  importedCount: number,
+  duplicateCount: number,
+  {
+    saveImportBatch,
+    setUndoBatch,
+    refresh,
+    closeModal,
+    setImportPreviewData,
+  }: Pick<
+    ConfirmImportOptions,
+    'saveImportBatch' | 'setUndoBatch' | 'refresh' | 'closeModal' | 'setImportPreviewData'
+  >
+) {
+  saveImportBatch('intros', importedIds);
+  setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
+  await refresh();
+  closeModal('importPreview');
+  setImportPreviewData([]);
+  alert(
+    `✅ Successfully imported ${importedCount} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
+  );
+}
+
 async function confirmImport({
   importPreviewData,
   intros,
@@ -136,21 +162,20 @@ async function confirmImport({
     const { data, error } = await insertIntroImport(recordsToInsert);
 
     if (error) {
-      console.error('Error bulk importing:', error);
+      reportConsoleError('Error bulk importing:', error);
       alert(`Error importing: ${error.message}`);
     } else {
-      const importedIds = (data ?? []).map((r) => r.id);
-      saveImportBatch('intros', importedIds);
-      setUndoBatch({ ids: importedIds, count: importedIds.length, savedAt: Date.now() });
-      await refresh();
-      closeModal('importPreview');
-      setImportPreviewData([]);
-      alert(
-        `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
-      );
+      const importedIds = ((data ?? []) as Array<{ id: string }>).map((r) => r.id);
+      await finishImport(importedIds, newRecords.length, duplicateCount, {
+        saveImportBatch,
+        setUndoBatch,
+        refresh,
+        closeModal,
+        setImportPreviewData,
+      });
     }
   } catch (error) {
-    console.error('Fatal error importing CSV:', error);
+    reportConsoleError('Fatal error importing CSV:', error);
     alert(`Error importing CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

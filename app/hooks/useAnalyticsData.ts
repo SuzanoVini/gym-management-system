@@ -196,7 +196,7 @@ export const useAnalyticsData = (filterOptions: DateRangeFilterOptions) => {
   }, []);
 
   useEffect(() => {
-    loadAllData();
+    void loadAllData();
   }, [loadAllData]);
 
   const window = useMemo(

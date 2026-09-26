@@ -138,7 +138,7 @@ export const useSignups = () => {
   );
 
   useEffect(() => {
-    loadSignups();
+    void loadSignups();
   }, [loadSignups]);
 
   useRealtimeRefresh(subscribeToSignups, silentRefresh);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { reportConsoleError } from '@/lib/logger';
 import type { DismissedInsight } from '@/lib/supabase/dismissedInsights';
 import {
   fetchDismissedInsights,
@@ -10,6 +11,14 @@ import {
 
 export type { DismissedInsight };
 
+function replaceInsight(
+  dismissed: DismissedInsight[],
+  insightId: string,
+  replacement: DismissedInsight
+): DismissedInsight[] {
+  return [...dismissed.filter((d) => d.insight_id !== insightId), replacement];
+}
+
 export const useDismissedInsights = () => {
   const [dismissed, setDismissed] = useState<DismissedInsight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +26,7 @@ export const useDismissedInsights = () => {
   useEffect(() => {
     fetchDismissedInsights()
       .then(setDismissed)
-      .catch(console.error)
+      .catch(reportConsoleError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -65,10 +74,8 @@ export const useDismissedInsights = () => {
     };
     setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), optimistic]);
     upsertDismissedInsight({ insight_id: insightId, action: 'done', data_hash: dataHash })
-      .then((saved) =>
-        setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), saved])
-      )
-      .catch(console.error);
+      .then((saved) => setDismissed((prev) => replaceInsight(prev, insightId, saved)))
+      .catch(reportConsoleError);
   }, []);
 
   const snooze = useCallback((insightId: string, dataHash: string, days = 7) => {
@@ -93,10 +100,8 @@ export const useDismissedInsights = () => {
       data_hash: dataHash,
       snoozed_until: snoozedUntilIso,
     })
-      .then((saved) =>
-        setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), saved])
-      )
-      .catch(console.error);
+      .then((saved) => setDismissed((prev) => replaceInsight(prev, insightId, saved)))
+      .catch(reportConsoleError);
   }, []);
 
   const dismiss = useCallback((insightId: string, dataHash: string) => {
@@ -116,18 +121,16 @@ export const useDismissedInsights = () => {
       action: 'dismissed',
       data_hash: dataHash,
     })
-      .then((saved) =>
-        setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), saved])
-      )
-      .catch(console.error);
+      .then((saved) => setDismissed((prev) => replaceInsight(prev, insightId, saved)))
+      .catch(reportConsoleError);
   }, []);
 
   const restore = useCallback((insightId: string) => {
     setDismissed((prev) => prev.filter((d) => d.insight_id !== insightId));
     restoreInsight(insightId).catch((err) => {
-      console.error(err);
+      reportConsoleError(err);
       // Re-fetch on failure to resync
-      fetchDismissedInsights().then(setDismissed).catch(console.error);
+      fetchDismissedInsights().then(setDismissed).catch(reportConsoleError);
     });
   }, []);
 

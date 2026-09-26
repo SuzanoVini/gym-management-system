@@ -123,7 +123,7 @@ export const useHolds = () => {
   );
 
   useEffect(() => {
-    loadHolds();
+    void loadHolds();
   }, [loadHolds]);
 
   useRealtimeRefresh(subscribeToHolds, silentRefresh);

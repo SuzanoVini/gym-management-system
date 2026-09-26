@@ -13,68 +13,11 @@ import {
 } from '@/lib/services/hours.service';
 import type { StaffHours, StaffHoursFormData, TimeEntry, TimeEntryFormData } from '@/types';
 
-export const useStaffHours = (periodId: string | null) => {
-  const [hours, setHours] = useState<StaffHours[]>([]);
-  const [selectedStaffHours, setSelectedStaffHours] = useState<StaffHours | null>(null);
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const loadHours = useCallback(async () => {
-    if (!periodId) {
-      setHours([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getHoursForPeriod(periodId);
-      setHours(data);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to load staff hours');
-      setError(error);
-      errorHandler.handle(error, 'loadHours');
-    } finally {
-      setLoading(false);
-    }
-  }, [periodId]);
-
-  const loadTimeEntries = useCallback(async (staffHoursId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const entries = await getTimeEntries(staffHoursId);
-      setTimeEntries(entries);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to load time entries');
-      setError(error);
-      errorHandler.handle(error, 'loadTimeEntries');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const addOrUpdateHours = useCallback(
-    async (staffId: string, hoursData: Partial<StaffHoursFormData>) => {
-      if (!periodId) {
-        throw new Error('No active payroll period selected');
-      }
-
-      try {
-        const staffHours = await setManualHours(periodId, staffId, hoursData);
-        await loadHours();
-        errorHandler.notify('Hours updated successfully', 'success');
-        return staffHours;
-      } catch (err) {
-        errorHandler.handle(err, 'addOrUpdateHours');
-        throw err;
-      }
-    },
-    [periodId, loadHours]
-  );
-
+function useTimeEntryActions(
+  loadHours: () => Promise<void>,
+  loadTimeEntries: (staffHoursId: string) => Promise<void>,
+  selectedStaffHours: StaffHours | null
+) {
   const createTimeEntry = useCallback(
     async (staffHoursId: string, entry: TimeEntryFormData) => {
       try {
@@ -150,6 +93,77 @@ export const useStaffHours = (periodId: string | null) => {
     [loadHours, loadTimeEntries, selectedStaffHours]
   );
 
+  return { createTimeEntry, editTimeEntry, removeTimeEntry, addMatCleaning };
+}
+
+export const useStaffHours = (periodId: string | null) => {
+  const [hours, setHours] = useState<StaffHours[]>([]);
+  const [selectedStaffHours, setSelectedStaffHours] = useState<StaffHours | null>(null);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const loadHours = useCallback(async () => {
+    if (!periodId) {
+      setHours([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getHoursForPeriod(periodId);
+      setHours(data);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to load staff hours');
+      setError(error);
+      errorHandler.handle(error, 'loadHours');
+    } finally {
+      setLoading(false);
+    }
+  }, [periodId]);
+
+  const loadTimeEntries = useCallback(async (staffHoursId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const entries = await getTimeEntries(staffHoursId);
+      setTimeEntries(entries);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to load time entries');
+      setError(error);
+      errorHandler.handle(error, 'loadTimeEntries');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const addOrUpdateHours = useCallback(
+    async (staffId: string, hoursData: Partial<StaffHoursFormData>) => {
+      if (!periodId) {
+        throw new Error('No active payroll period selected');
+      }
+
+      try {
+        const staffHours = await setManualHours(periodId, staffId, hoursData);
+        await loadHours();
+        errorHandler.notify('Hours updated successfully', 'success');
+        return staffHours;
+      } catch (err) {
+        errorHandler.handle(err, 'addOrUpdateHours');
+        throw err;
+      }
+    },
+    [periodId, loadHours]
+  );
+
+  const { createTimeEntry, editTimeEntry, removeTimeEntry, addMatCleaning } = useTimeEntryActions(
+    loadHours,
+    loadTimeEntries,
+    selectedStaffHours
+  );
+
   const selectStaffHours = useCallback(
     async (staffHours: StaffHours | null) => {
       setSelectedStaffHours(staffHours);
@@ -181,7 +195,7 @@ export const useStaffHours = (periodId: string | null) => {
   );
 
   useEffect(() => {
-    loadHours();
+    void loadHours();
   }, [loadHours]);
 
   return {

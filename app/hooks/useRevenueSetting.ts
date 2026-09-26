@@ -9,9 +9,10 @@ export function useRevenueSetting(): number {
   const [revenuePerMember, setRevenuePerMember] = useState(DEFAULT_MONTHLY_MEMBERSHIP_REVENUE);
 
   useEffect(() => {
-    fetchNumberSetting('avg_monthly_membership_revenue', DEFAULT_MONTHLY_MEMBERSHIP_REVENUE).then(
-      setRevenuePerMember
-    );
+    void fetchNumberSetting(
+      'avg_monthly_membership_revenue',
+      DEFAULT_MONTHLY_MEMBERSHIP_REVENUE
+    ).then(setRevenuePerMember);
   }, []);
 
   return revenuePerMember;

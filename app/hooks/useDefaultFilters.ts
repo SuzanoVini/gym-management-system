@@ -29,7 +29,7 @@ export function useHydrateDefaultFilters() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchPreferences().then((prefs) => {
+    void fetchPreferences().then((prefs) => {
       if (!cancelled) {
         applyDefaults(toFiltersByTab(prefs), resolveOverviewDefault(prefs));
       }
@@ -48,7 +48,7 @@ export function useDefaultFilters() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchPreferences().then((prefs) => {
+    void fetchPreferences().then((prefs) => {
       if (!cancelled) {
         setPreferences(prefs);
         setLoading(false);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { reportConsoleError } from '@/lib/logger';
 import { supabase } from '@/lib/supabase/client';
 import { hasRejoinedSinceCancellation, type RosterEntry } from '@/lib/supabase/memberStatus';
 
@@ -89,11 +90,11 @@ export function useFormerMembers(): Map<string, string> {
         const result = filterFormerMembers(signupMap, cancellationMap, roster);
         setMap(result);
       } catch (err) {
-        console.error('useFormerMembers: failed to load', err);
+        reportConsoleError('useFormerMembers: failed to load', err);
       }
     };
 
-    load();
+    void load();
     return () => {
       cancelled = true;
     };

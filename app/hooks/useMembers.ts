@@ -37,7 +37,7 @@ export const useMembers = () => {
   }, []);
 
   useEffect(() => {
-    loadMembers();
+    void loadMembers();
   }, [loadMembers]);
 
   useRealtimeRefresh(subscribeToMembers, silentRefresh);

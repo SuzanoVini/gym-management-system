@@ -3,6 +3,32 @@ import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 import type { TabFilters } from '@/store/useFilterStore';
 import type { Intro } from '@/types';
 
+function introMatchesSearch(intro: Intro, searchTerm: string): boolean | undefined {
+  return (
+    !searchTerm ||
+    intro.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intro.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    intro.phone?.includes(searchTerm)
+  );
+}
+
+function introMatchesFilters(
+  intro: Intro,
+  filters: TabFilters,
+  staffMembers: string[]
+): boolean | undefined {
+  const matchesSearch = introMatchesSearch(intro, filters.searchTerm);
+
+  const matchesMonth = filters.month === 'all' || intro.month === filters.month;
+  const matchesStaff =
+    filters.staff === 'all' ||
+    canonicalizeStaffName(intro.staff ?? '', staffMembers) === filters.staff;
+  const matchesClass = filters.class === 'all' || intro.class === filters.class;
+  const matchesYear = filters.year === 'all' || String(intro.year) === filters.year;
+
+  return matchesSearch && matchesMonth && matchesStaff && matchesClass && matchesYear;
+}
+
 export function useIntroListView(intros: Intro[], filters: TabFilters, staffMembers: string[]) {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [currentPage, setCurrentPage] = useState(1);
@@ -14,22 +40,7 @@ export function useIntroListView(intros: Intro[], filters: TabFilters, staffMemb
 
   // Filter and search intros
   const filteredIntros = useMemo(() => {
-    return intros.filter((intro: Intro) => {
-      const matchesSearch =
-        !filters.searchTerm ||
-        intro.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        intro.email?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        intro.phone?.includes(filters.searchTerm);
-
-      const matchesMonth = filters.month === 'all' || intro.month === filters.month;
-      const matchesStaff =
-        filters.staff === 'all' ||
-        canonicalizeStaffName(intro.staff ?? '', staffMembers) === filters.staff;
-      const matchesClass = filters.class === 'all' || intro.class === filters.class;
-      const matchesYear = filters.year === 'all' || String(intro.year) === filters.year;
-
-      return matchesSearch && matchesMonth && matchesStaff && matchesClass && matchesYear;
-    });
+    return intros.filter((intro: Intro) => introMatchesFilters(intro, filters, staffMembers));
   }, [intros, filters, staffMembers]);
 
   const sortedIntros = useMemo(() => {
