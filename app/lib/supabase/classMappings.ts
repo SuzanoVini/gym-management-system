@@ -1,12 +1,17 @@
+import type { PostgrestResponse } from '@supabase/supabase-js';
+import { reportConsoleError } from '@/lib/logger';
 import { supabase } from './client';
 
 export async function fetchClassMappings(): Promise<Record<string, string>> {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('class_mappings')
-    .select('zenplanner_name, system_name');
+    .select('zenplanner_name, system_name')) as PostgrestResponse<{
+    zenplanner_name: string;
+    system_name: string;
+  }>;
 
   if (error) {
-    console.error('Failed to fetch class_mappings:', error.message);
+    reportConsoleError('Failed to fetch class_mappings:', error.message);
     return {};
   }
 

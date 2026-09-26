@@ -9,7 +9,7 @@ import {
 } from '@/lib/supabase/classMappings';
 import { supabase } from '@/lib/supabase/client';
 
-const mockFrom = supabase.from as jest.Mock;
+const mockFrom = (supabase as unknown as { from: jest.Mock }).from;
 
 function mockSelect(data: unknown[], error: unknown = null) {
   mockFrom.mockReturnValue({ select: jest.fn().mockResolvedValue({ data, error }) });

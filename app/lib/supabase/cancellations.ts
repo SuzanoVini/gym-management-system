@@ -1,14 +1,15 @@
 // app/lib/supabase/cancellations.ts
 
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import type { Cancellation, CancellationFormData } from '@/types';
 import { supabase } from './client';
 
 // CANCELLATIONS
 export const fetchCancellations = async (): Promise<Cancellation[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('cancellations')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<Cancellation>;
 
   if (error) {
     throw error;
@@ -17,11 +18,11 @@ export const fetchCancellations = async (): Promise<Cancellation[]> => {
 };
 
 export const createCancellation = async (cancellation: CancellationFormData) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('cancellations')
     .insert([cancellation])
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<Cancellation>;
 
   if (error) {
     throw error;
@@ -30,12 +31,12 @@ export const createCancellation = async (cancellation: CancellationFormData) => 
 };
 
 export const updateCancellation = async (id: string, updates: Partial<CancellationFormData>) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('cancellations')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<Cancellation>;
 
   if (error) {
     throw error;

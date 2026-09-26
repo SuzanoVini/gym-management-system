@@ -1,14 +1,15 @@
 // app/lib/supabase/holds.ts
 
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import type { Hold, HoldFormData } from '@/types';
 import { supabase } from './client';
 
 // HOLDS
 export const fetchHolds = async (): Promise<Hold[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('holds')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<Hold>;
 
   if (error) {
     throw error;
@@ -17,7 +18,11 @@ export const fetchHolds = async (): Promise<Hold[]> => {
 };
 
 export const createHold = async (hold: HoldFormData) => {
-  const { data, error } = await supabase.from('holds').insert([hold]).select().single();
+  const { data, error } = (await supabase
+    .from('holds')
+    .insert([hold])
+    .select()
+    .single()) as PostgrestSingleResponse<Hold>;
 
   if (error) {
     throw error;
@@ -26,12 +31,12 @@ export const createHold = async (hold: HoldFormData) => {
 };
 
 export const updateHold = async (id: string, updates: Partial<HoldFormData>) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('holds')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<Hold>;
 
   if (error) {
     throw error;

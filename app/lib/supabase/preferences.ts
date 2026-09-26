@@ -1,3 +1,4 @@
+import { reportConsoleError } from '@/lib/logger';
 import type { DefaultFilterPreferences } from '@/lib/preferences/defaultFilters';
 import { supabase } from './client';
 
@@ -20,7 +21,7 @@ export async function fetchPreferences(): Promise<DefaultFilterPreferences> {
     .maybeSingle();
 
   if (error) {
-    console.error('Failed to load preferences:', error);
+    reportConsoleError('Failed to load preferences:', error);
     return {};
   }
   return (data?.preferences ?? {}) as DefaultFilterPreferences;

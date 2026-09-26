@@ -1,5 +1,6 @@
 // app/lib/supabase/dismissedInsights.ts
 
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import { supabase } from './client';
 
 export type InsightAction = 'done' | 'snoozed' | 'dismissed';
@@ -23,10 +24,10 @@ export interface UpsertDismissedInsightData {
 }
 
 export const fetchDismissedInsights = async (): Promise<DismissedInsight[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('dismissed_insights')
     .select('*')
-    .order('dismissed_at', { ascending: false });
+    .order('dismissed_at', { ascending: false })) as PostgrestResponse<DismissedInsight>;
 
   if (error) {
     throw error;
@@ -46,7 +47,7 @@ export const upsertDismissedInsight = async (
     throw new Error('User not authenticated');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('dismissed_insights')
     .upsert(
       {
@@ -60,7 +61,7 @@ export const upsertDismissedInsight = async (
       { onConflict: 'user_id,insight_id' }
     )
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<DismissedInsight>;
 
   if (error) {
     throw error;

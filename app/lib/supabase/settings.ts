@@ -1,4 +1,5 @@
 // app/lib/supabase/settings.ts
+import { reportConsoleError } from '@/lib/logger';
 import { supabase } from './client';
 
 // SETTINGS
@@ -6,7 +7,7 @@ export const fetchSettings = async (key: string) => {
   const { data, error } = await supabase.from('settings').select('value').eq('key', key).single();
 
   if (error) {
-    console.error(`Error fetching settings for ${key}:`, error);
+    reportConsoleError(`Error fetching settings for ${key}:`, error);
 
     // Fallback defaults if database fails
     const defaults: Record<string, string[]> = {
@@ -64,7 +65,7 @@ export const fetchSettings = async (key: string) => {
     return defaults[key] || [];
   }
 
-  return data?.value || [];
+  return (data?.value || []) as string[];
 };
 
 export const updateSettings = async (key: string, value: unknown[]) => {
@@ -74,7 +75,7 @@ export const updateSettings = async (key: string, value: unknown[]) => {
     .eq('key', key);
 
   if (error) {
-    console.error(`Error updating settings for ${key}:`, error);
+    reportConsoleError(`Error updating settings for ${key}:`, error);
     throw error;
   }
 
@@ -100,7 +101,7 @@ export const updateNumberSetting = async (key: string, value: number): Promise<v
     .eq('key', key);
 
   if (error) {
-    console.error(`Error updating settings for ${key}:`, error);
+    reportConsoleError(`Error updating settings for ${key}:`, error);
     throw error;
   }
 };
