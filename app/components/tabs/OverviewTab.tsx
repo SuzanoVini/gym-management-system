@@ -1,74 +1,33 @@
 'use client';
 
-import {
-  AlertCircle,
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Download,
-  Settings,
-  Target,
-  TrendingDown,
-  TrendingUp,
-  UserMinus,
-  UserPlus,
-  Users,
-} from 'lucide-react';
-import {
-  type ComponentProps,
-  type ComponentType,
-  type ReactElement,
-  useEffect,
-  useState,
-} from 'react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  LabelList,
-  Legend,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Sector,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Calendar, Download, Settings } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
-import InfoTip from '@/components/ui/InfoTip';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useInsights } from '@/hooks/useInsights';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
-import { exportToCSV } from '@/lib/supabase/utils';
-import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
+import { exportOverviewData } from '@/lib/analytics/exportOverviewData';
+import {
+  computeCoreMetrics,
+  computeFunnelData,
+  computeMembershipChart,
+  computeMonthlyTrends,
+  computeReasonsChart,
+  computeStaffPerformance,
+  computeTopClasses,
+} from '@/lib/analytics/overviewMetrics';
 import { isActiveHold } from '@/lib/utils/holds';
 import { useFilterStore } from '@/store/useFilterStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import type { InsightColor } from '@/types';
 import SettingsModal from './modals/SettingsModal';
-
-const OverviewIcons = {
-  AlertCircle,
-  AlertTriangle,
-  Calendar,
-  CheckCircle,
-  Clock,
-  Download,
-  Target,
-  TrendingDown,
-  TrendingUp,
-  UserMinus,
-  UserPlus,
-  Users,
-};
-
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+import OverviewAcquisitionCharts from './overview/OverviewAcquisitionCharts';
+import OverviewBreakdownCharts, {
+  useOverviewPieSelection,
+} from './overview/OverviewBreakdownCharts';
+import OverviewInsights from './overview/OverviewInsights';
+import OverviewStaffPerformance from './overview/OverviewStaffPerformance';
+import OverviewSummaryCards from './overview/OverviewSummaryCards';
+import OverviewTrendChart from './overview/OverviewTrendChart';
 
 const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: 'all', label: 'All Time' },
@@ -80,61 +39,6 @@ const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: 'custom', label: 'Custom Range' },
 ];
 
-// Period-over-period delta badge for a summary card. `goodDirection` flips
-// the color (an increase in Cancellations is bad, not good).
-function DeltaBadge({
-  current,
-  previous,
-  goodDirection = 'up',
-}: {
-  current: number;
-  previous: number | null;
-  goodDirection?: 'up' | 'down';
-}) {
-  if (previous === null) {
-    return null;
-  }
-  if (previous === 0) {
-    if (current === 0) {
-      return null;
-    }
-    return (
-      <span className="text-xs font-medium text-gray-500 ml-2" title="No prior-period data">
-        new
-      </span>
-    );
-  }
-
-  const pct = ((current - previous) / previous) * 100;
-  if (Math.abs(pct) < 0.5) {
-    return <span className="text-xs font-medium text-gray-500 ml-2">flat</span>;
-  }
-
-  const isUp = pct > 0;
-  const isGood = isUp === (goodDirection === 'up');
-  const Icon = isUp ? TrendingUp : TrendingDown;
-
-  return (
-    <span
-      className={`inline-flex items-center text-xs font-semibold ml-2 ${isGood ? 'text-green-600' : 'text-red-600'}`}
-      title={`vs. previous period: ${previous}`}
-    >
-      <Icon className="w-3 h-3 mr-0.5" />
-      {Math.abs(pct).toFixed(0)}%
-    </span>
-  );
-}
-
-const insightStyles: Record<InsightColor, { card: string; icon: string }> = {
-  red: { card: 'bg-red-50 border-red-500', icon: 'text-red-600' },
-  orange: { card: 'bg-orange-50 border-orange-500', icon: 'text-orange-600' },
-  yellow: { card: 'bg-yellow-50 border-yellow-500', icon: 'text-yellow-600' },
-  green: { card: 'bg-green-50 border-green-500', icon: 'text-green-600' },
-  blue: { card: 'bg-blue-50 border-blue-500', icon: 'text-blue-600' },
-  purple: { card: 'bg-purple-50 border-purple-500', icon: 'text-purple-600' },
-};
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Overview combines multiple analytics blocks.
 export default function OverviewTab() {
   const [dateRange, setDateRange] = useState('all');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -145,8 +49,6 @@ export default function OverviewTab() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
-  const [activeMembershipIndex, setActiveMembershipIndex] = useState<number | null>(null);
-  const [activeReasonIndex, setActiveReasonIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (prefsHydrated && !rangeInitialised) {
@@ -168,252 +70,17 @@ export default function OverviewTab() {
     setCustomEndDate(tempEndDate);
   };
 
-  // Pie chart active shape renderer
-  const renderActiveShape = (props: unknown) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props as {
-      cx: number;
-      cy: number;
-      innerRadius: number;
-      outerRadius: number;
-      startAngle: number;
-      endAngle: number;
-      fill: string;
-    };
-    return (
-      <g>
-        <Sector
-          cx={cx}
-          cy={cy}
-          innerRadius={innerRadius}
-          outerRadius={outerRadius * 1.08}
-          startAngle={startAngle}
-          endAngle={endAngle}
-          fill={fill}
-          style={{
-            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
-          }}
-        />
-      </g>
-    );
-  };
-
-  const PieWithActive = Pie as unknown as ComponentType<
-    ComponentProps<typeof Pie> & {
-      activeIndex?: number;
-      activeShape?: (props: unknown) => ReactElement;
-    }
-  >;
-
-  // Click outside handler to reset pie chart active states
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.recharts-pie')) {
-        setActiveMembershipIndex(null);
-        setActiveReasonIndex(null);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
+  const selection = useOverviewPieSelection();
   const { intros, signups, cancellations, holds } = filteredData;
-
-  // Person-level matching (signups carry no email, so normalized name is the
-  // key): a prospect with several intro rows counts once, and walk-in signups
-  // that never attended an intro don't inflate the funnel past 100%
-  const personName = (name: string) => name.toLowerCase().trim().replace(/\s+/g, ' ');
-
-  function computeCoreMetrics(data: {
-    intros: typeof intros;
-    signups: typeof signups;
-    cancellations: typeof cancellations;
-  }) {
-    const attended = data.intros.filter((i) => i.attended === 'Yes').length;
-    const attendedNames = new Set(
-      data.intros.filter((i) => i.attended === 'Yes').map((i) => personName(i.name))
-    );
-    const signupsFromIntros = new Set(
-      data.signups.map((s) => personName(s.name)).filter((n) => attendedNames.has(n))
-    ).size;
-    return {
-      totalIntros: data.intros.length,
-      attendedIntros: attended,
-      totalSignups: data.signups.length,
-      totalCancellations: data.cancellations.length,
-      netGrowth: data.signups.length - data.cancellations.length,
-      conversionRate: attended > 0 ? (signupsFromIntros / attended) * 100 : 0,
-      signupsFromIntros,
-    };
-  }
-
-  // Key Metrics
-  const current = computeCoreMetrics({ intros, signups, cancellations });
-  const {
-    totalIntros,
-    attendedIntros,
-    totalSignups,
-    totalCancellations,
-    netGrowth,
-    signupsFromIntros,
-  } = current;
-  const conversionRate = current.conversionRate.toFixed(1);
-  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
-
-  // Period-over-period deltas vs the immediately preceding window of the same
-  // length — null (hidden) when the date filter is "All Time", since there's
-  // no bounded window to mirror
+  const current = computeCoreMetrics(filteredData);
   const previous = previousPeriodData ? computeCoreMetrics(previousPeriodData) : null;
-
-  // Monthly Trends — bucketed by month + year so "All Time" doesn't sum
-  // Jan 2025 and Jan 2026 into one point
-  const trendBuckets = new Map<
-    number,
-    { month: string; Intros: number; 'Sign-ups': number; Cancellations: number }
-  >();
-  const bumpTrend = (
-    records: Array<{ month: string; year?: number; created_at?: string }>,
-    field: 'Intros' | 'Sign-ups' | 'Cancellations'
-  ) => {
-    for (const r of records) {
-      const monthIndex = MONTHS.indexOf(r.month);
-      const year = r.year ?? (r.created_at ? new Date(r.created_at).getFullYear() : undefined);
-      if (monthIndex === -1 || !year) {
-        continue;
-      }
-      const sortKey = year * 12 + monthIndex;
-      const bucket = trendBuckets.get(sortKey) ?? {
-        month: `${r.month} ${year}`,
-        Intros: 0,
-        'Sign-ups': 0,
-        Cancellations: 0,
-      };
-      bucket[field]++;
-      trendBuckets.set(sortKey, bucket);
-    }
-  };
-  bumpTrend(intros, 'Intros');
-  bumpTrend(signups, 'Sign-ups');
-  bumpTrend(cancellations, 'Cancellations');
-
-  const monthlyData = [...trendBuckets.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([, bucket]) => ({ ...bucket, 'Net Growth': bucket['Sign-ups'] - bucket.Cancellations }));
-
-  // Conversion Funnel
-  const funnelData = [
-    {
-      stage: 'Intros',
-      count: totalIntros,
-      percentage: 100,
-      countLabel: `${totalIntros} (100%)`,
-    },
-    {
-      stage: 'Attended',
-      count: attendedIntros,
-      percentage: totalIntros > 0 ? ((attendedIntros / totalIntros) * 100).toFixed(0) : 0,
-      countLabel: `${attendedIntros} (${totalIntros > 0 ? ((attendedIntros / totalIntros) * 100).toFixed(0) : 0}%)`,
-    },
-    {
-      stage: 'Signed Up',
-      count: signupsFromIntros,
-      percentage: attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(0) : 0,
-      countLabel: `${signupsFromIntros} (${attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(0) : 0}%)`,
-    },
-  ];
-
-  // Top Classes by Sign-ups — person-level match on the attended intro
-  const classByPerson = new Map<string, string>();
-  for (const intro of intros) {
-    if (intro.attended === 'Yes' && intro.class) {
-      classByPerson.set(personName(intro.name), intro.class);
-    }
-  }
-  const classSignups = signups.reduce<Record<string, number>>((acc, signup) => {
-    const introClass = classByPerson.get(personName(signup.name));
-    if (introClass) {
-      acc[introClass] = (acc[introClass] || 0) + 1;
-    }
-    return acc;
-  }, {});
-
-  const topClasses = Object.entries(classSignups)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
-
-  // Membership Type Breakdown
-  const membershipData = signups.reduce<Record<string, number>>((acc, signup) => {
-    acc[signup.membership] = (acc[signup.membership] || 0) + 1;
-    return acc;
-  }, {});
-
-  const membershipChart = Object.entries(membershipData).map(([name, value]) => ({ name, value }));
-
-  // Cancellation Reasons (case-insensitive)
-  const cancellationReasons = cancellations.reduce<Record<string, number>>((acc, cancel) => {
-    const normalizedReason = cancel.reason?.toLowerCase();
-    if (!normalizedReason) {
-      return acc;
-    }
-    acc[normalizedReason] = (acc[normalizedReason] || 0) + 1;
-    return acc;
-  }, {});
-
-  const capitalizeWords = (str: string) => {
-    return str.replace(/\b\w/g, (char) => char.toUpperCase());
-  };
-
-  const reasonsChart = Object.entries(cancellationReasons)
-    .map(([name, value]) => ({ name: capitalizeWords(name), value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
-
-  // Staff Performance with ABSOLUTE NUMBERS + PERCENTAGES
-  const staffStats = intros.reduce<
-    Record<string, { total: number; attended: number; signedUp: number }>
-  >((acc, intro) => {
-    if (!intro.staff) {
-      return acc;
-    }
-
-    // Safety net after the one-time data migration: bare first names from old
-    // records aggregate under the same coach as full names
-    const staffName = canonicalizeStaffName(intro.staff, staffMembers);
-    if (!acc[staffName]) {
-      acc[staffName] = {
-        total: 0,
-        attended: 0,
-        signedUp: 0,
-      };
-    }
-
-    const staffEntry = acc[staffName];
-    if (staffEntry) {
-      staffEntry.total++;
-      if (intro.attended === 'Yes') {
-        staffEntry.attended++;
-        if (intro.signed_up === 'Yes') {
-          staffEntry.signedUp++;
-        }
-      }
-    }
-
-    return acc;
-  }, {});
-
-  const staffPerformance = Object.entries(staffStats)
-    .map(([name, stats]) => ({
-      name,
-      totalIntros: stats.total,
-      attended: stats.attended,
-      signedUp: stats.signedUp,
-      conversionRate:
-        stats.attended > 0 ? ((stats.signedUp / stats.attended) * 100).toFixed(1) : '0',
-      label: `${stats.signedUp}/${stats.attended} (${stats.attended > 0 ? ((stats.signedUp / stats.attended) * 100).toFixed(1) : '0'}%)`,
-    }))
-    .sort((a, b) => parseFloat(b.conversionRate) - parseFloat(a.conversionRate));
-
+  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
+  const monthlyData = computeMonthlyTrends(filteredData);
+  const funnelData = computeFunnelData(current);
+  const topClasses = computeTopClasses(intros, signups);
+  const membershipChart = computeMembershipChart(signups);
+  const reasonsChart = computeReasonsChart(cancellations);
+  const staffPerformance = computeStaffPerformance(intros, staffMembers);
   // Top insights from the shared engine (same rules as the Insights tab) —
   // this used to be a hand-rolled fork with its own thresholds that drifted
   // from the real rules over time (e.g. >3 vs ≥5 for top cancellation reason)
@@ -426,47 +93,7 @@ export default function OverviewTab() {
   });
   const insights = sharedInsights.slice(0, 4);
 
-  // Export functionality
-  const handleExportAllData = () => {
-    const exportData = {
-      intros: intros.map((i) => ({
-        name: i.name,
-        month: i.month,
-        class: i.class,
-        staff: i.staff,
-        attended: i.attended,
-        signed_up: i.signed_up,
-        date: i.created_at,
-      })),
-      signups: signups.map((s) => ({
-        name: s.name,
-        month: s.month,
-        membership: s.membership,
-        date: s.membership_date,
-      })),
-      cancellations: cancellations.map((c) => ({
-        name: c.name,
-        month: c.month,
-        reason: c.reason,
-        date: c.date,
-      })),
-      holds: holds.map((h) => ({
-        name: h.name,
-        month: h.month,
-        reason: h.reason,
-        start: h.start,
-        end: h.end,
-      })),
-    };
-
-    // Export each dataset
-    exportToCSV(exportData.intros, 'intros');
-    exportToCSV(exportData.signups, 'signups');
-    exportToCSV(exportData.cancellations, 'cancellations');
-    exportToCSV(exportData.holds, 'holds');
-
-    alert('✅ All data exported successfully! Check your downloads folder.');
-  };
+  const handleExportAllData = () => exportOverviewData(filteredData);
 
   if (loading) {
     return (
@@ -496,7 +123,7 @@ export default function OverviewTab() {
       <div className="section-container">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold flex items-center">
-            <OverviewIcons.Calendar className="w-5 h-5 mr-2" />
+            <Calendar className="w-5 h-5 mr-2" />
             Date Range Filter
           </h2>
           {/* Grouped so justify-between keeps the heading left and both actions together right. */}
@@ -506,7 +133,7 @@ export default function OverviewTab() {
               onClick={handleExportAllData}
               className="btn btn-primary bg-green-600 hover:bg-green-700"
             >
-              <OverviewIcons.Download className="w-4 h-4" />
+              <Download className="w-4 h-4" />
               Export All Data
             </button>
             <button
@@ -539,387 +166,18 @@ export default function OverviewTab() {
         />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <div className="section-container summary-card border-l-4 border-blue-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 flex items-center gap-1.5">
-                Total Intros
-                <InfoTip label="Intro classes booked in the selected range, whether or not the person showed up. Attendance is tracked separately in the funnel." />
-              </p>
-              <p className="text-3xl font-bold mt-1 flex items-baseline">
-                {totalIntros}
-                <DeltaBadge current={totalIntros} previous={previous?.totalIntros ?? null} />
-              </p>
-            </div>
-            <OverviewIcons.Users className="summary-card-icon w-8 h-8 text-blue-600" />
-          </div>
-        </div>
-
-        <div className="section-container summary-card border-l-4 border-green-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 flex items-center gap-1.5">
-                Sign-ups
-                <InfoTip label="New memberships started in the selected range, counted on the membership start date rather than when the record was entered." />
-              </p>
-              <p className="text-3xl font-bold mt-1 flex items-baseline">
-                {totalSignups}
-                <DeltaBadge current={totalSignups} previous={previous?.totalSignups ?? null} />
-              </p>
-            </div>
-            <OverviewIcons.UserPlus className="summary-card-icon w-8 h-8 text-green-600" />
-          </div>
-        </div>
-
-        <div className="section-container summary-card border-l-4 border-red-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 flex items-center gap-1.5">
-                Cancellations
-                <InfoTip label="Memberships cancelled in the selected range, counted on the cancellation date. A membership that simply lapsed without notice is not counted here — it shows as Expired on the roster instead." />
-              </p>
-              <p className="text-3xl font-bold mt-1 flex items-baseline">
-                {totalCancellations}
-                <DeltaBadge
-                  current={totalCancellations}
-                  previous={previous?.totalCancellations ?? null}
-                  goodDirection="down"
-                />
-              </p>
-            </div>
-            <OverviewIcons.UserMinus className="summary-card-icon w-8 h-8 text-red-600" />
-          </div>
-        </div>
-
-        <div
-          className={`section-container summary-card border-l-4 ${netGrowth >= 0 ? 'border-green-600' : 'border-red-600'}`}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 flex items-center gap-1.5">
-                Net Growth
-                <InfoTip label="Signups minus cancellations for the selected range. Positive means the gym grew; negative means it shrank. Holds are not counted either way, since a paused member has not left." />
-              </p>
-              <p
-                className={`text-3xl font-bold mt-1 flex items-baseline ${netGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}
-              >
-                {netGrowth >= 0 ? '+' : ''}
-                {netGrowth}
-                <DeltaBadge current={netGrowth} previous={previous?.netGrowth ?? null} />
-              </p>
-            </div>
-            {netGrowth >= 0 ? (
-              <OverviewIcons.TrendingUp className="summary-card-icon w-8 h-8 text-green-600" />
-            ) : (
-              <OverviewIcons.TrendingDown className="summary-card-icon w-8 h-8 text-red-600" />
-            )}
-          </div>
-        </div>
-
-        <div className="section-container summary-card border-l-4 border-purple-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Conversion Rate</p>
-              <p className="text-3xl font-bold mt-1 flex items-baseline">
-                {conversionRate}%
-                <DeltaBadge
-                  current={current.conversionRate}
-                  previous={previous?.conversionRate ?? null}
-                />
-              </p>
-            </div>
-            <OverviewIcons.Target className="summary-card-icon w-8 h-8 text-purple-600" />
-          </div>
-        </div>
-
-        <div className="section-container summary-card border-l-4 border-yellow-600">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Active Holds</p>
-              <p className="text-3xl font-bold mt-1">{activeHolds}</p>
-            </div>
-            <OverviewIcons.Clock className="summary-card-icon w-8 h-8 text-yellow-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Top Insights — same engine and rules as the Insights tab */}
-      {insights.length > 0 && (
-        <div className="section-container">
-          <h2 className="text-xl font-bold mb-4 flex items-center">
-            <OverviewIcons.AlertCircle className="w-6 h-6 mr-2" />
-            Top Insights
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {insights.map((insight) => {
-              const Icon =
-                OverviewIcons[insight.icon as keyof typeof OverviewIcons] ??
-                OverviewIcons.AlertCircle;
-              const style = insightStyles[insight.color];
-              return (
-                <div
-                  key={insight.id}
-                  className={`insight-card p-4 rounded-lg border-l-4 ${style.card}`}
-                >
-                  <div className="flex items-start">
-                    <Icon className={`w-5 h-5 mr-3 mt-0.5 ${style.icon}`} />
-                    <div>
-                      <h3 className="font-semibold text-sm">{insight.title}</h3>
-                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-line">
-                        {insight.message}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Monthly Trends */}
-      <div className="section-container">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          Monthly Trends
-          <InfoTip label="Counts intros, signups and cancellations per month over the selected range. Each person is counted in the month their record is dated, so a signup logged late lands in the month it happened, not the month it was entered." />
-        </h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="Intros"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              isAnimationActive={true}
-              animationDuration={1000}
-              animationEasing="ease-in-out"
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="Sign-ups"
-              stroke="#10b981"
-              strokeWidth={2}
-              isAnimationActive={true}
-              animationDuration={1000}
-              animationEasing="ease-in-out"
-              animationBegin={200}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="Cancellations"
-              stroke="#ef4444"
-              strokeWidth={2}
-              isAnimationActive={true}
-              animationDuration={1000}
-              animationEasing="ease-in-out"
-              animationBegin={400}
-              dot={{ r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
+      <OverviewSummaryCards current={current} previous={previous} activeHolds={activeHolds} />
+      <OverviewInsights insights={insights} />
+      <OverviewTrendChart monthlyData={monthlyData} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Conversion Funnel */}
-        <div className="section-container">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Conversion Funnel
-            <InfoTip label="Follows people through the journey: intros booked, how many attended, and how many then signed up. The percentage at each step is of the step above it, not of the original total." />
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={funnelData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="stage" type="category" width={100} />
-              <Tooltip />
-              <Bar
-                dataKey="count"
-                fill="#3b82f6"
-                isAnimationActive={true}
-                animationDuration={600}
-                animationEasing="ease-out"
-              >
-                <LabelList dataKey="countLabel" position="right" />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Top Classes */}
-        <div className="section-container">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Top Classes by Sign-ups
-            <InfoTip label="Which class a member first attended as an intro before they signed up. It credits the class that brought them in, not every class they have taken since." />
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topClasses}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
-              <Tooltip />
-              <Bar
-                dataKey="count"
-                fill="#10b981"
-                isAnimationActive={true}
-                animationDuration={600}
-                animationEasing="ease-out"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Membership Breakdown */}
-        <div className="section-container">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Membership Types
-            <InfoTip label="The plan each active member is currently on, taken from the last roster import. Alumni and expired memberships are excluded, so this reflects who is training now." />
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <PieWithActive
-                data={membershipChart}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label
-                activeShape={renderActiveShape}
-                {...(activeMembershipIndex !== null ? { activeIndex: activeMembershipIndex } : {})}
-                onMouseEnter={(_, index) => setActiveMembershipIndex(index)}
-                onMouseLeave={() => setActiveMembershipIndex(null)}
-                onClick={(_, index) => {
-                  setActiveMembershipIndex(index);
-                }}
-              >
-                {membershipChart.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </PieWithActive>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Cancellation Reasons */}
-        <div className="section-container">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Top Cancellation Reasons
-            <InfoTip label="The reason recorded on each cancellation in the selected range. Cancellations logged without a reason are grouped as unspecified rather than dropped." />
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <PieWithActive
-                data={reasonsChart}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label
-                activeShape={renderActiveShape}
-                {...(activeReasonIndex !== null ? { activeIndex: activeReasonIndex } : {})}
-                onMouseEnter={(_, index) => setActiveReasonIndex(index)}
-                onMouseLeave={() => setActiveReasonIndex(null)}
-                onClick={(_, index) => {
-                  setActiveReasonIndex(index);
-                }}
-              >
-                {reasonsChart.map((entry, index) => (
-                  <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </PieWithActive>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <OverviewAcquisitionCharts funnelData={funnelData} topClasses={topClasses} />
+        <OverviewBreakdownCharts
+          membershipChart={membershipChart}
+          reasonsChart={reasonsChart}
+          selection={selection}
+        />
       </div>
-
-      {/* Staff Performance with Absolute Numbers + Percentages */}
-      <div className="section-container">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          Staff Performance (Conversion Rates)
-          <InfoTip label="For each coach, the share of their intro classes that turned into signups. Only intros marked as attended count, so a no-show does not drag a coach down." />
-        </h2>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={staffPerformance}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
-            <Tooltip
-              formatter={(_value, _name, props) => {
-                const data = props.payload;
-                return [`${data.label}`, 'Conversion'];
-              }}
-            />
-            <Bar
-              dataKey="conversionRate"
-              fill="#8b5cf6"
-              isAnimationActive={true}
-              animationDuration={600}
-              animationEasing="ease-out"
-            >
-              <LabelList
-                dataKey="label"
-                position="top"
-                style={{ fontSize: '12px', fill: '#6b7280' }}
-              />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-
-        {/* Staff Performance Table */}
-        <div className="mt-6 overflow-x-auto section-nested">
-          <table className="min-w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Staff
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total Intros
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Attended
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Signed Up
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Conversion Rate
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {staffPerformance.map((staff) => (
-                <tr key={staff.name}>
-                  <td className="px-4 py-2 font-medium">{staff.name}</td>
-                  <td className="px-4 py-2">{staff.totalIntros}</td>
-                  <td className="px-4 py-2">{staff.attended}</td>
-                  <td className="px-4 py-2">{staff.signedUp}</td>
-                  <td className="px-4 py-2">
-                    <span className="font-semibold text-purple-600">{staff.label}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <OverviewStaffPerformance staffPerformance={staffPerformance} />
     </div>
   );
 }
