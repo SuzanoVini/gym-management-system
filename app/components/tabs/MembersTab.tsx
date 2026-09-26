@@ -1,31 +1,23 @@
 'use client';
 
 import { format } from 'date-fns';
-import { ChevronDown, ChevronRight, Upload, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Upload } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import InfoTip from '@/components/ui/InfoTip';
 import { useCancellations } from '@/hooks/useCancellations';
 import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
 import { useSignups } from '@/hooks/useSignups';
+import { toRosterStatus } from '@/lib/members/derivedStatus';
 import {
-  type DerivedMemberStatus,
-  deriveMemberStatus,
-  toRosterStatus,
-} from '@/lib/members/derivedStatus';
-import { supabase } from '@/lib/supabase/client';
-import { hasRejoinedSinceCancellation } from '@/lib/supabase/memberStatus';
-import { isActiveHold } from '@/lib/utils/holds';
-import { escapeIlike } from '@/lib/utils/normalizePersonKey';
-import type { Cancellation, Hold, Intro, Member, Signup } from '@/types';
-
-interface JourneyEvent {
-  date: string;
-  label: string;
-  sublabel?: string | undefined;
-  color: string;
-}
+  buildMemberRoster,
+  type DisplayMember,
+  summarizeMemberPlans,
+} from '@/lib/members/memberRoster';
+import MemberJourneyPanel from './members/MemberJourneyPanel';
+import MemberPlanBreakdown from './members/MemberPlanBreakdown';
+import MemberRosterTable from './members/MemberRosterTable';
+import MemberSummaryCards from './members/MemberSummaryCards';
 
 const MONTHS_ABBR = [
   'Jan',
@@ -42,189 +34,6 @@ const MONTHS_ABBR = [
   'Dec',
 ];
 const ITEMS_PER_PAGE = 50;
-type DisplayMember = Member & { derivedStatus: DerivedMemberStatus };
-
-function nameKey(row: { name: string; name_normalized?: string | null }) {
-  return (row.name_normalized ?? row.name).toLowerCase().trim();
-}
-
-function parseLifecycleDate(primary?: string | null, fallback?: string | null): number | null {
-  const primaryTime = primary ? new Date(primary).getTime() : Number.NaN;
-  if (!Number.isNaN(primaryTime)) {
-    return primaryTime;
-  }
-  const fallbackTime = fallback ? new Date(fallback).getTime() : Number.NaN;
-  return Number.isNaN(fallbackTime) ? null : fallbackTime;
-}
-
-function PlanBar({ label, count, total }: { label: string; count: number; total: number }) {
-  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-  return (
-    <div className="flex items-center gap-3 text-xs">
-      <span className="text-gray-700 w-28 truncate">{label}</span>
-      <div className="flex-1 bg-gray-100 rounded h-2.5 overflow-hidden">
-        <div className="h-full bg-red-600 rounded" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-gray-500 w-16 text-right">
-        {count} ({pct}%)
-      </span>
-    </div>
-  );
-}
-
-function PlanSummarySection({ title, rows }: { title: string; rows: [string, number][] }) {
-  if (rows.length === 0) {
-    return null;
-  }
-
-  const sectionTotal = rows.reduce((sum, [, count]) => sum + count, 0);
-
-  return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h4>
-      {rows.map(([label, count]) => (
-        <PlanBar key={label} label={label} count={count} total={sectionTotal} />
-      ))}
-    </div>
-  );
-}
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Timeline combines four record types into one ordered journey.
-function buildJourneyEvents(
-  intros: Intro[],
-  signups: Signup[],
-  holds: Hold[],
-  cancellations: Cancellation[]
-): JourneyEvent[] {
-  const nextEvents: JourneyEvent[] = [];
-
-  for (const row of intros) {
-    if (row.date) {
-      nextEvents.push({
-        date: row.date,
-        label: 'Intro class',
-        sublabel: row.class || undefined,
-        color: 'bg-red-600',
-      });
-    }
-  }
-
-  for (const row of signups) {
-    if (row.membership_date) {
-      nextEvents.push({
-        date: row.membership_date,
-        label: `Signed up - ${row.membership}`,
-        color: 'bg-green-600',
-      });
-    }
-  }
-
-  for (const row of holds) {
-    if (row.start) {
-      nextEvents.push({
-        date: row.start,
-        label: 'Membership hold',
-        sublabel: row.end ? `Until ${row.end}` : 'Open-ended',
-        color: 'bg-orange-500',
-      });
-    }
-  }
-
-  for (const row of cancellations) {
-    if (row.date) {
-      nextEvents.push({
-        date: row.date,
-        label: 'Cancelled',
-        sublabel: row.reason || undefined,
-        color: 'bg-gray-700',
-      });
-    }
-  }
-
-  return nextEvents.sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function JourneyPanel({ member, onClose }: { member: DisplayMember; onClose: () => void }) {
-  const [events, setEvents] = useState<JourneyEvent[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const key = (member.name_normalized ?? member.name).toLowerCase().trim();
-    const escapedName = escapeIlike(member.name);
-
-    Promise.all([
-      supabase.from('intros').select('*').ilike('name', escapedName),
-      supabase.from('signups').select('*').ilike('name', escapedName),
-      supabase.from('holds').select('*').eq('name_normalized', key),
-      supabase.from('cancellations').select('*').eq('name_normalized', key),
-    ]).then(([intros, signups, holds, cancellations]) => {
-      if (!cancelled) {
-        setEvents(
-          buildJourneyEvents(
-            (intros.data ?? []) as Intro[],
-            (signups.data ?? []) as Signup[],
-            (holds.data ?? []) as Hold[],
-            (cancellations.data ?? []) as Cancellation[]
-          )
-        );
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [member.name, member.name_normalized]);
-
-  return (
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="member-journey-title"
-    >
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto mx-4">
-        <div className="flex items-center justify-between p-5 border-b">
-          <div>
-            <h2 id="member-journey-title" className="font-semibold text-gray-900">
-              {member.name}
-            </h2>
-            <p className="text-xs text-gray-500">
-              {member.membership_type || 'No plan'} - {member.derivedStatus}
-              {member.derivedStatus === 'Expired' && (
-                <InfoTip label="Their membership reached its end date without being renewed, and no cancellation was ever recorded. The roster counts them alongside Alumni; the distinction is only shown here." />
-              )}
-              {member.join_date ? ` - Since ${member.join_date}` : ''}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-gray-100">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-        <div className="p-5">
-          {events === null ? (
-            <p className="text-sm text-gray-500">Loading...</p>
-          ) : events.length === 0 ? (
-            <p className="text-sm text-gray-500">No records found for this member.</p>
-          ) : (
-            <div className="border-l-2 border-gray-200 pl-4 space-y-4">
-              {events.map((event) => (
-                <div key={`${event.date}-${event.label}`} className="relative">
-                  <div
-                    className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ${event.color} border-2 border-white`}
-                  />
-                  <p className="text-[10px] text-gray-400">{event.date}</p>
-                  <p className="text-sm font-medium text-gray-800">{event.label}</p>
-                  {event.sublabel && <p className="text-xs text-gray-500">{event.sublabel}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function MembersTab() {
   const { members, lastSyncAt, loading, error, refresh } = useMembers();
   const { signups } = useSignups();
@@ -245,58 +54,10 @@ export default function MembersTab() {
   const currentMonthAbbr = MONTHS_ABBR[now.getMonth()];
   const currentYear = now.getFullYear();
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Derives member lifecycle state across signups, cancellations, and holds in one memoized pass.
-  const derivedMembers = useMemo<DisplayMember[]>(() => {
-    const latestSignupByName = new Map<string, number>();
-    const latestCancellationByName = new Map<string, number>();
-    const activeHoldKeys = new Set<string>();
-
-    for (const signup of signups) {
-      const effectiveDate = parseLifecycleDate(signup.membership_date, signup.created_at);
-      if (effectiveDate === null) {
-        continue;
-      }
-      const key = nameKey(signup);
-      const current = latestSignupByName.get(key);
-      if (current === undefined || effectiveDate > current) {
-        latestSignupByName.set(key, effectiveDate);
-      }
-    }
-
-    for (const cancellation of cancellations) {
-      const effectiveDate = parseLifecycleDate(cancellation.date, cancellation.created_at);
-      if (effectiveDate === null) {
-        continue;
-      }
-      const key = nameKey(cancellation);
-      const current = latestCancellationByName.get(key);
-      if (current === undefined || effectiveDate > current) {
-        latestCancellationByName.set(key, effectiveDate);
-      }
-    }
-
-    for (const hold of holds) {
-      if (isActiveHold(hold, now)) {
-        activeHoldKeys.add(nameKey(hold));
-      }
-    }
-
-    return members.map((member) => {
-      const key = nameKey(member);
-      const latestSignup = latestSignupByName.get(key);
-      const latestCancellation = latestCancellationByName.get(key);
-
-      const derivedStatus = deriveMemberStatus({
-        rosterStatus: member.status,
-        latestSignup,
-        latestCancellation,
-        hasActiveHold: activeHoldKeys.has(key),
-        rejoinedPerRoster: hasRejoinedSinceCancellation(member, latestCancellation),
-      });
-
-      return { ...member, derivedStatus };
-    });
-  }, [cancellations, holds, members, now, signups]);
+  const derivedMembers = useMemo(
+    () => buildMemberRoster({ members, signups, cancellations, holds, now }),
+    [cancellations, holds, members, now, signups]
+  );
 
   const activeMembers = useMemo(
     () => derivedMembers.filter((member) => member.derivedStatus === 'Active'),
@@ -332,53 +93,7 @@ export default function MembersTab() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [nonAlumniMembers]);
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Classifies active membership plan strings into independent summary groups.
-  const planSummary = useMemo(() => {
-    const program = { Legacy: 0, Integrity: 0, Special: 0 };
-    const age = { Adults: 0, Kids: 0 };
-    const duration = { Annual: 0, 'Semi-Annual': 0 };
-    const classPacks = { 'Flex 10': 0, 'Flex 20': 0 };
-
-    for (const member of nonAlumniMembers) {
-      const plan = member.membership_type?.toLowerCase() ?? '';
-      if (plan.includes('legacy')) {
-        program.Legacy++;
-      }
-      if (plan.includes('integrity')) {
-        program.Integrity++;
-      }
-      if (plan.includes('special')) {
-        program.Special++;
-      }
-      if (plan.includes('adult')) {
-        age.Adults++;
-      }
-      if (plan.includes('kids') || plan.includes('youth')) {
-        age.Kids++;
-      }
-      if (plan.includes('semi-annual') || plan.includes('semi annual')) {
-        duration['Semi-Annual']++;
-      } else if (plan.includes('annual')) {
-        duration.Annual++;
-      }
-      if (plan.includes('flex 10')) {
-        classPacks['Flex 10']++;
-      }
-      if (plan.includes('flex 20')) {
-        classPacks['Flex 20']++;
-      }
-    }
-
-    const nonZeroEntries = (counts: Record<string, number>) =>
-      Object.entries(counts).filter(([, count]) => count > 0) as [string, number][];
-
-    return {
-      program: nonZeroEntries(program),
-      age: nonZeroEntries(age),
-      duration: nonZeroEntries(duration),
-      classPacks: nonZeroEntries(classPacks),
-    };
-  }, [nonAlumniMembers]);
+  const planSummary = useMemo(() => summarizeMemberPlans(nonAlumniMembers), [nonAlumniMembers]);
 
   const plans = useMemo(
     () =>
@@ -488,73 +203,19 @@ export default function MembersTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="section-container border-l-4 border-red-600">
-          <div className="text-sm text-gray-600 flex items-center gap-1.5">
-            Active Members
-            <InfoTip label="Members currently training. Anyone on hold, cancelled, or whose membership expired is excluded, so this is who is actually on the mats." />
-          </div>
-          <div className="text-3xl font-bold mt-1 text-red-600">{activeMembers.length}</div>
-        </div>
-        <div className="section-container border-l-4 border-green-600">
-          <div className="text-sm text-gray-600 flex items-center gap-1.5">
-            Net This Month
-            <InfoTip label="Signups minus cancellations for the current calendar month. It measures direction of travel this month, not overall size." />
-          </div>
-          <div className="text-3xl font-bold mt-1 text-green-600">
-            {netGrowth >= 0 ? `+${netGrowth}` : netGrowth}
-          </div>
-        </div>
-        <div className="section-container border-l-4 border-orange-600">
-          <div className="text-sm text-gray-600 flex items-center gap-1.5">
-            On Hold
-            <InfoTip label="Members with a hold that covers today. They still count as members and are expected back, so they are not part of the active count." />
-          </div>
-          <div className="text-3xl font-bold mt-1 text-orange-600">{onHoldCount}</div>
-        </div>
-        <div className="section-container border-l-4 border-blue-600">
-          <div className="text-sm text-gray-600 flex items-center gap-1.5">
-            Retention Rate
-            <InfoTip label="The share of active members who did not cancel this month, calculated as 1 minus this month's cancellations over active members. It is a single-month snapshot, not a rolling or annualised figure." />
-          </div>
-          <div className="text-3xl font-bold mt-1 text-blue-600">{retentionRate.toFixed(1)}%</div>
-        </div>
-      </div>
-
-      {planCounts.length > 0 && (
-        <div className="section-container">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Membership Plan Breakdown</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <PlanSummarySection title="Program" rows={planSummary.program} />
-            <PlanSummarySection title="Age" rows={planSummary.age} />
-            <PlanSummarySection title="Duration" rows={planSummary.duration} />
-            <PlanSummarySection title="Class Packs" rows={planSummary.classPacks} />
-          </div>
-
-          <div className="mt-5 border-t pt-4">
-            <button
-              type="button"
-              onClick={() => setShowPlanDetails((value) => !value)}
-              className="flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-900"
-              aria-expanded={showPlanDetails}
-            >
-              {showPlanDetails ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              Per-plan detail
-            </button>
-            {showPlanDetails && (
-              <div className="space-y-2.5 mt-3">
-                {planCounts.map(([plan, count]) => (
-                  <PlanBar key={plan} label={plan} count={count} total={nonAlumniMembers.length} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <MemberSummaryCards
+        activeCount={activeMembers.length}
+        netGrowth={netGrowth}
+        onHoldCount={onHoldCount}
+        retentionRate={retentionRate}
+      />
+      <MemberPlanBreakdown
+        planCounts={planCounts}
+        planSummary={planSummary}
+        memberCount={nonAlumniMembers.length}
+        showPlanDetails={showPlanDetails}
+        setShowPlanDetails={setShowPlanDetails}
+      />
 
       <div className="section-container">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -599,77 +260,11 @@ export default function MembersTab() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold">Roster ({filtered.length})</h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Plan
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Member Since
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3" />
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginated.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
-                    No members match your filters.
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((member) => (
-                  <tr key={member.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {member.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {member.membership_type || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {member.join_date || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${
-                          member.derivedStatus === 'Active'
-                            ? 'bg-green-100 text-green-700'
-                            : member.derivedStatus === 'On Hold'
-                              ? 'bg-orange-100 text-orange-700'
-                              : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {toRosterStatus(member.derivedStatus)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedMember(member)}
-                        className="text-red-600 hover:text-red-800 text-sm font-semibold"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <MemberRosterTable
+        filteredCount={filtered.length}
+        paginated={paginated}
+        setSelectedMember={setSelectedMember}
+      />
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-gray-500">
@@ -700,7 +295,7 @@ export default function MembersTab() {
 
       {selectedMember &&
         createPortal(
-          <JourneyPanel member={selectedMember} onClose={() => setSelectedMember(null)} />,
+          <MemberJourneyPanel member={selectedMember} onClose={() => setSelectedMember(null)} />,
           document.body
         )}
     </div>
