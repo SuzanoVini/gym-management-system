@@ -112,22 +112,18 @@ export function parseDate(dateString: string): Date | null {
   const isoMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
     const [, year, month, day] = isoMatch;
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
-    return Number.isNaN(date.getTime()) ? null : date;
+    return parseDateParts(Number(year), Number(month), Number(day));
   }
 
   // Try parsing as US format (MM/DD/YYYY or MM/DD/YY)
   const usMatch = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if (usMatch) {
-    const month = usMatch[1];
-    const day = usMatch[2];
-    const year = usMatch[3];
+    const [, month, day, year] = usMatch;
     if (!year) {
       return null;
     }
     const fullYear = year.length === 2 ? 2000 + Number(year) : Number(year);
-    const date = new Date(fullYear, Number(month) - 1, Number(day));
-    return Number.isNaN(date.getTime()) ? null : date;
+    return parseDateParts(fullYear, Number(month), Number(day));
   }
 
   // Try parsing as timestamp
@@ -139,6 +135,11 @@ export function parseDate(dateString: string): Date | null {
 
   // Try native Date parsing as last resort
   const date = new Date(dateString);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function parseDateParts(year: number, month: number, day: number): Date | null {
+  const date = new Date(year, month - 1, day);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 

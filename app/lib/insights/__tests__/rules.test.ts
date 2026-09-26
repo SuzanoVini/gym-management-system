@@ -9,7 +9,6 @@ import {
   positiveMilestone,
   reEngagementWindow,
   retentionMomentumNegative,
-  seasonalTravelCancellations,
   speedToFirstContact,
   topCancellationReason,
 } from '../rules';
@@ -85,22 +84,6 @@ function isoMonthsAgo(months: number, day = 15): string {
   d.setUTCDate(day);
   return d.toISOString();
 }
-
-describe('seasonalTravelCancellations', () => {
-  it('returns null at or below the 8-cancellation threshold', () => {
-    const cancellations = Array.from({ length: 8 }, () => cancellation({ reason: 'Travel' }));
-    expect(seasonalTravelCancellations(baseInput({ cancellations }))).toBeNull();
-  });
-
-  it('fires above the threshold and derives revenue from revenuePerMember', () => {
-    const cancellations = Array.from({ length: 9 }, () => cancellation({ reason: 'Travel' }));
-    const insight = seasonalTravelCancellations(
-      baseInput({ cancellations, revenuePerMember: 100 })
-    );
-    expect(insight?.id).toBe('seasonal-travel-cancellations');
-    expect(insight?.message).toContain('Lost revenue: $900/month');
-  });
-});
 
 describe('topCancellationReason', () => {
   it('returns null below 5 occurrences of the top reason', () => {

@@ -1,4 +1,5 @@
 // lib/config.ts
+import { reportConsoleError } from './logger';
 export const config = {
   app: {
     name: 'GB Kitsilano Management',
@@ -46,12 +47,12 @@ export const config = {
 if (typeof window === 'undefined') {
   // Only validate on server-side
   if (!config.supabase.url || !config.supabase.anonKey) {
-    console.error('Missing required environment variables:');
+    reportConsoleError('Missing required environment variables:');
     if (!config.supabase.url) {
-      console.error('- NEXT_PUBLIC_SUPABASE_URL');
+      reportConsoleError('- NEXT_PUBLIC_SUPABASE_URL');
     }
     if (!config.supabase.anonKey) {
-      console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY');
+      reportConsoleError('- NEXT_PUBLIC_SUPABASE_ANON_KEY');
     }
     throw new Error('Missing required environment variables. Check .env.local file.');
   }

@@ -23,21 +23,23 @@ describe('normalizePersonKey', () => {
     const b = normalizePersonKey('JANE DOE', 'JANE@EXAMPLE.COM');
     expect(a).not.toBeNull();
     expect(b).not.toBeNull();
-    expect(a!.name).toBe(b!.name);
-    expect(a!.email).toBe(b!.email);
+    expect(a?.name).toBe(b?.name);
+    expect(a?.email).toBe(b?.email);
   });
 
   it('returns different keys for same email but different name (parent/child)', () => {
     const parent = normalizePersonKey('Maria Santos', 'family@example.com');
     const child = normalizePersonKey('Lucas Santos', 'family@example.com');
-    expect(parent!.name).not.toBe(child!.name);
+    expect(parent).not.toBeNull();
+    expect(child).not.toBeNull();
+    expect(parent?.name).not.toBe(child?.name);
   });
 });
 
 describe('personKeyString', () => {
   it('returns a stable string for a person key', () => {
-    const key = normalizePersonKey('Jane Doe', 'jane@example.com')!;
-    expect(personKeyString(key)).toBe('jane doe|jane@example.com');
+    const key = normalizePersonKey('Jane Doe', 'jane@example.com');
+    expect(key && personKeyString(key)).toBe('jane doe|jane@example.com');
   });
 });
 

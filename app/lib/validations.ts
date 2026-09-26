@@ -205,8 +205,7 @@ export const validateAsync = async <T>(
  * Partial validation - allows partial object validation
  */
 export const validatePartial = <T>(
-  // biome-ignore lint/suspicious/noExplicitAny: Generic schema validation requires any type
-  schema: z.ZodObject<any>,
+  schema: z.ZodObject,
   data: unknown
 ): ValidationResult<Partial<T>> => {
   const partialSchema = schema.partial();

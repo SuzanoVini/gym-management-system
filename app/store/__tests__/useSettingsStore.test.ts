@@ -2,7 +2,7 @@ import { useSettingsStore } from '../useSettingsStore';
 
 const mockIn = jest.fn();
 const mockSelect = jest.fn();
-const mockFrom = jest.fn();
+const mockFrom = jest.fn<{ select: typeof mockSelect }, unknown[]>();
 
 jest.mock('@/lib/supabase/client', () => ({
   supabase: {
