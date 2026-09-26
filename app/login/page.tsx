@@ -5,6 +5,43 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+function LoginHeader({ isResetMode }: { isResetMode: boolean }) {
+  return (
+    <div className="text-center mb-8">
+      <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-xl inline-block mb-4 shadow-soft">
+        <Image
+          src="/brand/gb-logo-title.png"
+          alt="GB Kitsilano"
+          className="mx-auto h-28 w-auto max-w-[160px] object-contain"
+          width={160}
+          height={112}
+          priority
+        />
+      </div>
+      <p className="mt-4 text-center text-sm text-slate-600 font-medium">
+        {isResetMode ? 'Reset Your Password' : 'Gym Management System'}
+      </p>
+    </div>
+  );
+}
+
+function StatusMessages({ error, success }: { error: string; success: string }) {
+  return (
+    <>
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 animate-slideUp">
+          <p className="text-sm text-red-800 font-medium">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 animate-slideUp">
+          <p className="text-sm text-green-800 font-medium">{success}</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,32 +101,14 @@ export default function Login() {
       <div className="max-w-md w-full relative z-10">
         {/* Modern glassmorphism card */}
         <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-glass-lg p-8 border border-slate-200/50">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-xl inline-block mb-4 shadow-soft">
-              <Image
-                src="/brand/gb-logo-title.png"
-                alt="GB Kitsilano"
-                className="mx-auto h-28 w-auto max-w-[160px] object-contain"
-                width={160}
-                height={112}
-                priority
-              />
-            </div>
-            <p className="mt-4 text-center text-sm text-slate-600 font-medium">
-              {isResetMode ? 'Reset Your Password' : 'Gym Management System'}
-            </p>
-          </div>
-          <form className="space-y-6" onSubmit={isResetMode ? handlePasswordReset : handleLogin}>
-            {error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 p-4 animate-slideUp">
-                <p className="text-sm text-red-800 font-medium">{error}</p>
-              </div>
-            )}
-            {success && (
-              <div className="rounded-lg bg-green-50 border border-green-200 p-4 animate-slideUp">
-                <p className="text-sm text-green-800 font-medium">{success}</p>
-              </div>
-            )}
+          <LoginHeader isResetMode={isResetMode} />
+          <form
+            className="space-y-6"
+            onSubmit={(e) => {
+              void (isResetMode ? handlePasswordReset(e) : handleLogin(e));
+            }}
+          >
+            <StatusMessages error={error} success={success} />
             <div className="space-y-4">
               <div>
                 <label htmlFor="email-address" className="form-label">
