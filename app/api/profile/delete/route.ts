@@ -2,7 +2,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { reportConsoleError } from '@/lib/logger';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { deleteAuthUser } from '@/lib/supabase/maintenance';
 
 export async function DELETE() {
   try {
@@ -26,8 +26,7 @@ export async function DELETE() {
     }
 
     // Delete the auth user; ON DELETE CASCADE removes user_profiles automatically.
-    const admin = createAdminClient();
-    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+    const { error: deleteError } = await deleteAuthUser(user.id);
     if (deleteError) {
       reportConsoleError('Error deleting auth user:', deleteError);
       return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 });

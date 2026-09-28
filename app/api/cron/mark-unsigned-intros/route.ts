@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyCronRequest } from '@/lib/cron';
 import { reportConsoleError } from '@/lib/logger';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { markUnsignedIntros } from '@/lib/supabase/maintenance';
 
 export async function GET(request: Request) {
   try {
@@ -10,13 +10,7 @@ export async function GET(request: Request) {
       return unauthorizedResponse;
     }
 
-    const supabase = createAdminClient();
-
-    // Calls the mark_unsigned_intros() SQL function created in Supabase SQL Editor
-    // Uses COALESCE(date::date, created_at::date) to handle legacy null-date records
-    const result = await supabase.rpc('mark_unsigned_intros');
-    const count = result.data as number | null;
-    const { error } = result;
+    const { count, error } = await markUnsignedIntros();
 
     if (error) {
       reportConsoleError('mark-unsigned-intros error:', error);
