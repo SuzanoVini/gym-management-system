@@ -26,6 +26,39 @@ function toHoldFormData(data: Hold | HoldFormData): HoldFormData {
   return writable;
 }
 
+function HoldMonthField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}) {
+  return (
+    <div>
+      <label className="form-label" htmlFor="hold-month">
+        Month *{' '}
+        <span className="text-xs text-gray-400 font-normal">
+          (set a start date above to auto-fill)
+        </span>
+      </label>
+      <select
+        id="hold-month"
+        name="month"
+        value={value}
+        onChange={onChange}
+        className="form-select"
+      >
+        <option value="">Select month</option>
+        {MONTHS.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 interface HoldFormProps {
   hold?: Hold | null;
   onSubmit: (data: HoldFormData) => void | Promise<void>;
@@ -81,7 +114,12 @@ export function HoldForm({
   const showMonthFallback = !formData.start;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
+      className="space-y-3"
+    >
       <div>
         <label className="form-label" htmlFor="hold-name">
           Name *
@@ -108,30 +146,7 @@ export function HoldForm({
           className="form-input"
         />
       </div>
-      {showMonthFallback && (
-        <div>
-          <label className="form-label" htmlFor="hold-month">
-            Month *{' '}
-            <span className="text-xs text-gray-400 font-normal">
-              (set a start date above to auto-fill)
-            </span>
-          </label>
-          <select
-            id="hold-month"
-            name="month"
-            value={formData.month}
-            onChange={handleChange}
-            className="form-select"
-          >
-            <option value="">Select month</option>
-            {MONTHS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {showMonthFallback && <HoldMonthField value={formData.month} onChange={handleChange} />}
       <div>
         <label className="form-label" htmlFor="hold-end">
           End Date

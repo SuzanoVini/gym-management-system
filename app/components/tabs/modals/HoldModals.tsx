@@ -2,6 +2,7 @@ import { Edit2, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import type { HoldCsvRecord } from '@/lib/csv';
+import { reportConsoleError } from '@/lib/logger';
 import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -26,18 +27,15 @@ interface HoldModalsProps {
   editHold: (id: string, updates: Partial<HoldFormData>) => Promise<void>;
 }
 
-export function HoldModals({
-  importPreviewData,
-  confirmCSVImport,
-  importYear,
-  onImportYearChange,
-  onImportClose,
-  addHold,
-  editHold,
-}: HoldModalsProps) {
-  const { modals, closeModal } = useUIStore();
-  const { selectedHold, setSelectedHold } = useSelectionStore();
-  const holdReasons = useSettingsStore((s) => s.holdReasons);
+function HoldReasonsModal({
+  isOpen,
+  onClose,
+  holdReasons,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  holdReasons: string[];
+}) {
   const refreshSettings = useSettingsStore((s) => s.refresh);
 
   const [newReason, setNewReason] = useState('');
@@ -51,7 +49,7 @@ export function HoldModals({
         await refreshSettings();
         setNewReason('');
       } catch (error) {
-        console.error('Error saving reason:', error);
+        reportConsoleError('Error saving reason:', error);
         alert('Failed to save reason');
       }
     }
@@ -64,7 +62,7 @@ export function HoldModals({
         await updateSettings('hold_reasons', updated);
         await refreshSettings();
       } catch (error) {
-        console.error('Error deleting reason:', error);
+        reportConsoleError('Error deleting reason:', error);
         alert('Failed to delete reason');
       }
     }
@@ -79,11 +77,114 @@ export function HoldModals({
       await refreshSettings();
       setEditingReasonIndex(null);
     } catch (error) {
-      console.error('Error updating reason:', error);
+      reportConsoleError('Error updating reason:', error);
       alert('Failed to update reason');
     }
   };
 
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Manage Hold Reasons" size="lg">
+      <div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="hold-new-reason">
+            Add New Reason
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="hold-new-reason"
+              type="text"
+              value={newReason}
+              onChange={(e) => setNewReason(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  void handleAddReason();
+                }
+              }}
+              placeholder="Enter hold reason"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void handleAddReason();
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              <HoldModalIcons.Plus className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h4 className="font-medium text-gray-700 mb-3">Current Reasons ({holdReasons.length})</h4>
+          {holdReasons.map((reason, index) => (
+            <div
+              key={reason}
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+            >
+              {editingReasonIndex === index ? (
+                <input
+                  type="text"
+                  defaultValue={reason}
+                  onBlur={(e) => {
+                    void handleUpdateReason(index, e.target.value);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      void handleUpdateReason(index, (e.target as HTMLInputElement).value);
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                />
+              ) : (
+                <span className="flex-1">{reason}</span>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingReasonIndex(index)}
+                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                >
+                  <HoldModalIcons.Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDeleteReason(index);
+                  }}
+                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                >
+                  <HoldModalIcons.Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+        >
+          <HoldModalIcons.X className="w-6 h-6" />
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function HoldModals({
+  importPreviewData,
+  confirmCSVImport,
+  importYear,
+  onImportYearChange,
+  onImportClose,
+  addHold,
+  editHold,
+}: HoldModalsProps) {
+  const { modals, closeModal } = useUIStore();
+  const { selectedHold, setSelectedHold } = useSelectionStore();
+  const holdReasons = useSettingsStore((s) => s.holdReasons);
   return (
     <>
       <Modal isOpen={modals.addHold} onClose={() => closeModal('addHold')} title="Add New Hold">
@@ -184,100 +285,20 @@ export function HoldModals({
           </button>
           <button
             type="button"
-            onClick={confirmCSVImport}
+            onClick={() => {
+              void confirmCSVImport();
+            }}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Confirm Import
           </button>
         </div>
       </Modal>
-      <Modal
+      <HoldReasonsModal
         isOpen={modals.settings}
         onClose={() => closeModal('settings')}
-        title="Manage Hold Reasons"
-        size="lg"
-      >
-        <div>
-          <div className="mb-4">
-            <label
-              className="block text-sm font-medium text-gray-700 mb-2"
-              htmlFor="hold-new-reason"
-            >
-              Add New Reason
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="hold-new-reason"
-                type="text"
-                value={newReason}
-                onChange={(e) => setNewReason(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddReason()}
-                placeholder="Enter hold reason"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-              <button
-                type="button"
-                onClick={handleAddReason}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                <HoldModalIcons.Plus className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-700 mb-3">
-              Current Reasons ({holdReasons.length})
-            </h4>
-            {holdReasons.map((reason, index) => (
-              <div
-                key={reason}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                {editingReasonIndex === index ? (
-                  <input
-                    type="text"
-                    defaultValue={reason}
-                    onBlur={(e) => handleUpdateReason(index, e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleUpdateReason(index, (e.target as HTMLInputElement).value);
-                      }
-                    }}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded"
-                  />
-                ) : (
-                  <span className="flex-1">{reason}</span>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingReasonIndex(index)}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                  >
-                    <HoldModalIcons.Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteReason(index)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                  >
-                    <HoldModalIcons.Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={() => closeModal('settings')}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            <HoldModalIcons.X className="w-6 h-6" />
-          </button>
-        </div>
-      </Modal>
+        holdReasons={holdReasons}
+      />
     </>
   );
 }

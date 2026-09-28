@@ -39,7 +39,7 @@ const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: 'custom', label: 'Custom Range' },
 ];
 
-export default function OverviewTab() {
+function useOverviewDateRange() {
   const [dateRange, setDateRange] = useState('all');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const overviewDateRange = useFilterStore((s) => s.overviewDateRange);
@@ -56,6 +56,55 @@ export default function OverviewTab() {
       setRangeInitialised(true);
     }
   }, [prefsHydrated, overviewDateRange, rangeInitialised]);
+
+  return {
+    dateRange,
+    setDateRange,
+    settingsOpen,
+    setSettingsOpen,
+    customStartDate,
+    setCustomStartDate,
+    customEndDate,
+    setCustomEndDate,
+    tempStartDate,
+    setTempStartDate,
+    tempEndDate,
+    setTempEndDate,
+  };
+}
+
+function computeOverviewCharts(
+  filteredData: ReturnType<typeof useAnalyticsData>['filteredData'],
+  current: ReturnType<typeof computeCoreMetrics>,
+  staffMembers: string[]
+) {
+  const { intros, signups, cancellations, holds } = filteredData;
+  return {
+    activeHolds: holds.filter((h) => isActiveHold(h)).length,
+    monthlyData: computeMonthlyTrends(filteredData),
+    funnelData: computeFunnelData(current),
+    topClasses: computeTopClasses(intros, signups),
+    membershipChart: computeMembershipChart(signups),
+    reasonsChart: computeReasonsChart(cancellations),
+    staffPerformance: computeStaffPerformance(intros, staffMembers),
+  };
+}
+
+export default function OverviewTab() {
+  const {
+    dateRange,
+    setDateRange,
+    settingsOpen,
+    setSettingsOpen,
+    customStartDate,
+    setCustomStartDate,
+    customEndDate,
+    setCustomEndDate,
+    tempStartDate,
+    setTempStartDate,
+    tempEndDate,
+    setTempEndDate,
+  } = useOverviewDateRange();
 
   const { filteredData, previousPeriodData, loading, error, refresh } = useAnalyticsData({
     dateRange,
@@ -74,13 +123,15 @@ export default function OverviewTab() {
   const { intros, signups, cancellations, holds } = filteredData;
   const current = computeCoreMetrics(filteredData);
   const previous = previousPeriodData ? computeCoreMetrics(previousPeriodData) : null;
-  const activeHolds = holds.filter((h) => isActiveHold(h)).length;
-  const monthlyData = computeMonthlyTrends(filteredData);
-  const funnelData = computeFunnelData(current);
-  const topClasses = computeTopClasses(intros, signups);
-  const membershipChart = computeMembershipChart(signups);
-  const reasonsChart = computeReasonsChart(cancellations);
-  const staffPerformance = computeStaffPerformance(intros, staffMembers);
+  const {
+    activeHolds,
+    monthlyData,
+    funnelData,
+    topClasses,
+    membershipChart,
+    reasonsChart,
+    staffPerformance,
+  } = computeOverviewCharts(filteredData, current, staffMembers);
   // Top insights from the shared engine (same rules as the Insights tab) —
   // this used to be a hand-rolled fork with its own thresholds that drifted
   // from the real rules over time (e.g. >3 vs ≥5 for top cancellation reason)
@@ -110,7 +161,13 @@ export default function OverviewTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button type="button" onClick={refresh} className="btn btn-primary">
+        <button
+          type="button"
+          onClick={() => {
+            void refresh();
+          }}
+          className="btn btn-primary"
+        >
           Retry
         </button>
       </div>

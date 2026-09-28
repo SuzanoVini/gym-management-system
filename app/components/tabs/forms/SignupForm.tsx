@@ -7,6 +7,94 @@ import type { Signup, SignupFormData } from '@/types';
 
 const MONTHS = config.months;
 
+type SelectChangeHandler = (e: React.ChangeEvent<HTMLSelectElement>) => void;
+
+function MembershipTypeField({
+  value,
+  onChange,
+  membershipTypes,
+}: {
+  value: string;
+  onChange: SelectChangeHandler;
+  membershipTypes: string[];
+}) {
+  return (
+    <div>
+      <label className="form-label" htmlFor="signup-membership">
+        Membership Type *
+      </label>
+      <select
+        id="signup-membership"
+        name="membership"
+        value={value}
+        onChange={onChange}
+        className="form-select"
+      >
+        <option value="">Select type</option>
+        {membershipTypes.length === 0 ? (
+          <option value="" disabled>
+            Loading…
+          </option>
+        ) : (
+          membershipTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))
+        )}
+      </select>
+    </div>
+  );
+}
+
+function SignupMonthField({ value, onChange }: { value: string; onChange: SelectChangeHandler }) {
+  return (
+    <div>
+      <label className="form-label" htmlFor="signup-month">
+        Month *{' '}
+        <span className="text-xs text-gray-400 font-normal">(set a date above to auto-fill)</span>
+      </label>
+      <select
+        id="signup-month"
+        name="month"
+        value={value}
+        onChange={onChange}
+        className="form-select"
+      >
+        <option value="">Select month</option>
+        {MONTHS.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function SignupPackageField({
+  checked,
+  onChange,
+}: {
+  checked: boolean | undefined;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div>
+      <label className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          name="signup_package"
+          checked={checked}
+          onChange={onChange}
+          className="rounded"
+        />
+        <span className="text-sm font-medium">Sign-up Package</span>
+      </label>
+    </div>
+  );
+}
+
 interface SignupFormProps {
   signup?: Signup | null;
   onSubmit: (data: SignupFormData) => void | Promise<void>;
@@ -76,7 +164,12 @@ export function SignupForm({
   const showMonthFallback = !formData.membership_date;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
+      className="space-y-3"
+    >
       <div>
         <label className="form-label" htmlFor="signup-name">
           Name *
@@ -90,31 +183,11 @@ export function SignupForm({
           className="form-input"
         />
       </div>
-      <div>
-        <label className="form-label" htmlFor="signup-membership">
-          Membership Type *
-        </label>
-        <select
-          id="signup-membership"
-          name="membership"
-          value={formData.membership}
-          onChange={handleChange}
-          className="form-select"
-        >
-          <option value="">Select type</option>
-          {membershipTypes.length === 0 ? (
-            <option value="" disabled>
-              Loading…
-            </option>
-          ) : (
-            membershipTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))
-          )}
-        </select>
-      </div>
+      <MembershipTypeField
+        value={formData.membership}
+        onChange={handleChange}
+        membershipTypes={membershipTypes}
+      />
       <div>
         <label className="form-label" htmlFor="signup-membership-date">
           Sign Up Date *
@@ -128,30 +201,7 @@ export function SignupForm({
           className="form-input"
         />
       </div>
-      {showMonthFallback && (
-        <div>
-          <label className="form-label" htmlFor="signup-month">
-            Month *{' '}
-            <span className="text-xs text-gray-400 font-normal">
-              (set a date above to auto-fill)
-            </span>
-          </label>
-          <select
-            id="signup-month"
-            name="month"
-            value={formData.month}
-            onChange={handleChange}
-            className="form-select"
-          >
-            <option value="">Select month</option>
-            {MONTHS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {showMonthFallback && <SignupMonthField value={formData.month} onChange={handleChange} />}
       <div>
         <label className="form-label" htmlFor="signup-first-payment-date">
           First Payment Date
@@ -165,20 +215,7 @@ export function SignupForm({
           className="form-input"
         />
       </div>
-      {!isASP && (
-        <div>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name="signup_package"
-              checked={formData.signup_package}
-              onChange={handleChange}
-              className="rounded"
-            />
-            <span className="text-sm font-medium">Sign-up Package</span>
-          </label>
-        </div>
-      )}
+      {!isASP && <SignupPackageField checked={formData.signup_package} onChange={handleChange} />}
       <div>
         <label className="form-label" htmlFor="signup-notes">
           Notes

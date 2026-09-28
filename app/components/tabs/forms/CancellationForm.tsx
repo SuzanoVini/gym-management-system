@@ -28,6 +28,60 @@ function toCancellationFormData(data: Cancellation | CancellationFormData): Canc
   return writable;
 }
 
+interface SelectFieldProps {
+  value: string | undefined;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}
+
+function CancellationMonthField({ value, onChange }: SelectFieldProps) {
+  return (
+    <div>
+      <label className="form-label" htmlFor="cancellation-month">
+        Month *{' '}
+        <span className="text-xs text-gray-400 font-normal">(set a date above to auto-fill)</span>
+      </label>
+      <select
+        id="cancellation-month"
+        name="month"
+        value={value}
+        onChange={onChange}
+        className="form-select"
+      >
+        <option value="">Select month</option>
+        {MONTHS.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function AgeGroupField({ value, onChange }: SelectFieldProps) {
+  return (
+    <div>
+      <label className="form-label" htmlFor="cancellation-age-group">
+        Age Group
+      </label>
+      <select
+        id="cancellation-age-group"
+        name="age_group"
+        value={value}
+        onChange={onChange}
+        className="form-select"
+      >
+        <option value="">Select age group</option>
+        {AGE_GROUPS.map((age) => (
+          <option key={age} value={age}>
+            {age}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 interface CancellationFormProps {
   cancellation?: Cancellation | null;
   onSubmit: (data: CancellationFormData) => void;
@@ -131,28 +185,7 @@ export function CancellationForm({
         {dateError && <p className="text-sm text-red-600 mt-1">{dateError}</p>}
       </div>
       {showMonthFallback && (
-        <div>
-          <label className="form-label" htmlFor="cancellation-month">
-            Month *{' '}
-            <span className="text-xs text-gray-400 font-normal">
-              (set a date above to auto-fill)
-            </span>
-          </label>
-          <select
-            id="cancellation-month"
-            name="month"
-            value={formData.month}
-            onChange={handleChange}
-            className="form-select"
-          >
-            <option value="">Select month</option>
-            {MONTHS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CancellationMonthField value={formData.month} onChange={handleChange} />
       )}
       <div>
         <label className="form-label" htmlFor="cancellation-reason">
@@ -173,25 +206,7 @@ export function CancellationForm({
           ))}
         </select>
       </div>
-      <div>
-        <label className="form-label" htmlFor="cancellation-age-group">
-          Age Group
-        </label>
-        <select
-          id="cancellation-age-group"
-          name="age_group"
-          value={formData.age_group}
-          onChange={handleChange}
-          className="form-select"
-        >
-          <option value="">Select age group</option>
-          {AGE_GROUPS.map((age) => (
-            <option key={age} value={age}>
-              {age}
-            </option>
-          ))}
-        </select>
-      </div>
+      <AgeGroupField value={formData.age_group} onChange={handleChange} />
       <div>
         <label className="form-label" htmlFor="cancellation-notes">
           Notes

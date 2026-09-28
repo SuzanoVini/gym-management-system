@@ -4,109 +4,13 @@ import { Download } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import NotesManagerModal from '@/components/tabs/modals/NotesManagerModal';
 import DismissUndoToast from '@/components/ui/DismissUndoToast';
-import FollowUpCheckButton, { type FollowUpIntro } from '@/components/ui/FollowUpCheckButton';
+import type { FollowUpIntro } from '@/components/ui/FollowUpCheckButton';
 import PaginationBar from '@/components/ui/PaginationBar';
 import type { FollowUpRow, useFollowUps } from '@/hooks/useFollowUps';
-import { clearFollowUpReminder, undoDismissFollowUp } from '@/lib/supabase/intros';
-import { normalizePersonKey, personKeyString } from '@/lib/utils/normalizePersonKey';
-import { formatReminderDate, getReminderBadgeLabel } from '@/lib/utils/reminderUtils';
-
-function rowClass(row: FollowUpRow): string {
-  if (row.hasActiveReminder) {
-    return 'border-l-4 border-blue-400 bg-blue-50';
-  }
-  const base = 'border-l-4 ';
-  if (row.tier === 1 || row.tier === 3) {
-    return `${base}border-red-400 bg-red-50`;
-  }
-  if (row.tier === 2) {
-    return `${base}border-amber-400 bg-amber-50`;
-  }
-  if (row.tier === 4) {
-    return `${base}border-blue-400 bg-blue-50`;
-  }
-  return 'border-l-4 border-transparent opacity-60';
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) {
-    return '—';
-  }
-  return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
-}
-
-function dueBadge(row: FollowUpRow): React.ReactNode {
-  if (!row.followup_1_at) {
-    if (row.tier === 1) {
-      return <span className="text-xs font-semibold text-red-600">⚠ Overdue</span>;
-    }
-    if (row.tier === 2) {
-      return <span className="text-xs font-semibold text-amber-600">Due today</span>;
-    }
-    return (
-      <span className="text-xs text-gray-400">
-        Due {formatDate(row.firstDueDate.toISOString())}
-      </span>
-    );
-  }
-  return <span className="text-xs text-green-700">✓ {formatDate(row.followup_1_at)}</span>;
-}
-
-function due2Badge(row: FollowUpRow): React.ReactNode {
-  if (!row.followup_1_at) {
-    return <span className="text-gray-300 text-sm">—</span>;
-  }
-  if (row.followup_2_at) {
-    return <span className="text-xs text-green-700">✓ {formatDate(row.followup_2_at)}</span>;
-  }
-  if (row.isSecondOverdue) {
-    return <span className="text-xs font-semibold text-red-600">⚠ Overdue</span>;
-  }
-  return (
-    <span className="text-xs text-blue-600">
-      Due {row.secondDueDate ? formatDate(row.secondDueDate.toISOString()) : '—'}
-    </span>
-  );
-}
-
-function escapeCsvField(v: string): string {
-  return `"${v.replace(/"/g, '""')}"`;
-}
-
-function exportCsv(rows: FollowUpRow[]) {
-  const header = [
-    'Name',
-    'Phone',
-    'Email',
-    'Class',
-    'Intro Date',
-    'Attended',
-    'Staff',
-    '1st Follow-up',
-    '2nd Follow-up',
-    'Notes',
-  ];
-  const csvRows = rows.map((r) => [
-    escapeCsvField(r.name),
-    escapeCsvField(r.phone ?? ''),
-    escapeCsvField(r.email ?? ''),
-    escapeCsvField(r.class ?? ''),
-    escapeCsvField(r.date ?? ''),
-    escapeCsvField(r.attended ?? ''),
-    escapeCsvField(r.staff ?? ''),
-    escapeCsvField(r.followup_1_at ? formatDate(r.followup_1_at) : ''),
-    escapeCsvField(r.followup_2_at ? formatDate(r.followup_2_at) : ''),
-    escapeCsvField((r.follow_up_notes ?? []).map((n) => n.note).join(' ; ')),
-  ]);
-  const csv = [header.map(escapeCsvField), ...csvRows].map((r) => r.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `follow-ups-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { undoDismissFollowUp } from '@/lib/supabase/intros';
+import ActiveRemindersBanner from './FollowUpsTab/ActiveRemindersBanner';
+import FollowUpTableRow, { FollowUpTableHead } from './FollowUpsTab/FollowUpTableRow';
+import { exportCsv, groupActiveReminders } from './FollowUpsTab/followUpFormatting';
 
 interface FollowUpsTabProps {
   // Single useFollowUps instance owned by page.tsx (also feeds the sidebar
@@ -124,20 +28,7 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
   const [dismissedForUndo, setDismissedForUndo] = useState<FollowUpIntro | null>(null);
 
   // One entry per person group with an active reminder, for the banner
-  const activeReminderGroups = useMemo(() => {
-    const seen = new Map<string, FollowUpRow>();
-    for (const row of rows) {
-      if (!row.hasActiveReminder) {
-        continue;
-      }
-      const key = normalizePersonKey(row.name, row.email);
-      const k = key ? personKeyString(key) : row.id;
-      if (!seen.has(k)) {
-        seen.set(k, row);
-      }
-    }
-    return Array.from(seen.values());
-  }, [rows]);
+  const activeReminderGroups = useMemo(() => groupActiveReminders(rows), [rows]);
 
   const handleUndoDismiss = async () => {
     if (!dismissedForUndo) {
@@ -146,7 +37,7 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
     const { id, name, email } = dismissedForUndo;
     setDismissedForUndo(null);
     await undoDismissFollowUp(id, name, email);
-    silentRefresh();
+    void silentRefresh();
   };
 
   const handleNoteQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,7 +59,13 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button type="button" onClick={refresh} className="btn btn-primary">
+        <button
+          type="button"
+          onClick={() => {
+            void refresh();
+          }}
+          className="btn btn-primary"
+        >
           Retry
         </button>
       </div>
@@ -206,70 +103,18 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
         </div>
 
         {/* Active reminders banner */}
-        {activeReminderGroups.length > 0 && (
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-            <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-              <span>🔔</span>
-              <span>Active reminders ({activeReminderGroups.length})</span>
-            </div>
-            {activeReminderGroups.map((row) => (
-              <div
-                key={row.id}
-                className="flex items-center justify-between bg-white rounded-md border border-blue-100 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <span className="text-sm font-medium text-gray-900">{row.name}</span>
-                  {row.followup_reminder_at && (
-                    <span className="text-xs text-gray-500 ml-2">
-                      Due {formatReminderDate(row.followup_reminder_at)}
-                    </span>
-                  )}
-                  {row.follow_up_notes?.[0] && (
-                    <p className="text-xs text-gray-400 italic truncate mt-0.5">
-                      "{row.follow_up_notes[0].note.slice(0, 60)}
-                      {row.follow_up_notes[0].note.length > 60 ? '…' : ''}"
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-3 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedIntroForNotes(row)}
-                    className="text-xs text-blue-600 hover:text-blue-800 border border-blue-200 rounded px-2 py-1"
-                  >
-                    Open notes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await clearFollowUpReminder(row.id, row.name, row.email);
-                      silentRefresh();
-                    }}
-                    className="text-xs text-gray-400 hover:text-red-500 border border-gray-200 rounded px-2 py-1"
-                  >
-                    Clear reminder
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <ActiveRemindersBanner
+          groups={activeReminderGroups}
+          onOpenNotes={setSelectedIntroForNotes}
+          onCleared={() => {
+            void silentRefresh();
+          }}
+        />
 
         {/* Table */}
         <div className="overflow-x-auto rounded-lg border border-gray-200">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="text-left px-4 py-3">Name</th>
-                <th className="text-left px-4 py-3">Intro Date</th>
-                <th className="text-left px-4 py-3">Class</th>
-                <th className="text-left px-4 py-3">Staff</th>
-                <th className="text-left px-4 py-3">1st Follow-up</th>
-                <th className="text-left px-4 py-3">2nd Follow-up</th>
-                <th className="text-left px-4 py-3">Notes</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
+            <FollowUpTableHead />
             <tbody className="divide-y divide-gray-100">
               {loading && (
                 <tr>
@@ -287,45 +132,17 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
                   </td>
                 </tr>
               )}
-              {paginated.map((row) => {
-                const latestNote = row.follow_up_notes?.[0]?.note ?? '';
-                const preview = latestNote.length > 60 ? `${latestNote.slice(0, 60)}…` : latestNote;
-                return (
-                  <tr key={row.id} className={`${rowClass(row)} transition-colors`}>
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{row.name}</span>
-                        {row.hasActiveReminder && row.followup_reminder_at && (
-                          <span className="text-[10px] font-semibold bg-blue-100 text-blue-600 rounded px-1.5 py-0.5">
-                            🔔 {getReminderBadgeLabel(row.followup_reminder_at)}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{formatDate(row.date)}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.class}</td>
-                    <td className="px-4 py-3 text-gray-600">{row.staff}</td>
-                    <td className="px-4 py-3">{dueBadge(row)}</td>
-                    <td className="px-4 py-3">{due2Badge(row)}</td>
-                    <td className="px-4 py-3 max-w-[200px]">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedIntroForNotes(row)}
-                        className="text-left text-gray-500 italic truncate w-full hover:text-blue-600 hover:underline transition-colors"
-                      >
-                        {preview || <span className="text-gray-300">No notes</span>}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <FollowUpCheckButton
-                        intro={row}
-                        onUpdate={silentRefresh}
-                        onDismissed={setDismissedForUndo}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
+              {paginated.map((row) => (
+                <FollowUpTableRow
+                  key={row.id}
+                  row={row}
+                  onOpenNotes={setSelectedIntroForNotes}
+                  onUpdate={() => {
+                    void silentRefresh();
+                  }}
+                  onDismissed={setDismissedForUndo}
+                />
+              ))}
             </tbody>
           </table>
         </div>
@@ -352,7 +169,12 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
       />
 
       {dismissedForUndo && (
-        <DismissUndoToast onUndo={handleUndoDismiss} onExpire={() => setDismissedForUndo(null)} />
+        <DismissUndoToast
+          onUndo={() => {
+            void handleUndoDismiss();
+          }}
+          onExpire={() => setDismissedForUndo(null)}
+        />
       )}
     </div>
   );

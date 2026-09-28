@@ -109,7 +109,7 @@ export default function IntroDialogs({
         onClose={() => {
           closeModal('followUp');
           setSelectedIntro(null);
-          refresh();
+          void refresh();
         }}
         intro={selectedIntro}
       />
@@ -135,24 +135,29 @@ export default function IntroDialogs({
           intro={resolvingIntro}
           classTypes={classTypes}
           onClose={() => setResolvingIntro(null)}
-          onResolved={async () => {
+          onResolved={() => {
             setResolvingIntro(null);
-            await refresh();
+            void refresh();
           }}
         />
       )}
 
       {dismissedForUndo && (
-        <DismissUndoToast onUndo={handleUndoDismiss} onExpire={() => setDismissedForUndo(null)} />
+        <DismissUndoToast
+          onUndo={() => {
+            void handleUndoDismiss();
+          }}
+          onExpire={() => setDismissedForUndo(null)}
+        />
       )}
 
       {pendingSignupIntro && (
         <QuickSignupModal
           intro={pendingSignupIntro}
           onClose={() => setPendingSignupIntro(null)}
-          onSuccess={async () => {
+          onSuccess={() => {
             setPendingSignupIntro(null);
-            await silentRefresh();
+            void silentRefresh();
           }}
         />
       )}

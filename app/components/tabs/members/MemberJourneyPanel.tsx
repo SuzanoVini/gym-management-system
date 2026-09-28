@@ -17,7 +17,7 @@ export default function MemberJourneyPanel({
 
   useEffect(() => {
     let cancelled = false;
-    fetchMemberJourneyRecords(member.name, member.name_normalized).then(
+    void fetchMemberJourneyRecords(member.name, member.name_normalized).then(
       ([intros, signups, holds, cancellations]) => {
         if (!cancelled) {
           setEvents(

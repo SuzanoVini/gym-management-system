@@ -29,7 +29,7 @@ export default function OverviewStaffPerformance({
           <YAxis label={{ value: 'Conversion Rate (%)', angle: -90, position: 'insideLeft' }} />
           <Tooltip
             formatter={(_value, _name, props) => {
-              const data = props.payload;
+              const data = props.payload as ReturnType<typeof computeStaffPerformance>[number];
               return [`${data.label}`, 'Conversion'];
             }}
           />

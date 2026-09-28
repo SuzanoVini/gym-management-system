@@ -228,7 +228,11 @@ describe('NotesManagerModal', () => {
     await waitFor(() => screen.getByText(/Possible reminder detected/));
     // Two "Set reminder" buttons exist (header + suggestion bar); the suggestion bar's is last
     const setReminderButtons = screen.getAllByRole('button', { name: /^set reminder$/i });
-    await userEvent.click(setReminderButtons[setReminderButtons.length - 1]!);
+    const suggestionSetReminder = setReminderButtons.at(-1);
+    if (!suggestionSetReminder) {
+      throw new Error('Expected a "Set reminder" button');
+    }
+    await userEvent.click(suggestionSetReminder);
     await waitFor(() => {
       expect(mockSetReminder).toHaveBeenCalledWith(
         'intro-1',

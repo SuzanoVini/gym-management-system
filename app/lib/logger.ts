@@ -1,5 +1,4 @@
 // lib/logger.ts
-import { useCallback, useEffect } from 'react';
 import { errorHandler } from './errorHandler';
 
 export function reportConsoleError(...args: Parameters<typeof console.error>): void {
@@ -246,25 +245,3 @@ export const PerformanceMonitor = {
     performanceMetrics.clear();
   },
 };
-
-// React hook for performance monitoring
-export function usePerformanceMonitor(componentName: string) {
-  useEffect(() => {
-    logger.logComponentLifecycle(componentName, 'mount');
-
-    return () => {
-      logger.logComponentLifecycle(componentName, 'unmount');
-    };
-  }, [componentName]);
-
-  const measureOperation = useCallback(
-    (operationName: string, fn: () => void) => {
-      const endTimer = PerformanceMonitor.startTimer(`${componentName}-${operationName}`);
-      fn();
-      endTimer();
-    },
-    [componentName]
-  );
-
-  return { measureOperation };
-}

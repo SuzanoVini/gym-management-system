@@ -21,10 +21,12 @@ export function introStatusColumns({
       render: (value: unknown, intro: Intro) => (
         <select
           value={(value as string) || ''}
-          onChange={async (e) => {
+          onChange={(e) => {
             const val = e.target.value;
-            await updateIntroAttendance(intro.id, val);
-            await silentRefresh();
+            void (async () => {
+              await updateIntroAttendance(intro.id, val);
+              await silentRefresh();
+            })();
           }}
           onClick={(e) => e.stopPropagation()}
           className={`text-xs rounded-full px-2 py-0.5 border cursor-pointer font-medium focus:outline-none focus:ring-1 focus:ring-blue-400 ${
@@ -47,14 +49,16 @@ export function introStatusColumns({
       render: (value: unknown, intro: Intro) => (
         <select
           value={(value as string) || ''}
-          onChange={async (e) => {
+          onChange={(e) => {
             const val = e.target.value;
             if (val === 'Yes') {
               setPendingSignupIntro(intro);
               return;
             }
-            await updateIntroSignupStatus(intro.id, val);
-            await silentRefresh();
+            void (async () => {
+              await updateIntroSignupStatus(intro.id, val);
+              await silentRefresh();
+            })();
           }}
           onClick={(e) => e.stopPropagation()}
           className={`text-xs rounded-full px-2 py-0.5 border cursor-pointer font-medium focus:outline-none focus:ring-1 focus:ring-blue-400 ${
@@ -85,7 +89,9 @@ export function introStatusColumns({
         <div className="flex items-center gap-3">
           <FollowUpCheckButton
             intro={intro}
-            onUpdate={silentRefresh}
+            onUpdate={() => {
+              void silentRefresh();
+            }}
             onDismissed={setDismissedForUndo}
           />
           <OverflowMenu
@@ -111,7 +117,9 @@ export function introStatusColumns({
                 label: 'Delete',
                 icon: Trash2,
                 variant: 'danger',
-                onClick: () => removeIntro(intro.id, intro.name),
+                onClick: () => {
+                  void removeIntro(intro.id, intro.name);
+                },
               },
             ]}
           />

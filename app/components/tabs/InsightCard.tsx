@@ -35,6 +35,43 @@ const InsightIcons = {
   Target,
 };
 
+function actionedState(dismissedRecord: DismissedInsight | undefined) {
+  const isDone = dismissedRecord?.action === 'done';
+  const isSnoozed = dismissedRecord?.action === 'snoozed';
+  const isDismissed = dismissedRecord?.action === 'dismissed';
+  const isActioned = isDone || isSnoozed || isDismissed;
+  return { isDone, isSnoozed, isDismissed, isActioned };
+}
+
+function ActionedBanner({
+  isDone,
+  isSnoozed,
+  isDismissed,
+  dismissedRecord,
+  onUndo,
+}: {
+  isDone: boolean;
+  isSnoozed: boolean;
+  isDismissed: boolean;
+  dismissedRecord: DismissedInsight | undefined;
+  onUndo: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-3 px-3 py-2 bg-gray-100 rounded-lg text-xs text-gray-500">
+      <span>
+        {isDone && '✓ Marked as done'}
+        {isSnoozed &&
+          dismissedRecord?.snoozed_until &&
+          `Snoozed until ${new Date(dismissedRecord.snoozed_until).toLocaleDateString()}`}
+        {isDismissed && 'Dismissed'}
+      </span>
+      <button type="button" onClick={onUndo} className="text-blue-600 hover:underline font-medium">
+        Undo
+      </button>
+    </div>
+  );
+}
+
 interface InsightCardProps {
   insight: Insight;
   dataHash: string;
@@ -92,10 +129,7 @@ export function InsightCard({
     low: 'bg-gray-100 text-gray-800 border-gray-300',
   }[insight.priority];
 
-  const isDone = dismissedRecord?.action === 'done';
-  const isSnoozed = dismissedRecord?.action === 'snoozed';
-  const isDismissed = dismissedRecord?.action === 'dismissed';
-  const isActioned = isDone || isSnoozed || isDismissed;
+  const { isDone, isSnoozed, isDismissed, isActioned } = actionedState(dismissedRecord);
 
   if (isActioned && !showDismissed) {
     return null;
@@ -107,22 +141,13 @@ export function InsightCard({
     >
       {/* Dismissed/snoozed banner */}
       {isActioned && (
-        <div className="flex items-center justify-between mb-3 px-3 py-2 bg-gray-100 rounded-lg text-xs text-gray-500">
-          <span>
-            {isDone && '✓ Marked as done'}
-            {isSnoozed &&
-              dismissedRecord?.snoozed_until &&
-              `Snoozed until ${new Date(dismissedRecord.snoozed_until).toLocaleDateString()}`}
-            {isDismissed && 'Dismissed'}
-          </span>
-          <button
-            type="button"
-            onClick={() => onRestore(insight.id)}
-            className="text-blue-600 hover:underline font-medium"
-          >
-            Undo
-          </button>
-        </div>
+        <ActionedBanner
+          isDone={isDone}
+          isSnoozed={isSnoozed}
+          isDismissed={isDismissed}
+          dismissedRecord={dismissedRecord}
+          onUndo={() => onRestore(insight.id)}
+        />
       )}
 
       {/* Header */}

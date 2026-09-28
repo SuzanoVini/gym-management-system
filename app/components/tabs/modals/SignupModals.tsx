@@ -2,6 +2,7 @@ import { Edit2, Plus, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import type { SignupCsvRecord } from '@/lib/csv';
+import { reportConsoleError } from '@/lib/logger';
 import { updateSettings } from '@/lib/supabase/settings';
 import { useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -26,18 +27,15 @@ interface SignupModalsProps {
   editSignup: (id: string, updates: Partial<SignupFormData>) => Promise<void>;
 }
 
-export function SignupModals({
-  importPreviewData,
-  confirmCSVImport,
-  importYear,
-  onImportYearChange,
-  onImportClose,
-  addSignup,
-  editSignup,
-}: SignupModalsProps) {
-  const { modals, closeModal } = useUIStore();
-  const { selectedSignup, setSelectedSignup } = useSelectionStore();
-  const membershipTypes = useSettingsStore((s) => s.membershipTypes);
+function MembershipTypesModal({
+  isOpen,
+  onClose,
+  membershipTypes,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  membershipTypes: string[];
+}) {
   const refreshSettings = useSettingsStore((s) => s.refresh);
 
   const [newMembershipType, setNewMembershipType] = useState('');
@@ -51,7 +49,7 @@ export function SignupModals({
         await refreshSettings();
         setNewMembershipType('');
       } catch (error) {
-        console.error('Error saving membership type:', error);
+        reportConsoleError('Error saving membership type:', error);
         alert('Failed to save membership type');
       }
     }
@@ -64,7 +62,7 @@ export function SignupModals({
         await updateSettings('membership_types', updated);
         await refreshSettings();
       } catch (error) {
-        console.error('Error deleting membership type:', error);
+        reportConsoleError('Error deleting membership type:', error);
         alert('Failed to delete membership type');
       }
     }
@@ -79,11 +77,116 @@ export function SignupModals({
       await refreshSettings();
       setEditingMembershipIndex(null);
     } catch (error) {
-      console.error('Error updating membership type:', error);
+      reportConsoleError('Error updating membership type:', error);
       alert('Failed to update membership type');
     }
   };
 
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Manage Membership Types" size="lg">
+      <div>
+        <div className="mb-4">
+          <label
+            className="block text-sm font-medium text-gray-700 mb-2"
+            htmlFor="signup-new-membership"
+          >
+            Add New Membership Type
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="signup-new-membership"
+              type="text"
+              value={newMembershipType}
+              onChange={(e) => setNewMembershipType(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  void handleAddMembershipType();
+                }
+              }}
+              placeholder="Enter membership type"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void handleAddMembershipType();
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              <SignupModalIcons.Plus className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h4 className="font-medium text-gray-700 mb-3">
+            Current Membership Types ({membershipTypes.length})
+          </h4>
+          {membershipTypes.map((type, index) => (
+            <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {editingMembershipIndex === index ? (
+                <input
+                  type="text"
+                  defaultValue={type}
+                  onBlur={(e) => {
+                    void handleUpdateMembershipType(index, e.target.value);
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      void handleUpdateMembershipType(index, (e.target as HTMLInputElement).value);
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 border border-gray-300 rounded"
+                />
+              ) : (
+                <span className="flex-1">{type}</span>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingMembershipIndex(index)}
+                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                >
+                  <SignupModalIcons.Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDeleteMembershipType(index);
+                  }}
+                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                >
+                  <SignupModalIcons.Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+        >
+          Close
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+export function SignupModals({
+  importPreviewData,
+  confirmCSVImport,
+  importYear,
+  onImportYearChange,
+  onImportClose,
+  addSignup,
+  editSignup,
+}: SignupModalsProps) {
+  const { modals, closeModal } = useUIStore();
+  const { selectedSignup, setSelectedSignup } = useSelectionStore();
+  const membershipTypes = useSettingsStore((s) => s.membershipTypes);
   return (
     <>
       <Modal
@@ -192,100 +295,20 @@ export function SignupModals({
           </button>
           <button
             type="button"
-            onClick={confirmCSVImport}
+            onClick={() => {
+              void confirmCSVImport();
+            }}
             className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Confirm Import
           </button>
         </div>
       </Modal>
-      <Modal
+      <MembershipTypesModal
         isOpen={modals.settings}
         onClose={() => closeModal('settings')}
-        title="Manage Membership Types"
-        size="lg"
-      >
-        <div>
-          <div className="mb-4">
-            <label
-              className="block text-sm font-medium text-gray-700 mb-2"
-              htmlFor="signup-new-membership"
-            >
-              Add New Membership Type
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="signup-new-membership"
-                type="text"
-                value={newMembershipType}
-                onChange={(e) => setNewMembershipType(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddMembershipType()}
-                placeholder="Enter membership type"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-              <button
-                type="button"
-                onClick={handleAddMembershipType}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                <SignupModalIcons.Plus className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-700 mb-3">
-              Current Membership Types ({membershipTypes.length})
-            </h4>
-            {membershipTypes.map((type, index) => (
-              <div
-                key={type}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                {editingMembershipIndex === index ? (
-                  <input
-                    type="text"
-                    defaultValue={type}
-                    onBlur={(e) => handleUpdateMembershipType(index, e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleUpdateMembershipType(index, (e.target as HTMLInputElement).value);
-                      }
-                    }}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded"
-                  />
-                ) : (
-                  <span className="flex-1">{type}</span>
-                )}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingMembershipIndex(index)}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                  >
-                    <SignupModalIcons.Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteMembershipType(index)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
-                  >
-                    <SignupModalIcons.Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={() => closeModal('settings')}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          >
-            Close
-          </button>
-        </div>
-      </Modal>
+        membershipTypes={membershipTypes}
+      />
     </>
   );
 }

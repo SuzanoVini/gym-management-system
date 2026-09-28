@@ -8,6 +8,7 @@ import { useCancellations } from '@/hooks/useCancellations';
 import { useHolds } from '@/hooks/useHolds';
 import { useMembers } from '@/hooks/useMembers';
 import { useSignups } from '@/hooks/useSignups';
+import { config } from '@/lib/config';
 import { toRosterStatus } from '@/lib/members/derivedStatus';
 import {
   buildMemberRoster,
@@ -19,37 +20,89 @@ import MemberPlanBreakdown from './members/MemberPlanBreakdown';
 import MemberRosterTable from './members/MemberRosterTable';
 import MemberSummaryCards from './members/MemberSummaryCards';
 
-const MONTHS_ABBR = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+const MONTHS_ABBR = config.months;
 const ITEMS_PER_PAGE = 50;
-export default function MembersTab() {
-  const { members, lastSyncAt, loading, error, refresh } = useMembers();
-  const { signups } = useSignups();
-  const { cancellations } = useCancellations();
-  const { holds } = useHolds();
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [planFilter, setPlanFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedMember, setSelectedMember] = useState<DisplayMember | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showPlanDetails, setShowPlanDetails] = useState(false);
+function MemberFilters({
+  filters,
+  plans,
+}: {
+  filters: ReturnType<typeof useMemberFilters>;
+  plans: ReturnType<typeof useMemberStats>['plans'];
+}) {
+  const { search, setSearch, planFilter, setPlanFilter, statusFilter, setStatusFilter } = filters;
+  const { setCurrentPage } = filters;
+  const withPageReset =
+    (setValue: (value: string) => void) =>
+    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setValue(event.target.value);
+      setCurrentPage(1);
+    };
+  return (
+    <div className="section-container">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <input
+          type="text"
+          placeholder="Search members..."
+          value={search}
+          onChange={withPageReset(setSearch)}
+          className="form-input"
+        />
+        <select value={planFilter} onChange={withPageReset(setPlanFilter)} className="form-select">
+          <option value="all">All Plans</option>
+          {plans.map((plan) => (
+            <option key={plan} value={plan}>
+              {plan}
+            </option>
+          ))}
+        </select>
+        <select
+          value={statusFilter}
+          onChange={withPageReset(setStatusFilter)}
+          className="form-select"
+        >
+          <option value="all">All Statuses</option>
+          <option value="Active">Active</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Alumni">Alumni</option>
+        </select>
+      </div>
+    </div>
+  );
+}
 
+function MemberPagination({ filters }: { filters: ReturnType<typeof useMemberFilters> }) {
+  const { currentPage, totalPages, setCurrentPage } = filters;
+  return (
+    <div className="flex items-center justify-between text-sm text-gray-500">
+      <span>{filters.filtered.length} members</span>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+          className="px-3 py-1 border rounded disabled:opacity-40"
+        >
+          Prev
+        </button>
+        <span className="px-2 py-1">
+          {currentPage} / {totalPages}
+        </span>
+        <button
+          type="button"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+          className="px-3 py-1 border rounded disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function useMemberStats(records: Omit<Parameters<typeof buildMemberRoster>[0], 'now'>) {
+  const { members, signups, cancellations, holds } = records;
   const [now] = useState(() => new Date());
   const currentMonthAbbr = MONTHS_ABBR[now.getMonth()];
   const currentYear = now.getFullYear();
@@ -72,13 +125,10 @@ export default function MembersTab() {
   const signupsThisMonth = signups.filter(
     (signup) => signup.month === currentMonthAbbr && signup.year === currentYear
   ).length;
-
   const cancellationsThisMonth = cancellations.filter(
     (cancellation) => cancellation.month === currentMonthAbbr && cancellation.year === currentYear
   ).length;
-
   const onHoldCount = derivedMembers.filter((member) => member.derivedStatus === 'On Hold').length;
-
   const retentionRate =
     activeMembers.length > 0
       ? Math.max(0, 1 - cancellationsThisMonth / activeMembers.length) * 100
@@ -103,6 +153,26 @@ export default function MembersTab() {
     [derivedMembers]
   );
 
+  return {
+    derivedMembers,
+    activeMembers,
+    nonAlumniMembers,
+    signupsThisMonth,
+    cancellationsThisMonth,
+    onHoldCount,
+    retentionRate,
+    planCounts,
+    planSummary,
+    plans,
+  };
+}
+
+function useMemberFilters(derivedMembers: DisplayMember[]) {
+  const [search, setSearch] = useState('');
+  const [planFilter, setPlanFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim();
     return derivedMembers.filter((member) => {
@@ -124,6 +194,36 @@ export default function MembersTab() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  return {
+    search,
+    setSearch,
+    planFilter,
+    setPlanFilter,
+    statusFilter,
+    setStatusFilter,
+    currentPage,
+    setCurrentPage,
+    filtered,
+    totalPages,
+    paginated,
+  };
+}
+
+export default function MembersTab() {
+  const { members, lastSyncAt, loading, error, refresh } = useMembers();
+  const { signups } = useSignups();
+  const { cancellations } = useCancellations();
+  const { holds } = useHolds();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<string | null>(null);
+  const [selectedMember, setSelectedMember] = useState<DisplayMember | null>(null);
+  const [showPlanDetails, setShowPlanDetails] = useState(false);
+
+  const stats = useMemberStats({ members, signups, cancellations, holds });
+  const filters = useMemberFilters(stats.derivedMembers);
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -138,7 +238,11 @@ export default function MembersTab() {
       body.append('file', file);
 
       const response = await fetch('/api/members/import', { method: 'POST', body });
-      const json = await response.json();
+      const json = (await response.json()) as {
+        error?: string;
+        upserted: number;
+        markedInactive: number;
+      };
       if (!response.ok) {
         throw new Error(json.error || 'CSV sync failed');
       }
@@ -161,14 +265,20 @@ export default function MembersTab() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button type="button" onClick={refresh} className="btn btn-primary">
+        <button
+          type="button"
+          onClick={() => {
+            void refresh();
+          }}
+          className="btn btn-primary"
+        >
           Retry
         </button>
       </div>
     );
   }
 
-  const netGrowth = signupsThisMonth - cancellationsThisMonth;
+  const netGrowth = stats.signupsThisMonth - stats.cancellationsThisMonth;
   const lastSyncLabel = lastSyncAt
     ? `${format(new Date(lastSyncAt), 'MMM d, yyyy')} - ${members.length} members`
     : 'Never synced';
@@ -197,101 +307,37 @@ export default function MembersTab() {
               type="file"
               accept=".csv,text/csv"
               className="hidden"
-              onChange={handleFileChange}
+              onChange={(event) => {
+                void handleFileChange(event);
+              }}
             />
           </div>
         </div>
       </div>
 
       <MemberSummaryCards
-        activeCount={activeMembers.length}
+        activeCount={stats.activeMembers.length}
         netGrowth={netGrowth}
-        onHoldCount={onHoldCount}
-        retentionRate={retentionRate}
+        onHoldCount={stats.onHoldCount}
+        retentionRate={stats.retentionRate}
       />
       <MemberPlanBreakdown
-        planCounts={planCounts}
-        planSummary={planSummary}
-        memberCount={nonAlumniMembers.length}
+        planCounts={stats.planCounts}
+        planSummary={stats.planSummary}
+        memberCount={stats.nonAlumniMembers.length}
         showPlanDetails={showPlanDetails}
         setShowPlanDetails={setShowPlanDetails}
       />
 
-      <div className="section-container">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input
-            type="text"
-            placeholder="Search members..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-input"
-          />
-          <select
-            value={planFilter}
-            onChange={(event) => {
-              setPlanFilter(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-select"
-          >
-            <option value="all">All Plans</option>
-            {plans.map((plan) => (
-              <option key={plan} value={plan}>
-                {plan}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(event) => {
-              setStatusFilter(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="form-select"
-          >
-            <option value="all">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="On Hold">On Hold</option>
-            <option value="Alumni">Alumni</option>
-          </select>
-        </div>
-      </div>
+      <MemberFilters filters={filters} plans={stats.plans} />
 
       <MemberRosterTable
-        filteredCount={filtered.length}
-        paginated={paginated}
+        filteredCount={filters.filtered.length}
+        paginated={filters.paginated}
         setSelectedMember={setSelectedMember}
       />
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm text-gray-500">
-          <span>{filtered.length} members</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <span className="px-2 py-1">
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-              className="px-3 py-1 border rounded disabled:opacity-40"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      {filters.totalPages > 1 && <MemberPagination filters={filters} />}
 
       {selectedMember &&
         createPortal(
