@@ -19,6 +19,37 @@ interface PeriodHoursFormProps {
   onCancel: () => void;
 }
 
+function HoursInput({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <label htmlFor={id} className="form-label">
+        {label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        min={0}
+        max={999}
+        step={0.25}
+        placeholder="0.00"
+        className="form-input"
+      />
+    </div>
+  );
+}
+
 export default function PeriodHoursForm({
   staff,
   onSubmit,
@@ -93,76 +124,36 @@ export default function PeriodHoursForm({
       {/* Hours Entry Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Regular Hours */}
-        <div className="mb-4">
-          <label htmlFor="regular_hours" className="form-label">
-            Regular Hours
-          </label>
-          <input
-            id="regular_hours"
-            type="number"
-            value={formData.regular_hours}
-            onChange={(e) => updateField('regular_hours', Number(e.target.value))}
-            min={0}
-            max={999}
-            step={0.25}
-            placeholder="0.00"
-            className="form-input"
-          />
-        </div>
+        <HoursInput
+          id="regular_hours"
+          label="Regular Hours"
+          value={formData.regular_hours}
+          onChange={(value) => updateField('regular_hours', value)}
+        />
 
         {/* Overtime Hours */}
-        <div className="mb-4">
-          <label htmlFor="overtime_hours" className="form-label">
-            Overtime Hours
-          </label>
-          <input
-            id="overtime_hours"
-            type="number"
-            value={formData.overtime_hours}
-            onChange={(e) => updateField('overtime_hours', Number(e.target.value))}
-            min={0}
-            max={999}
-            step={0.25}
-            placeholder="0.00"
-            className="form-input"
-          />
-        </div>
+        <HoursInput
+          id="overtime_hours"
+          label="Overtime Hours"
+          value={formData.overtime_hours}
+          onChange={(value) => updateField('overtime_hours', value)}
+        />
 
         {/* Vacation Hours */}
-        <div className="mb-4">
-          <label htmlFor="vacation_hours" className="form-label">
-            Vacation Hours
-          </label>
-          <input
-            id="vacation_hours"
-            type="number"
-            value={formData.vacation_hours}
-            onChange={(e) => updateField('vacation_hours', Number(e.target.value))}
-            min={0}
-            max={999}
-            step={0.25}
-            placeholder="0.00"
-            className="form-input"
-          />
-        </div>
+        <HoursInput
+          id="vacation_hours"
+          label="Vacation Hours"
+          value={formData.vacation_hours}
+          onChange={(value) => updateField('vacation_hours', value)}
+        />
 
         {/* Sick Hours */}
-        <div className="mb-4">
-          <label htmlFor="sick_hours" className="form-label">
-            Sick Hours
-          </label>
-          <input
-            id="sick_hours"
-            type="number"
-            value={formData.sick_hours}
-            onChange={(e) => updateField('sick_hours', Number(e.target.value))}
-            min={0}
-            max={999}
-            step={0.25}
-            placeholder="0.00"
-            className="form-input"
-          />
-        </div>
+        <HoursInput
+          id="sick_hours"
+          label="Sick Hours"
+          value={formData.sick_hours}
+          onChange={(value) => updateField('sick_hours', value)}
+        />
 
         {/* Mat Cleaning Count */}
         <div className="mb-4">

@@ -15,6 +15,169 @@ interface ExportTabProps {
   loading?: boolean;
 }
 
+function FormatSelect({
+  formats,
+  selectedFormatId,
+  onChange,
+  formatsLoading,
+  onOpenTemplateImport,
+  onOpenConfig,
+}: {
+  formats: CSVExportFormat[];
+  selectedFormatId: string;
+  onChange: (formatId: string) => void;
+  formatsLoading: boolean;
+  onOpenTemplateImport: () => void;
+  onOpenConfig: () => void;
+}) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-2">
+        <label htmlFor="format-select" className="form-label mb-0">
+          CSV Export Format
+        </label>
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={onOpenTemplateImport}
+            className="btn btn-sm btn-secondary"
+            disabled={formatsLoading}
+          >
+            <Upload className="w-4 h-4" />
+            Import Template
+          </button>
+          <button
+            type="button"
+            onClick={onOpenConfig}
+            className="btn btn-sm btn-secondary"
+            disabled={formatsLoading}
+          >
+            <Settings className="w-4 h-4" />
+            Configure Formats
+          </button>
+        </div>
+      </div>
+      <select
+        id="format-select"
+        value={selectedFormatId}
+        onChange={(e) => onChange(e.target.value)}
+        className="form-select w-full"
+        disabled={formatsLoading || formats.length === 0}
+      >
+        {formats.length === 0 ? (
+          <option value="">No formats available</option>
+        ) : (
+          formats.map((format) => (
+            <option key={format.id} value={format.id}>
+              {format.format_name}
+              {format.is_default && ' (Default)'}
+            </option>
+          ))
+        )}
+      </select>
+      <p className="text-xs text-gray-500 mt-1">
+        Select a format configuration or create a new one
+      </p>
+    </div>
+  );
+}
+
+function ExportPreviewCard({
+  selectedPeriod,
+  selectedFormat,
+}: {
+  selectedPeriod: PayrollPeriod;
+  selectedFormat: CSVExportFormat;
+}) {
+  return (
+    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="flex items-start space-x-3">
+        <FileDown className="w-5 h-5 text-blue-600 mt-0.5" />
+        <div className="flex-1">
+          <h4 className="font-medium text-blue-900">Export Preview</h4>
+          <div className="mt-2 space-y-1 text-sm text-blue-800">
+            <p>
+              <span className="font-medium">Period:</span> {selectedPeriod.period_label}
+            </p>
+            <p>
+              <span className="font-medium">Date Range:</span>{' '}
+              {new Date(selectedPeriod.start_date).toLocaleDateString()} -{' '}
+              {new Date(selectedPeriod.end_date).toLocaleDateString()}
+            </p>
+            <p>
+              <span className="font-medium">Status:</span>{' '}
+              {selectedPeriod.is_closed ? 'Closed' : 'Open'}
+            </p>
+            <p>
+              <span className="font-medium">Format:</span> {selectedFormat.format_name}
+            </p>
+            <p>
+              <span className="font-medium">Columns:</span>{' '}
+              {selectedFormat.column_config.filter((c) => c.enabled).length} enabled
+            </p>
+            <p>
+              <span className="font-medium">Staff Order:</span>{' '}
+              {selectedFormat.staff_order_config.type === 'name'
+                ? 'By Name'
+                : selectedFormat.staff_order_config.type === 'id'
+                  ? 'By Employee ID'
+                  : 'Custom'}{' '}
+              ({selectedFormat.staff_order_config.direction === 'asc' ? 'Ascending' : 'Descending'})
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const EXPORT_DETAILS = [
+  'The export will include all staff hours for the selected payroll period',
+  'Columns and their order are determined by the selected format configuration',
+  "Files are automatically downloaded to your browser's default download location",
+  'Exported data can be imported into payroll processing software or spreadsheet applications',
+];
+
+function ExportInfoCards() {
+  return (
+    <>
+      <div className="payroll-card">
+        <h4 className="font-semibold text-gray-900 mb-3">Export Details</h4>
+        <div className="space-y-3 text-sm text-gray-600">
+          {EXPORT_DETAILS.map((detail) => (
+            <div key={detail} className="flex items-start space-x-2">
+              <span className="text-gray-400 mt-1">•</span>
+              <p>{detail}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div className="payroll-card bg-gray-50">
+        <h4 className="font-semibold text-gray-900 mb-3">Tips</h4>
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            <strong>Best Practice:</strong> Always export and backup data before closing a payroll
+            period
+          </p>
+          <p>
+            <strong>Verification:</strong> Review exported data in a spreadsheet before processing
+            payroll
+          </p>
+          <p>
+            <strong>Archive:</strong> Keep exported files organized by period for record-keeping
+          </p>
+          <p>
+            <strong>Custom Formats:</strong> Create multiple format profiles for different payroll
+            systems or reporting needs
+          </p>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function ExportTab({
   periods,
   currentPeriod,
@@ -56,7 +219,7 @@ export default function ExportTab({
 
   // Load formats on mount
   useEffect(() => {
-    loadFormats();
+    void loadFormats();
   }, [loadFormats]);
 
   const handleExport = async () => {
@@ -69,7 +232,7 @@ export default function ExportTab({
   };
 
   const handleConfigureSaved = () => {
-    loadFormats();
+    void loadFormats();
   };
 
   const selectedPeriod = periods.find((p) => p.id === selectedPeriodId);
@@ -109,54 +272,14 @@ export default function ExportTab({
         </div>
 
         {/* CSV Format Configuration */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="format-select" className="form-label mb-0">
-              CSV Export Format
-            </label>
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => setTemplateImportModalOpen(true)}
-                className="btn btn-sm btn-secondary"
-                disabled={formatsLoading}
-              >
-                <Upload className="w-4 h-4" />
-                Import Template
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfigModalOpen(true)}
-                className="btn btn-sm btn-secondary"
-                disabled={formatsLoading}
-              >
-                <Settings className="w-4 h-4" />
-                Configure Formats
-              </button>
-            </div>
-          </div>
-          <select
-            id="format-select"
-            value={selectedFormatId}
-            onChange={(e) => setSelectedFormatId(e.target.value)}
-            className="form-select w-full"
-            disabled={formatsLoading || formats.length === 0}
-          >
-            {formats.length === 0 ? (
-              <option value="">No formats available</option>
-            ) : (
-              formats.map((format) => (
-                <option key={format.id} value={format.id}>
-                  {format.format_name}
-                  {format.is_default && ' (Default)'}
-                </option>
-              ))
-            )}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Select a format configuration or create a new one
-          </p>
-        </div>
+        <FormatSelect
+          formats={formats}
+          selectedFormatId={selectedFormatId}
+          onChange={setSelectedFormatId}
+          formatsLoading={formatsLoading}
+          onOpenTemplateImport={() => setTemplateImportModalOpen(true)}
+          onOpenConfig={() => setConfigModalOpen(true)}
+        />
 
         {/* Format Selector */}
         <div className="mb-6">
@@ -181,55 +304,16 @@ export default function ExportTab({
 
         {/* Preview Card */}
         {selectedPeriod && selectedFormat && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <FileDown className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div className="flex-1">
-                <h4 className="font-medium text-blue-900">Export Preview</h4>
-                <div className="mt-2 space-y-1 text-sm text-blue-800">
-                  <p>
-                    <span className="font-medium">Period:</span> {selectedPeriod.period_label}
-                  </p>
-                  <p>
-                    <span className="font-medium">Date Range:</span>{' '}
-                    {new Date(selectedPeriod.start_date).toLocaleDateString()} -{' '}
-                    {new Date(selectedPeriod.end_date).toLocaleDateString()}
-                  </p>
-                  <p>
-                    <span className="font-medium">Status:</span>{' '}
-                    {selectedPeriod.is_closed ? 'Closed' : 'Open'}
-                  </p>
-                  <p>
-                    <span className="font-medium">Format:</span> {selectedFormat.format_name}
-                  </p>
-                  <p>
-                    <span className="font-medium">Columns:</span>{' '}
-                    {selectedFormat.column_config.filter((c) => c.enabled).length} enabled
-                  </p>
-                  <p>
-                    <span className="font-medium">Staff Order:</span>{' '}
-                    {selectedFormat.staff_order_config.type === 'name'
-                      ? 'By Name'
-                      : selectedFormat.staff_order_config.type === 'id'
-                        ? 'By Employee ID'
-                        : 'Custom'}{' '}
-                    (
-                    {selectedFormat.staff_order_config.direction === 'asc'
-                      ? 'Ascending'
-                      : 'Descending'}
-                    )
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ExportPreviewCard selectedPeriod={selectedPeriod} selectedFormat={selectedFormat} />
         )}
 
         {/* Export Button */}
         <div className="mt-6 flex justify-end">
           <button
             type="button"
-            onClick={handleExport}
+            onClick={() => {
+              void handleExport();
+            }}
             disabled={!selectedPeriodId || !selectedFormatId || loading}
             className="btn btn-primary"
           >
@@ -240,52 +324,7 @@ export default function ExportTab({
       </div>
 
       {/* Export Information */}
-      <div className="payroll-card">
-        <h4 className="font-semibold text-gray-900 mb-3">Export Details</h4>
-        <div className="space-y-3 text-sm text-gray-600">
-          <div className="flex items-start space-x-2">
-            <span className="text-gray-400 mt-1">•</span>
-            <p>The export will include all staff hours for the selected payroll period</p>
-          </div>
-          <div className="flex items-start space-x-2">
-            <span className="text-gray-400 mt-1">•</span>
-            <p>Columns and their order are determined by the selected format configuration</p>
-          </div>
-          <div className="flex items-start space-x-2">
-            <span className="text-gray-400 mt-1">•</span>
-            <p>Files are automatically downloaded to your browser's default download location</p>
-          </div>
-          <div className="flex items-start space-x-2">
-            <span className="text-gray-400 mt-1">•</span>
-            <p>
-              Exported data can be imported into payroll processing software or spreadsheet
-              applications
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Tips */}
-      <div className="payroll-card bg-gray-50">
-        <h4 className="font-semibold text-gray-900 mb-3">Tips</h4>
-        <div className="space-y-2 text-sm text-gray-600">
-          <p>
-            <strong>Best Practice:</strong> Always export and backup data before closing a payroll
-            period
-          </p>
-          <p>
-            <strong>Verification:</strong> Review exported data in a spreadsheet before processing
-            payroll
-          </p>
-          <p>
-            <strong>Archive:</strong> Keep exported files organized by period for record-keeping
-          </p>
-          <p>
-            <strong>Custom Formats:</strong> Create multiple format profiles for different payroll
-            systems or reporting needs
-          </p>
-        </div>
-      </div>
+      <ExportInfoCards />
 
       {/* Format Configuration Modal */}
       <FormatConfigurationModal

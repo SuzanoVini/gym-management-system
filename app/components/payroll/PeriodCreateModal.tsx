@@ -61,7 +61,12 @@ export default function PeriodCreateModal({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
+      className="space-y-4"
+    >
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="form-label" htmlFor="period-start-date">

@@ -11,13 +11,17 @@ interface StaffFormProps {
   onCancel: () => void;
 }
 
-export default function StaffForm({ staff, onSubmit, loading = false, onCancel }: StaffFormProps) {
-  const [formData, setFormData] = useState<StaffMemberFormData>({
+function initialStaffFormData(staff: StaffMember | null | undefined): StaffMemberFormData {
+  return {
     employee_id: staff?.employee_id || '',
     full_name: staff?.full_name || '',
     job_title: staff?.job_title || '',
     is_active: staff?.is_active ?? true,
-  });
+  };
+}
+
+export default function StaffForm({ staff, onSubmit, loading = false, onCancel }: StaffFormProps) {
+  const [formData, setFormData] = useState<StaffMemberFormData>(initialStaffFormData(staff));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
