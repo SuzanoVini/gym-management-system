@@ -1,99 +1,6 @@
 import Papa, { type ParseResult } from 'papaparse';
-
-// Helper function to parse dates from CSV.
-// Pass `year` when the CSV date only contains day and month (no year).
-const parseDate = (dateStr: string, year?: number): string | undefined => {
-  if (!dateStr || dateStr.trim() === '') {
-    return undefined;
-  }
-
-  try {
-    const cleanStr = dateStr.trim();
-
-    // MM/DD or DD/MM without a year — two 1-2-digit numbers separated by / - or .
-    const twoPartMatch = cleanStr.match(/^(\d{1,2})[/\-.](\d{1,2})$/);
-    if (twoPartMatch) {
-      const [, part1, part2] = twoPartMatch as [string, string, string];
-      const y = year ?? new Date().getFullYear();
-      return `${y}-${part1.padStart(2, '0')}-${part2.padStart(2, '0')}`;
-    }
-
-    // MM/DD/YYYY
-    const mmddyyyy = cleanStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-    if (mmddyyyy) {
-      const [, m, d, y] = mmddyyyy as [string, string, string, string];
-      return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    }
-
-    // YYYY-MM-DD or any other full date string
-    const date = new Date(cleanStr);
-    if (!Number.isNaN(date.getTime())) {
-      const y = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${y}-${month}-${day}`;
-    }
-
-    return undefined;
-  } catch (error) {
-    console.error('Error parsing date:', dateStr, error);
-    return undefined;
-  }
-};
-
-const MONTH_ABBREVS: Record<string, string> = {
-  january: 'Jan',
-  february: 'Feb',
-  march: 'Mar',
-  april: 'Apr',
-  may: 'May',
-  june: 'Jun',
-  july: 'Jul',
-  august: 'Aug',
-  september: 'Sep',
-  october: 'Oct',
-  november: 'Nov',
-  december: 'Dec',
-  jan: 'Jan',
-  feb: 'Feb',
-  mar: 'Mar',
-  apr: 'Apr',
-  jun: 'Jun',
-  jul: 'Jul',
-  aug: 'Aug',
-  sep: 'Sep',
-  oct: 'Oct',
-  nov: 'Nov',
-  dec: 'Dec',
-};
-
-const normalizeMonth = (raw: string): string => MONTH_ABBREVS[raw.toLowerCase().trim()] ?? raw;
-
-const MONTH_NUMBERS: Record<string, number> = {
-  jan: 1,
-  feb: 2,
-  mar: 3,
-  apr: 4,
-  may: 5,
-  jun: 6,
-  jul: 7,
-  aug: 8,
-  sep: 9,
-  oct: 10,
-  nov: 11,
-  dec: 12,
-};
-
-const normalizeYesNo = (raw: string): 'Yes' | 'No' | '' => {
-  const v = raw.toLowerCase().trim();
-  if (v === 'yes' || v === 'true' || v === '1') {
-    return 'Yes';
-  }
-  if (v === 'no' || v === 'false' || v === '0') {
-    return 'No';
-  }
-  return '';
-};
+import { reportConsoleError } from '@/lib/logger';
+import { MONTH_NUMBERS, normalizeMonth, normalizeYesNo, parseDate } from './csv/normalize';
 
 // Common filter function for all parsers
 export type CsvRow = Record<string, unknown>;
@@ -114,6 +21,47 @@ const filterRow = (row: unknown): boolean => {
   return true;
 };
 
+// Value of the first column (in priority order) with a truthy value, trimmed.
+const pick = (row: CsvRow, ...keys: string[]): string => {
+  for (const key of keys) {
+    if (row[key]) {
+      return String(row[key]).trim();
+    }
+  }
+  return '';
+};
+
+const pickOrNull = (row: CsvRow, ...keys: string[]): string | null => pick(row, ...keys) || null;
+
+// Shared Papa Parse setup: header row, delimiter sniffing, total/average rows
+// dropped, and the same error reporting for every table.
+const parseCsvFile = <T>(
+  file: File,
+  mapRow: (row: CsvRow) => T,
+  onComplete: (data: T[]) => void
+): void => {
+  Papa.parse(file, {
+    header: true,
+    dynamicTyping: false,
+    skipEmptyLines: true,
+    delimitersToGuess: [',', '\t', '|', ';'],
+    transformHeader: (header: string) => header.trim(),
+    complete: (results: ParseResult<CsvRow>) => {
+      try {
+        const parsedData = results.data.filter(filterRow).map((row) => mapRow(row));
+        onComplete(parsedData);
+      } catch (error) {
+        reportConsoleError('Error processing CSV data:', error);
+        alert('Error processing CSV file. Please check the file format.');
+      }
+    },
+    error: (error: unknown) => {
+      reportConsoleError('CSV parsing error:', error);
+      alert('Error parsing CSV file. Please check the file format.');
+    },
+  });
+};
+
 // Parser for Intros table
 export type IntroCsvRecord = {
   month: string;
@@ -130,61 +78,44 @@ export type IntroCsvRecord = {
   status: 'Active';
 };
 
+// A bare day number is combined with the month column and the import year.
+const parseIntroDate = (monthStr: string, dayRaw: string, year?: number): string | undefined => {
+  if (/^\d{1,2}$/.test(dayRaw) && year) {
+    const monthNum = MONTH_NUMBERS[monthStr.toLowerCase()];
+    if (monthNum) {
+      return `${year}-${String(monthNum).padStart(2, '0')}-${dayRaw.padStart(2, '0')}`;
+    }
+    return undefined;
+  }
+  return parseDate(dayRaw, year);
+};
+
+const mapIntroRow = (row: CsvRow, year?: number): IntroCsvRecord => {
+  const monthStr = normalizeMonth(pick(row, 'MONTH', 'month', 'Month'));
+  const dayRaw = pick(row, 'DATE', 'date', 'Date');
+  const date = parseIntroDate(monthStr, dayRaw, year);
+  return {
+    month: monthStr,
+    date,
+    year: year,
+    time: pickOrNull(row, 'TIME', 'time', 'Time'),
+    class: pickOrNull(row, 'CLASS', 'class', 'Class'),
+    name: pick(row, 'NAME', 'name', 'Name'),
+    email: pickOrNull(row, 'EMAIL', 'email', 'Email'),
+    phone: pickOrNull(row, 'PHONE', 'phone', 'Phone'),
+    staff: pickOrNull(row, 'STAFF', 'staff', 'Staff'),
+    attended: normalizeYesNo(pick(row, 'ATTENDED', 'attended', 'Attended')),
+    signed_up: normalizeYesNo(pick(row, 'SIGNED UP', 'signed_up', 'Signed Up')),
+    status: 'Active' as const,
+  };
+};
+
 export const parseIntrosCSV = (
   file: File,
   onComplete: (data: IntroCsvRecord[]) => void,
   year?: number
 ) => {
-  Papa.parse(file, {
-    header: true,
-    dynamicTyping: false,
-    skipEmptyLines: true,
-    delimitersToGuess: [',', '\t', '|', ';'],
-    transformHeader: (header: string) => header.trim(),
-    complete: (results: ParseResult<CsvRow>) => {
-      try {
-        const parsedData = results.data.filter(filterRow).map((row) => {
-          const monthStr = normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim());
-          const dayRaw = String(row.DATE || row.date || row.Date || '').trim();
-          let date: string | undefined;
-          if (/^\d{1,2}$/.test(dayRaw) && year) {
-            const monthNum = MONTH_NUMBERS[monthStr.toLowerCase()];
-            if (monthNum) {
-              date = `${year}-${String(monthNum).padStart(2, '0')}-${dayRaw.padStart(2, '0')}`;
-            }
-          } else {
-            date = parseDate(dayRaw, year);
-          }
-          return {
-            month: monthStr,
-            date,
-            year: year,
-            time: String(row.TIME || row.time || row.Time || '').trim() || null,
-            class: String(row.CLASS || row.class || row.Class || '').trim() || null,
-            name: String(row.NAME || row.name || row.Name || '').trim(),
-            email: String(row.EMAIL || row.email || row.Email || '').trim() || null,
-            phone: String(row.PHONE || row.phone || row.Phone || '').trim() || null,
-            staff: String(row.STAFF || row.staff || row.Staff || '').trim() || null,
-            attended: normalizeYesNo(
-              String(row.ATTENDED || row.attended || row.Attended || '').trim()
-            ),
-            signed_up: normalizeYesNo(
-              String(row['SIGNED UP'] || row.signed_up || row['Signed Up'] || '').trim()
-            ),
-            status: 'Active' as const,
-          };
-        });
-        onComplete(parsedData);
-      } catch (error) {
-        console.error('Error processing CSV data:', error);
-        alert('Error processing CSV file. Please check the file format.');
-      }
-    },
-    error: (error: unknown) => {
-      console.error('CSV parsing error:', error);
-      alert('Error parsing CSV file. Please check the file format.');
-    },
-  });
+  parseCsvFile(file, (row) => mapIntroRow(row, year), onComplete);
 };
 
 // Parser for Signups table (renamed from parseCSV)
@@ -199,69 +130,52 @@ export type SignupCsvRecord = {
   year: number | undefined;
 };
 
+const mapSignupRow = (row: CsvRow, year?: number): SignupCsvRecord => {
+  const membershipDateRaw = pick(
+    row,
+    'DATE',
+    'MEMBERSHIP DATE',
+    'SIGN UP DATE',
+    'Sign Up Date',
+    'Membership Date',
+    'membership_date',
+    'date'
+  );
+
+  const firstPaymentDateRaw = pick(
+    row,
+    '1ST PAYMENT DATE',
+    'DATE 1ST PAYMENT',
+    'First Payment Date',
+    'first_payment_date'
+  );
+
+  return {
+    month: normalizeMonth(pick(row, 'MONTH', 'month', 'Month')),
+    name: pick(row, 'NAME', 'name', 'Name'),
+    membership: pick(row, 'MEMBERSHIP', 'membership', 'Membership'),
+    membership_date: parseDate(membershipDateRaw, year),
+    first_payment_date: parseDate(firstPaymentDateRaw, year),
+    signup_package: pick(
+      row,
+      'SIGN-UP PACKAGE?',
+      'SIGNUP PACKAGE',
+      'signup_package',
+      'Signup Package'
+    )
+      .toLowerCase()
+      .includes('yes'),
+    notes: pick(row, 'NOTES', 'notes', 'Notes'),
+    year: year,
+  };
+};
+
 export const parseSignupsCSV = (
   file: File,
   onComplete: (data: SignupCsvRecord[]) => void,
   year?: number
 ) => {
-  Papa.parse(file, {
-    header: true,
-    dynamicTyping: false,
-    skipEmptyLines: true,
-    delimitersToGuess: [',', '\t', '|', ';'],
-    transformHeader: (header: string) => header.trim(),
-    complete: (results: ParseResult<CsvRow>) => {
-      try {
-        const parsedData = results.data.filter(filterRow).map((row) => {
-          const membershipDateRaw = String(
-            row.DATE ||
-              row['MEMBERSHIP DATE'] ||
-              row['SIGN UP DATE'] ||
-              row['Sign Up Date'] ||
-              row['Membership Date'] ||
-              row.membership_date ||
-              row.date ||
-              ''
-          ).trim();
-
-          const firstPaymentDateRaw = String(
-            row['1ST PAYMENT DATE'] ||
-              row['DATE 1ST PAYMENT'] ||
-              row['First Payment Date'] ||
-              row.first_payment_date ||
-              ''
-          ).trim();
-
-          return {
-            month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
-            name: String(row.NAME || row.name || row.Name || '').trim(),
-            membership: String(row.MEMBERSHIP || row.membership || row.Membership || '').trim(),
-            membership_date: parseDate(membershipDateRaw, year),
-            first_payment_date: parseDate(firstPaymentDateRaw, year),
-            signup_package: String(
-              row['SIGN-UP PACKAGE?'] ||
-                row['SIGNUP PACKAGE'] ||
-                row.signup_package ||
-                row['Signup Package'] ||
-                ''
-            )
-              .toLowerCase()
-              .includes('yes'),
-            notes: String(row.NOTES || row.notes || row.Notes || '').trim(),
-            year: year,
-          };
-        });
-        onComplete(parsedData);
-      } catch (error) {
-        console.error('Error processing CSV data:', error);
-        alert('Error processing CSV file. Please check the file format.');
-      }
-    },
-    error: (error: unknown) => {
-      console.error('CSV parsing error:', error);
-      alert('Error parsing CSV file. Please check the file format.');
-    },
-  });
+  parseCsvFile(file, (row) => mapSignupRow(row, year), onComplete);
 };
 
 // Parser for Cancellations table
@@ -275,58 +189,40 @@ export type CancellationCsvRecord = {
   year: number | undefined;
 };
 
+const mapCancellationRow = (row: CsvRow, year?: number): CancellationCsvRecord => {
+  const cancellationDateRaw = pick(
+    row,
+    'CANCELLATION DATE',
+    'Cancellation Date',
+    'cancellation_date',
+    'DATE',
+    'date'
+  );
+
+  return {
+    month: normalizeMonth(pick(row, 'MONTH', 'month', 'Month')),
+    name: pick(row, 'NAME', 'name', 'Name'),
+    date: parseDate(cancellationDateRaw, year),
+    reason: pickOrNull(row, 'REASON', 'reason', 'Reason'),
+    age_group: pickOrNull(
+      row,
+      'AGE CATEGORY',
+      'Age Category',
+      'age_group',
+      'Age Group',
+      'AGE GROUP'
+    ),
+    notes: pickOrNull(row, 'NOTES', 'notes', 'Notes'),
+    year: year,
+  };
+};
+
 export const parseCancellationsCSV = (
   file: File,
   onComplete: (data: CancellationCsvRecord[]) => void,
   year?: number
 ) => {
-  Papa.parse(file, {
-    header: true,
-    dynamicTyping: false,
-    skipEmptyLines: true,
-    delimitersToGuess: [',', '\t', '|', ';'],
-    transformHeader: (header: string) => header.trim(),
-    complete: (results: ParseResult<CsvRow>) => {
-      try {
-        const parsedData = results.data.filter(filterRow).map((row) => {
-          const cancellationDateRaw = String(
-            row['CANCELLATION DATE'] ||
-              row['Cancellation Date'] ||
-              row.cancellation_date ||
-              row.DATE ||
-              row.date ||
-              ''
-          ).trim();
-
-          return {
-            month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
-            name: String(row.NAME || row.name || row.Name || '').trim(),
-            date: parseDate(cancellationDateRaw, year),
-            reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
-            age_group:
-              String(
-                row['AGE CATEGORY'] ||
-                  row['Age Category'] ||
-                  row.age_group ||
-                  row['Age Group'] ||
-                  row['AGE GROUP'] ||
-                  ''
-              ).trim() || null,
-            notes: String(row.NOTES || row.notes || row.Notes || '').trim() || null,
-            year: year,
-          };
-        });
-        onComplete(parsedData);
-      } catch (error) {
-        console.error('Error processing CSV data:', error);
-        alert('Error processing CSV file. Please check the file format.');
-      }
-    },
-    error: (error: unknown) => {
-      console.error('CSV parsing error:', error);
-      alert('Error parsing CSV file. Please check the file format.');
-    },
-  });
+  parseCsvFile(file, (row) => mapCancellationRow(row, year), onComplete);
 };
 
 // Parser for Holds table
@@ -340,59 +236,33 @@ export type HoldCsvRecord = {
   year: number | undefined;
 };
 
+const mapHoldRow = (row: CsvRow, year?: number): HoldCsvRecord => {
+  const startDateRaw = pick(
+    row,
+    'START DATE',
+    'Start Date',
+    'start_date',
+    'START',
+    'Start',
+    'start'
+  );
+  const endDateRaw = pick(row, 'END DATE', 'End Date', 'end_date', 'END', 'End', 'end');
+
+  return {
+    month: normalizeMonth(pick(row, 'MONTH', 'month', 'Month')),
+    name: pick(row, 'NAME', 'name', 'Name'),
+    start: parseDate(startDateRaw, year),
+    end: parseDate(endDateRaw, year),
+    reason: pickOrNull(row, 'REASON', 'reason', 'Reason'),
+    fee: pickOrNull(row, 'FEE', 'fee', 'Fee'),
+    year: year,
+  };
+};
+
 export const parseHoldsCSV = (
   file: File,
   onComplete: (data: HoldCsvRecord[]) => void,
   year?: number
 ) => {
-  Papa.parse(file, {
-    header: true,
-    dynamicTyping: false,
-    skipEmptyLines: true,
-    delimitersToGuess: [',', '\t', '|', ';'],
-    transformHeader: (header: string) => header.trim(),
-    complete: (results: ParseResult<CsvRow>) => {
-      try {
-        const parsedData = results.data.filter(filterRow).map((row) => {
-          const startDateRaw = String(
-            row['START DATE'] ||
-              row['Start Date'] ||
-              row.start_date ||
-              row.START ||
-              row.Start ||
-              row.start ||
-              ''
-          ).trim();
-
-          const endDateRaw = String(
-            row['END DATE'] ||
-              row['End Date'] ||
-              row.end_date ||
-              row.END ||
-              row.End ||
-              row.end ||
-              ''
-          ).trim();
-
-          return {
-            month: normalizeMonth(String(row.MONTH || row.month || row.Month || '').trim()),
-            name: String(row.NAME || row.name || row.Name || '').trim(),
-            start: parseDate(startDateRaw, year),
-            end: parseDate(endDateRaw, year),
-            reason: String(row.REASON || row.reason || row.Reason || '').trim() || null,
-            fee: String(row.FEE || row.fee || row.Fee || '').trim() || null,
-            year: year,
-          };
-        });
-        onComplete(parsedData);
-      } catch (error) {
-        console.error('Error processing CSV data:', error);
-        alert('Error processing CSV file. Please check the file format.');
-      }
-    },
-    error: (error: unknown) => {
-      console.error('CSV parsing error:', error);
-      alert('Error parsing CSV file. Please check the file format.');
-    },
-  });
+  parseCsvFile(file, (row) => mapHoldRow(row, year), onComplete);
 };

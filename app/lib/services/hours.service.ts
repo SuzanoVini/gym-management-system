@@ -1,14 +1,19 @@
 // app/lib/services/hours.service.ts
 
-import type { StaffHours, StaffHoursFormData, TimeEntry, TimeEntryFormData } from '@/types';
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import type { StaffHours, StaffHoursFormData } from '@/types';
 import { buildQuickImportTimeEntries, type QuickImportEntry } from '../quick-import';
 import { supabase } from '../supabase/client';
 import { formatDateISO } from '../utils/date.utils';
+import { getTimeEntries, MAT_CLEANING_BONUS } from './hours.service/timeEntries';
 
-/**
- * Mat cleaning bonus in hours (15 minutes = 0.25 hours)
- */
-const MAT_CLEANING_BONUS = 0.25;
+export {
+  addMatCleaningBonus,
+  addTimeEntry,
+  deleteTimeEntry,
+  getTimeEntries,
+  updateTimeEntry,
+} from './hours.service/timeEntries';
 
 // Tag on the single adjustment row per (staff_hours_id, entry_type) that
 // backs manual edits — see setFieldAdjustment/setMatCleaningAdjustment below.
@@ -18,11 +23,11 @@ const ADJUSTMENT_NOTE = 'Manual adjustment';
  * Get all staff hours for a specific payroll period
  */
 export const getHoursForPeriod = async (periodId: string): Promise<StaffHours[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('staff_hours')
     .select('*')
     .eq('period_id', periodId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<StaffHours>;
 
   if (error) {
     throw error;
@@ -38,12 +43,12 @@ export const getStaffHours = async (
   periodId: string,
   staffId: string
 ): Promise<StaffHours | null> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('staff_hours')
     .select('*')
     .eq('period_id', periodId)
     .eq('staff_id', staffId)
-    .maybeSingle();
+    .maybeSingle()) as PostgrestSingleResponse<StaffHours | null>;
 
   if (error) {
     throw error;
@@ -67,7 +72,7 @@ export const ensureStaffHoursRow = async (
     return existing;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('staff_hours')
     .insert([
       {
@@ -82,7 +87,7 @@ export const ensureStaffHoursRow = async (
       },
     ])
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<StaffHours>;
 
   if (error) {
     throw error;
@@ -222,11 +227,11 @@ export const updateStaffHoursField = async (
   const entryType = field.replace(/_hours$/, '') as 'regular' | 'overtime' | 'vacation' | 'sick';
   await setFieldAdjustment(staffHoursId, entryType, value);
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('staff_hours')
     .select('*')
     .eq('id', staffHoursId)
-    .single();
+    .single()) as PostgrestSingleResponse<StaffHours>;
   if (error) {
     throw error;
   }
@@ -263,101 +268,4 @@ export const deleteStaffHours = async (staffHoursId: string): Promise<void> => {
   if (error) {
     throw error;
   }
-};
-
-/**
- * Get all time entries for specific staff hours
- */
-export const getTimeEntries = async (staffHoursId: string): Promise<TimeEntry[]> => {
-  const { data, error } = await supabase
-    .from('time_entries')
-    .select('*')
-    .eq('staff_hours_id', staffHoursId)
-    .order('entry_date', { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  return data || [];
-};
-
-/**
- * Add a new time entry
- */
-export const addTimeEntry = async (
-  staffHoursId: string,
-  entry: TimeEntryFormData
-): Promise<TimeEntry> => {
-  const entryData = {
-    ...entry,
-    staff_hours_id: staffHoursId,
-  };
-
-  const { data, error } = await supabase.from('time_entries').insert([entryData]).select().single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
-
-/**
- * Update an existing time entry
- */
-export const updateTimeEntry = async (
-  id: string,
-  updates: Partial<TimeEntryFormData>
-): Promise<TimeEntry> => {
-  const { data, error } = await supabase
-    .from('time_entries')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
-
-/**
- * Delete a time entry
- */
-export const deleteTimeEntry = async (id: string): Promise<void> => {
-  const { error } = await supabase.from('time_entries').delete().eq('id', id);
-
-  if (error) {
-    throw error;
-  }
-};
-
-/**
- * Add a mat cleaning bonus (15-minute entry)
- * This creates a time entry of type 'mat_cleaning'
- */
-export const addMatCleaningBonus = async (
-  staffHoursId: string,
-  entryDate: string,
-  notes?: string
-): Promise<TimeEntry> => {
-  const entryData: TimeEntryFormData = {
-    staff_hours_id: staffHoursId,
-    entry_date: entryDate,
-    hours: MAT_CLEANING_BONUS,
-    entry_type: 'mat_cleaning',
-    notes: notes || 'Mat cleaning bonus',
-    is_after_school_program: false,
-  };
-
-  const { data, error } = await supabase.from('time_entries').insert([entryData]).select().single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
 };

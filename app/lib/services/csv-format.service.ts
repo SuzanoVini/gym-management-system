@@ -1,5 +1,6 @@
 // app/lib/services/csv-format.service.ts
 
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import type { CSVExportFormat, CSVExportFormatFormData } from '@/types';
 import { supabase } from '../supabase/client';
 
@@ -17,11 +18,11 @@ export type ServiceResult<T> = {
  */
 export const getAllFormats = async (): Promise<ServiceResult<CSVExportFormat[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .select('*')
       .order('is_default', { ascending: false })
-      .order('format_name', { ascending: true });
+      .order('format_name', { ascending: true })) as PostgrestResponse<CSVExportFormat>;
 
     if (error) {
       throw error;
@@ -42,27 +43,27 @@ export const getAllFormats = async (): Promise<ServiceResult<CSVExportFormat[]>>
  */
 export const getDefaultFormat = async (): Promise<ServiceResult<CSVExportFormat>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .select('*')
       .eq('is_default', true)
-      .single();
+      .single()) as PostgrestSingleResponse<CSVExportFormat>;
 
     if (error) {
       if (error.code === 'PGRST116') {
         // No default format found, return the first format or create one
-        const { data: allFormats, error: allError } = await supabase
+        const { data: allFormats, error: allError } = (await supabase
           .from('csv_export_formats')
           .select('*')
           .order('created_at', { ascending: true })
-          .limit(1);
+          .limit(1)) as PostgrestResponse<CSVExportFormat>;
 
         if (allError) {
           throw allError;
         }
 
         if (allFormats && allFormats.length > 0) {
-          return { data: allFormats[0], error: null };
+          return { data: allFormats[0] as CSVExportFormat, error: null };
         }
 
         return {
@@ -89,11 +90,11 @@ export const getDefaultFormat = async (): Promise<ServiceResult<CSVExportFormat>
  */
 export const getFormatById = async (id: string): Promise<ServiceResult<CSVExportFormat>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .select('*')
       .eq('id', id)
-      .single();
+      .single()) as PostgrestSingleResponse<CSVExportFormat>;
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -123,11 +124,11 @@ export const createFormat = async (
   formatData: CSVExportFormatFormData
 ): Promise<ServiceResult<CSVExportFormat>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .insert([formatData])
       .select()
-      .single();
+      .single()) as PostgrestSingleResponse<CSVExportFormat>;
 
     if (error) {
       throw error;
@@ -153,12 +154,12 @@ export const updateFormat = async (
   updates: Partial<CSVExportFormatFormData>
 ): Promise<ServiceResult<CSVExportFormat>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .single()) as PostgrestSingleResponse<CSVExportFormat>;
 
     if (error) {
       throw error;
@@ -202,12 +203,12 @@ export const deleteFormat = async (id: string): Promise<ServiceResult<null>> => 
  */
 export const setDefaultFormat = async (id: string): Promise<ServiceResult<CSVExportFormat>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .update({ is_default: true })
       .eq('id', id)
       .select()
-      .single();
+      .single()) as PostgrestSingleResponse<CSVExportFormat>;
 
     if (error) {
       throw error;
@@ -231,11 +232,11 @@ export const getFormatByName = async (
   formatName: string
 ): Promise<ServiceResult<CSVExportFormat>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('csv_export_formats')
       .select('*')
       .eq('format_name', formatName)
-      .single();
+      .single()) as PostgrestSingleResponse<CSVExportFormat>;
 
     if (error) {
       if (error.code === 'PGRST116') {

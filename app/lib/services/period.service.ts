@@ -1,5 +1,6 @@
 // app/lib/services/period.service.ts
 
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import type { PayrollPeriod, PayrollPeriodFormData } from '@/types';
 import { supabase } from '../supabase/client';
 import { formatDateISO, generatePeriodLabel, getPayrollPeriodForDate } from '../utils/date.utils';
@@ -12,11 +13,11 @@ export { generatePeriodLabel };
  * Get the current active payroll period
  */
 export const getCurrentPeriod = async (): Promise<PayrollPeriod | null> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payroll_periods')
     .select('*')
     .eq('is_current', true)
-    .single();
+    .single()) as PostgrestSingleResponse<PayrollPeriod>;
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -33,10 +34,10 @@ export const getCurrentPeriod = async (): Promise<PayrollPeriod | null> => {
  * Get all payroll periods
  */
 export const getAllPeriods = async (): Promise<PayrollPeriod[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payroll_periods')
     .select('*')
-    .order('start_date', { ascending: false });
+    .order('start_date', { ascending: false })) as PostgrestResponse<PayrollPeriod>;
 
   if (error) {
     throw error;
@@ -49,7 +50,11 @@ export const getAllPeriods = async (): Promise<PayrollPeriod[]> => {
  * Get a specific payroll period by ID
  */
 export const getPeriodById = async (id: string): Promise<PayrollPeriod | null> => {
-  const { data, error } = await supabase.from('payroll_periods').select('*').eq('id', id).single();
+  const { data, error } = (await supabase
+    .from('payroll_periods')
+    .select('*')
+    .eq('id', id)
+    .single()) as PostgrestSingleResponse<PayrollPeriod>;
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -76,11 +81,11 @@ export const createPeriod = async (startDate: string, endDate: string): Promise<
     is_closed: false,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payroll_periods')
     .insert([periodData])
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<PayrollPeriod>;
 
   if (error) {
     throw error;
@@ -96,12 +101,12 @@ export const updatePeriod = async (
   id: string,
   updates: Partial<PayrollPeriodFormData>
 ): Promise<PayrollPeriod> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payroll_periods')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<PayrollPeriod>;
 
   if (error) {
     throw error;
@@ -126,12 +131,12 @@ export const setCurrentPeriod = async (id: string): Promise<PayrollPeriod> => {
   }
 
   // Then set the specified period as current
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payroll_periods')
     .update({ is_current: true })
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<PayrollPeriod>;
 
   if (error) {
     throw error;
@@ -145,12 +150,12 @@ export const setCurrentPeriod = async (id: string): Promise<PayrollPeriod> => {
  * Once closed, a period should not be modified
  */
 export const closePeriod = async (id: string): Promise<PayrollPeriod> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('payroll_periods')
     .update({ is_closed: true, is_current: false })
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<PayrollPeriod>;
 
   if (error) {
     throw error;
@@ -213,12 +218,12 @@ export const findOrCreateCurrentPeriod = async (): Promise<PayrollPeriod> => {
   const { startDate, endDate } = calculateCurrentPeriod();
 
   // Check if a period exists with these exact dates
-  const { data: existingPeriod, error: searchError } = await supabase
+  const { data: existingPeriod, error: searchError } = (await supabase
     .from('payroll_periods')
     .select('*')
     .eq('start_date', startDate)
     .eq('end_date', endDate)
-    .maybeSingle();
+    .maybeSingle()) as PostgrestSingleResponse<PayrollPeriod | null>;
 
   if (searchError) {
     throw searchError;
@@ -226,12 +231,12 @@ export const findOrCreateCurrentPeriod = async (): Promise<PayrollPeriod> => {
 
   // If period exists, set it as current and return it
   if (existingPeriod) {
-    return await setCurrentPeriod(existingPeriod.id);
+    return setCurrentPeriod(existingPeriod.id);
   }
 
   // Otherwise, create a new period
   const newPeriod = await createPeriod(startDate, endDate);
 
   // Set it as the current period
-  return await setCurrentPeriod(newPeriod.id);
+  return setCurrentPeriod(newPeriod.id);
 };

@@ -1,5 +1,6 @@
 // app/lib/migration/payroll-migration.ts
 
+import { reportConsoleError } from '@/lib/logger';
 import type { StaffHoursFormData, StaffMemberFormData } from '@/types';
 import { setManualHours } from '../services/hours.service';
 import { createPeriod, getAllPeriods } from '../services/period.service';
@@ -90,9 +91,19 @@ export function hasLegacyData(): boolean {
 
     return hasStaff || hasHours || hasPeriods || hasCurrentPeriod;
   } catch (error) {
-    console.error('Error checking for legacy data:', error);
+    reportConsoleError('Error checking for legacy data:', error);
     return false;
   }
+}
+
+// Read a JSON array from localStorage; a missing key or a non-array value yields [].
+function readLegacyArray<T>(key: string): T[] {
+  const raw = localStorage.getItem(key);
+  if (!raw) {
+    return [];
+  }
+  const parsed: unknown = JSON.parse(raw);
+  return Array.isArray(parsed) ? (parsed as T[]) : [];
 }
 
 /**
@@ -112,34 +123,21 @@ export function parseLegacyData(): ParsedLegacyData {
 
   try {
     // Parse staff members
-    const staffData = localStorage.getItem('staffMembers');
-    if (staffData) {
-      const parsed = JSON.parse(staffData);
-      result.staff = Array.isArray(parsed) ? parsed : [];
-    }
+    result.staff = readLegacyArray<LegacyStaffMember>('staffMembers');
 
     // Parse staff hours
-    const hoursData = localStorage.getItem('staffHours');
-    if (hoursData) {
-      const parsed = JSON.parse(hoursData);
-      result.hours = Array.isArray(parsed) ? parsed : [];
-    }
+    result.hours = readLegacyArray<LegacyStaffHours>('staffHours');
 
     // Parse payroll periods
-    const periodsData = localStorage.getItem('payrollPeriods');
-    if (periodsData) {
-      const parsed = JSON.parse(periodsData);
-      result.periods = Array.isArray(parsed) ? parsed : [];
-    }
+    result.periods = readLegacyArray<LegacyPayrollPeriod>('payrollPeriods');
 
     // Parse current period
     const currentPeriodData = localStorage.getItem('currentPeriod');
     if (currentPeriodData) {
-      const parsed = JSON.parse(currentPeriodData);
-      result.currentPeriod = parsed;
+      result.currentPeriod = JSON.parse(currentPeriodData) as LegacyCurrentPeriod;
     }
   } catch (error) {
-    console.error('Error parsing legacy data:', error);
+    reportConsoleError('Error parsing legacy data:', error);
     throw new Error(
       `Failed to parse legacy data: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
@@ -171,17 +169,209 @@ export function exportLegacyDataToFile(): void {
 
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('Error exporting legacy data:', error);
+    reportConsoleError('Error exporting legacy data:', error);
     throw new Error(
       `Failed to export legacy data: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
 
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : 'Unknown error';
+
+// Record a failure on the result (and the console) without aborting the run.
+function recordError(result: MigrationResult, errorMsg: string): void {
+  reportConsoleError(errorMsg);
+  result.errors.push(errorMsg);
+}
+
+/**
+ * Step 1: migrate payroll periods, reusing any with the same date range.
+ * Returns the legacy ID -> new ID mapping.
+ */
+async function migratePeriods(
+  data: ParsedLegacyData,
+  result: MigrationResult,
+  onProgress?: MigrationProgressCallback
+): Promise<Map<string, string>> {
+  onProgress?.('Migrating payroll periods...', 0);
+  const periodMapping = new Map<string, string>(); // old ID -> new ID
+
+  for (let i = 0; i < data.periods.length; i++) {
+    const legacyPeriod = data.periods[i];
+    if (!legacyPeriod) {
+      continue;
+    }
+
+    try {
+      // Check if period already exists by date range
+      const existingPeriods = await getAllPeriods();
+      const existingPeriod = existingPeriods.find(
+        (p) => p.start_date === legacyPeriod.startDate && p.end_date === legacyPeriod.endDate
+      );
+
+      if (existingPeriod) {
+        // Period already exists, use its ID
+        periodMapping.set(legacyPeriod.id, existingPeriod.id);
+        result.skipped.periods++;
+      } else {
+        // Create new period
+        const newPeriod = await createPeriod(legacyPeriod.startDate, legacyPeriod.endDate);
+        periodMapping.set(legacyPeriod.id, newPeriod.id);
+        result.migrated.periods++;
+      }
+    } catch (error) {
+      recordError(result, `Failed to migrate period ${legacyPeriod.label}: ${errorMessage(error)}`);
+    }
+
+    onProgress?.('Migrating payroll periods...', Math.round(((i + 1) / data.periods.length) * 25));
+  }
+
+  return periodMapping;
+}
+
+/**
+ * Migrate one staff member, reusing an existing one with the same payroll ID.
+ */
+async function migrateOneStaff(
+  legacyStaff: LegacyStaffMember,
+  staffMapping: Map<string, string>,
+  result: MigrationResult
+): Promise<void> {
+  // Check if staff member already exists by payroll ID
+  const existingStaffResult = await getStaffByEmployeeId(legacyStaff.payrollId);
+
+  if (existingStaffResult.error) {
+    throw existingStaffResult.error;
+  }
+
+  if (existingStaffResult.data && existingStaffResult.data.length > 0) {
+    // Staff member already exists, use their ID
+    const existingStaff = existingStaffResult.data[0];
+    if (existingStaff) {
+      staffMapping.set(legacyStaff.id, existingStaff.id);
+      result.skipped.staff++;
+    }
+    return;
+  }
+
+  // Create new staff member
+  const staffData: StaffMemberFormData = {
+    employee_id: legacyStaff.payrollId,
+    full_name: legacyStaff.name,
+    job_title: legacyStaff.jobTitle,
+    is_active: legacyStaff.isActive,
+  };
+
+  const createResult = await createStaff(staffData);
+
+  if (createResult.error || !createResult.data) {
+    throw createResult.error || new Error('Failed to create staff member');
+  }
+
+  staffMapping.set(legacyStaff.id, createResult.data.id);
+  result.migrated.staff++;
+}
+
+/**
+ * Step 2: migrate staff members. Returns the legacy ID -> new ID mapping.
+ */
+async function migrateStaffMembers(
+  data: ParsedLegacyData,
+  result: MigrationResult,
+  onProgress?: MigrationProgressCallback
+): Promise<Map<string, string>> {
+  onProgress?.('Migrating staff members...', 25);
+  const staffMapping = new Map<string, string>(); // old ID -> new ID
+
+  for (let i = 0; i < data.staff.length; i++) {
+    const legacyStaff = data.staff[i];
+    if (!legacyStaff) {
+      continue;
+    }
+
+    try {
+      await migrateOneStaff(legacyStaff, staffMapping, result);
+    } catch (error) {
+      recordError(
+        result,
+        `Failed to migrate staff member ${legacyStaff.name}: ${errorMessage(error)}`
+      );
+    }
+
+    onProgress?.('Migrating staff members...', 25 + Math.round(((i + 1) / data.staff.length) * 25));
+  }
+
+  return staffMapping;
+}
+
+/**
+ * Migrate one legacy hours record through the manual-adjustment path.
+ */
+async function migrateOneHours(
+  legacyHours: LegacyStaffHours,
+  staffMapping: Map<string, string>,
+  periodMapping: Map<string, string>
+): Promise<void> {
+  // Map old IDs to new IDs
+  const newStaffId = staffMapping.get(legacyHours.staffId);
+  const newPeriodId = periodMapping.get(legacyHours.periodId);
+
+  if (!newStaffId) {
+    throw new Error(`Staff member not found for ID ${legacyHours.staffId}`);
+  }
+
+  if (!newPeriodId) {
+    throw new Error(`Period not found for ID ${legacyHours.periodId}`);
+  }
+
+  // total_hours and notes are derived/unsupported by the adjustment
+  // mechanism — the trigger recomputes total_hours from the entries
+  // this creates, and legacy notes aren't carried over
+  const hoursData: Partial<StaffHoursFormData> = {
+    regular_hours: legacyHours.regularHours,
+    overtime_hours: legacyHours.overtimeHours,
+    vacation_hours: legacyHours.vacationHours,
+    mat_cleaning_count: legacyHours.matCleaningCount,
+  };
+
+  await setManualHours(newPeriodId, newStaffId, hoursData);
+}
+
+/**
+ * Step 3: migrate staff hours using the staff and period ID mappings.
+ */
+async function migrateStaffHours(
+  data: ParsedLegacyData,
+  mappings: { staff: Map<string, string>; periods: Map<string, string> },
+  result: MigrationResult,
+  onProgress?: MigrationProgressCallback
+): Promise<void> {
+  onProgress?.('Migrating staff hours...', 50);
+
+  for (let i = 0; i < data.hours.length; i++) {
+    const legacyHours = data.hours[i];
+    if (!legacyHours) {
+      continue;
+    }
+
+    try {
+      await migrateOneHours(legacyHours, mappings.staff, mappings.periods);
+      result.migrated.hours++;
+    } catch (error) {
+      recordError(
+        result,
+        `Failed to migrate hours for staff ${legacyHours.staffId}: ${errorMessage(error)}`
+      );
+    }
+
+    onProgress?.('Migrating staff hours...', 50 + Math.round(((i + 1) / data.hours.length) * 45));
+  }
+}
+
 /**
  * Migrate legacy data to Supabase with progress tracking
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Migration function requires sequential error handling for each data type
 export async function migrateLegacyData(
   data: ParsedLegacyData,
   onProgress?: MigrationProgressCallback
@@ -203,141 +393,18 @@ export async function migrateLegacyData(
 
   try {
     // Step 1: Migrate payroll periods
-    onProgress?.('Migrating payroll periods...', 0);
-    const periodMapping = new Map<string, string>(); // old ID -> new ID
-
-    for (let i = 0; i < data.periods.length; i++) {
-      const legacyPeriod = data.periods[i];
-      if (!legacyPeriod) {
-        continue;
-      }
-
-      try {
-        // Check if period already exists by date range
-        const existingPeriods = await getAllPeriods();
-        const existingPeriod = existingPeriods.find(
-          (p) => p.start_date === legacyPeriod.startDate && p.end_date === legacyPeriod.endDate
-        );
-
-        if (existingPeriod) {
-          // Period already exists, use its ID
-          periodMapping.set(legacyPeriod.id, existingPeriod.id);
-          result.skipped.periods++;
-        } else {
-          // Create new period
-          const newPeriod = await createPeriod(legacyPeriod.startDate, legacyPeriod.endDate);
-          periodMapping.set(legacyPeriod.id, newPeriod.id);
-          result.migrated.periods++;
-        }
-      } catch (error) {
-        const errorMsg = `Failed to migrate period ${legacyPeriod.label}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        console.error(errorMsg);
-        result.errors.push(errorMsg);
-      }
-
-      onProgress?.(
-        'Migrating payroll periods...',
-        Math.round(((i + 1) / data.periods.length) * 25)
-      );
-    }
+    const periodMapping = await migratePeriods(data, result, onProgress);
 
     // Step 2: Migrate staff members
-    onProgress?.('Migrating staff members...', 25);
-    const staffMapping = new Map<string, string>(); // old ID -> new ID
-
-    for (let i = 0; i < data.staff.length; i++) {
-      const legacyStaff = data.staff[i];
-      if (!legacyStaff) {
-        continue;
-      }
-
-      try {
-        // Check if staff member already exists by payroll ID
-        const existingStaffResult = await getStaffByEmployeeId(legacyStaff.payrollId);
-
-        if (existingStaffResult.error) {
-          throw existingStaffResult.error;
-        }
-
-        if (existingStaffResult.data && existingStaffResult.data.length > 0) {
-          // Staff member already exists, use their ID
-          const existingStaff = existingStaffResult.data[0];
-          if (existingStaff) {
-            staffMapping.set(legacyStaff.id, existingStaff.id);
-            result.skipped.staff++;
-          }
-        } else {
-          // Create new staff member
-          const staffData: StaffMemberFormData = {
-            employee_id: legacyStaff.payrollId,
-            full_name: legacyStaff.name,
-            job_title: legacyStaff.jobTitle,
-            is_active: legacyStaff.isActive,
-          };
-
-          const createResult = await createStaff(staffData);
-
-          if (createResult.error || !createResult.data) {
-            throw createResult.error || new Error('Failed to create staff member');
-          }
-
-          staffMapping.set(legacyStaff.id, createResult.data.id);
-          result.migrated.staff++;
-        }
-      } catch (error) {
-        const errorMsg = `Failed to migrate staff member ${legacyStaff.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        console.error(errorMsg);
-        result.errors.push(errorMsg);
-      }
-
-      onProgress?.(
-        'Migrating staff members...',
-        25 + Math.round(((i + 1) / data.staff.length) * 25)
-      );
-    }
+    const staffMapping = await migrateStaffMembers(data, result, onProgress);
 
     // Step 3: Migrate staff hours
-    onProgress?.('Migrating staff hours...', 50);
-
-    for (let i = 0; i < data.hours.length; i++) {
-      const legacyHours = data.hours[i];
-      if (!legacyHours) {
-        continue;
-      }
-
-      try {
-        // Map old IDs to new IDs
-        const newStaffId = staffMapping.get(legacyHours.staffId);
-        const newPeriodId = periodMapping.get(legacyHours.periodId);
-
-        if (!newStaffId) {
-          throw new Error(`Staff member not found for ID ${legacyHours.staffId}`);
-        }
-
-        if (!newPeriodId) {
-          throw new Error(`Period not found for ID ${legacyHours.periodId}`);
-        }
-
-        // total_hours and notes are derived/unsupported by the adjustment
-        // mechanism — the trigger recomputes total_hours from the entries
-        // this creates, and legacy notes aren't carried over
-        const hoursData: Partial<StaffHoursFormData> = {
-          regular_hours: legacyHours.regularHours,
-          overtime_hours: legacyHours.overtimeHours,
-          vacation_hours: legacyHours.vacationHours,
-          mat_cleaning_count: legacyHours.matCleaningCount,
-        };
-
-        await setManualHours(newPeriodId, newStaffId, hoursData);
-        result.migrated.hours++;
-      } catch (error) {
-        const errorMsg = `Failed to migrate hours for staff ${legacyHours.staffId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        console.error(errorMsg);
-        result.errors.push(errorMsg);
-      }
-
-      onProgress?.('Migrating staff hours...', 50 + Math.round(((i + 1) / data.hours.length) * 45));
-    }
+    await migrateStaffHours(
+      data,
+      { staff: staffMapping, periods: periodMapping },
+      result,
+      onProgress
+    );
 
     // Step 4: Finalize
     onProgress?.('Migration complete', 100);
@@ -345,9 +412,7 @@ export async function migrateLegacyData(
 
     return result;
   } catch (error) {
-    const errorMsg = `Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
-    console.error(errorMsg);
-    result.errors.push(errorMsg);
+    recordError(result, `Migration failed: ${errorMessage(error)}`);
     return result;
   }
 }
@@ -370,7 +435,7 @@ export function cleanupLegacyData(): void {
     localStorage.setItem('payroll_migration_completed', 'true');
     localStorage.setItem('payroll_migration_date', new Date().toISOString());
   } catch (error) {
-    console.error('Error cleaning up legacy data:', error);
+    reportConsoleError('Error cleaning up legacy data:', error);
   }
 }
 
@@ -385,7 +450,7 @@ export function isMigrationCompleted(): boolean {
   try {
     return localStorage.getItem('payroll_migration_completed') === 'true';
   } catch (error) {
-    console.error('Error checking migration status:', error);
+    reportConsoleError('Error checking migration status:', error);
     return false;
   }
 }
@@ -402,7 +467,7 @@ export function setMigrationSkipped(): void {
     localStorage.setItem('payroll_migration_skipped', 'true');
     localStorage.setItem('payroll_migration_skipped_date', new Date().toISOString());
   } catch (error) {
-    console.error('Error setting migration skipped flag:', error);
+    reportConsoleError('Error setting migration skipped flag:', error);
   }
 }
 
@@ -417,7 +482,7 @@ export function isMigrationSkipped(): boolean {
   try {
     return localStorage.getItem('payroll_migration_skipped') === 'true';
   } catch (error) {
-    console.error('Error checking migration skipped status:', error);
+    reportConsoleError('Error checking migration skipped status:', error);
     return false;
   }
 }

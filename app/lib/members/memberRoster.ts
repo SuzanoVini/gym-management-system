@@ -18,6 +18,25 @@ function parseLifecycleDate(primary?: string | null, fallback?: string | null): 
   return Number.isNaN(fallbackTime) ? null : fallbackTime;
 }
 
+function latestDateByName<T extends { name: string; name_normalized?: string | null }>(
+  rows: T[],
+  getDates: (row: T) => [string | null | undefined, string | null | undefined]
+): Map<string, number> {
+  const latestByName = new Map<string, number>();
+  for (const row of rows) {
+    const effectiveDate = parseLifecycleDate(...getDates(row));
+    if (effectiveDate === null) {
+      continue;
+    }
+    const key = nameKey(row);
+    const current = latestByName.get(key);
+    if (current === undefined || effectiveDate > current) {
+      latestByName.set(key, effectiveDate);
+    }
+  }
+  return latestByName;
+}
+
 export function buildMemberRoster({
   members,
   signups,
@@ -31,33 +50,15 @@ export function buildMemberRoster({
   holds: Hold[];
   now: Date;
 }): DisplayMember[] {
-  const latestSignupByName = new Map<string, number>();
-  const latestCancellationByName = new Map<string, number>();
+  const latestSignupByName = latestDateByName(signups, (signup) => [
+    signup.membership_date,
+    signup.created_at,
+  ]);
+  const latestCancellationByName = latestDateByName(cancellations, (cancellation) => [
+    cancellation.date,
+    cancellation.created_at,
+  ]);
   const activeHoldKeys = new Set<string>();
-
-  for (const signup of signups) {
-    const effectiveDate = parseLifecycleDate(signup.membership_date, signup.created_at);
-    if (effectiveDate === null) {
-      continue;
-    }
-    const key = nameKey(signup);
-    const current = latestSignupByName.get(key);
-    if (current === undefined || effectiveDate > current) {
-      latestSignupByName.set(key, effectiveDate);
-    }
-  }
-
-  for (const cancellation of cancellations) {
-    const effectiveDate = parseLifecycleDate(cancellation.date, cancellation.created_at);
-    if (effectiveDate === null) {
-      continue;
-    }
-    const key = nameKey(cancellation);
-    const current = latestCancellationByName.get(key);
-    if (current === undefined || effectiveDate > current) {
-      latestCancellationByName.set(key, effectiveDate);
-    }
-  }
 
   for (const hold of holds) {
     if (isActiveHold(hold, now)) {
@@ -82,50 +83,66 @@ export function buildMemberRoster({
   });
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Classifies plan strings into independent summary groups.
+interface PlanCounts {
+  program: { Legacy: number; Integrity: number; Special: number };
+  age: { Adults: number; Kids: number };
+  duration: { Annual: number; 'Semi-Annual': number };
+  classPacks: { 'Flex 10': number; 'Flex 20': number };
+}
+
+function countProgramAndAge(plan: string, { program, age }: PlanCounts): void {
+  if (plan.includes('legacy')) {
+    program.Legacy++;
+  }
+  if (plan.includes('integrity')) {
+    program.Integrity++;
+  }
+  if (plan.includes('special')) {
+    program.Special++;
+  }
+  if (plan.includes('adult')) {
+    age.Adults++;
+  }
+  if (plan.includes('kids') || plan.includes('youth')) {
+    age.Kids++;
+  }
+}
+
+function countDurationAndPacks(plan: string, { duration, classPacks }: PlanCounts): void {
+  if (plan.includes('semi-annual') || plan.includes('semi annual')) {
+    duration['Semi-Annual']++;
+  } else if (plan.includes('annual')) {
+    duration.Annual++;
+  }
+  if (plan.includes('flex 10')) {
+    classPacks['Flex 10']++;
+  }
+  if (plan.includes('flex 20')) {
+    classPacks['Flex 20']++;
+  }
+}
+
 export function summarizeMemberPlans(nonAlumniMembers: DisplayMember[]) {
-  const program = { Legacy: 0, Integrity: 0, Special: 0 };
-  const age = { Adults: 0, Kids: 0 };
-  const duration = { Annual: 0, 'Semi-Annual': 0 };
-  const classPacks = { 'Flex 10': 0, 'Flex 20': 0 };
+  const counts: PlanCounts = {
+    program: { Legacy: 0, Integrity: 0, Special: 0 },
+    age: { Adults: 0, Kids: 0 },
+    duration: { Annual: 0, 'Semi-Annual': 0 },
+    classPacks: { 'Flex 10': 0, 'Flex 20': 0 },
+  };
 
   for (const member of nonAlumniMembers) {
     const plan = member.membership_type?.toLowerCase() ?? '';
-    if (plan.includes('legacy')) {
-      program.Legacy++;
-    }
-    if (plan.includes('integrity')) {
-      program.Integrity++;
-    }
-    if (plan.includes('special')) {
-      program.Special++;
-    }
-    if (plan.includes('adult')) {
-      age.Adults++;
-    }
-    if (plan.includes('kids') || plan.includes('youth')) {
-      age.Kids++;
-    }
-    if (plan.includes('semi-annual') || plan.includes('semi annual')) {
-      duration['Semi-Annual']++;
-    } else if (plan.includes('annual')) {
-      duration.Annual++;
-    }
-    if (plan.includes('flex 10')) {
-      classPacks['Flex 10']++;
-    }
-    if (plan.includes('flex 20')) {
-      classPacks['Flex 20']++;
-    }
+    countProgramAndAge(plan, counts);
+    countDurationAndPacks(plan, counts);
   }
 
-  const nonZeroEntries = (counts: Record<string, number>) =>
-    Object.entries(counts).filter(([, count]) => count > 0) as [string, number][];
+  const nonZeroEntries = (group: Record<string, number>) =>
+    Object.entries(group).filter(([, count]) => count > 0) as [string, number][];
 
   return {
-    program: nonZeroEntries(program),
-    age: nonZeroEntries(age),
-    duration: nonZeroEntries(duration),
-    classPacks: nonZeroEntries(classPacks),
+    program: nonZeroEntries(counts.program),
+    age: nonZeroEntries(counts.age),
+    duration: nonZeroEntries(counts.duration),
+    classPacks: nonZeroEntries(counts.classPacks),
   };
 }
