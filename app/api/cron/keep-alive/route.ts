@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyCronRequest } from '@/lib/cron';
+import { reportConsoleError } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: Request) {
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     const { error } = await supabase.from('settings').select('id').limit(1).single();
 
     if (error) {
-      console.error('Keep-alive query error:', error);
+      reportConsoleError('Keep-alive query error:', error);
       return NextResponse.json(
         { error: 'Database query failed', details: error.message },
         { status: 500 }
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Keep-alive error:', error);
+    reportConsoleError('Keep-alive error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

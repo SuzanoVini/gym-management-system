@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { reportConsoleError } from '@/lib/logger';
 import { requireOwner } from '@/lib/supabase/authorization';
 
 export async function GET() {
@@ -24,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json({ users });
   } catch (error) {
-    console.error('Error listing users:', error);
+    reportConsoleError('Error listing users:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error creating user:', error);
+    reportConsoleError('Error creating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

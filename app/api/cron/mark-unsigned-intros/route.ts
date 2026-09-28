@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyCronRequest } from '@/lib/cron';
+import { reportConsoleError } from '@/lib/logger';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: Request) {
@@ -13,10 +14,12 @@ export async function GET(request: Request) {
 
     // Calls the mark_unsigned_intros() SQL function created in Supabase SQL Editor
     // Uses COALESCE(date::date, created_at::date) to handle legacy null-date records
-    const { data: count, error } = await supabase.rpc('mark_unsigned_intros');
+    const result = await supabase.rpc('mark_unsigned_intros');
+    const count = result.data as number | null;
+    const { error } = result;
 
     if (error) {
-      console.error('mark-unsigned-intros error:', error);
+      reportConsoleError('mark-unsigned-intros error:', error);
       return NextResponse.json(
         { error: 'Failed to mark unsigned intros', details: error.message },
         { status: 500 }
@@ -29,7 +32,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('mark-unsigned-intros fatal error:', err);
+    reportConsoleError('mark-unsigned-intros fatal error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
