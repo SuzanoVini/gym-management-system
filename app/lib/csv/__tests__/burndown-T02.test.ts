@@ -14,6 +14,7 @@ import {
   parseIntrosCSV,
   parseSignupsCSV,
 } from '@/lib/csv';
+import { parseDate } from '@/lib/csv/normalize';
 
 interface PapaConfig {
   header: boolean;
@@ -76,10 +77,10 @@ describe('csv parsers', () => {
 
   it('maps signups, cancellations and holds', () => {
     expect(runCsv(parseSignupsCSV, baseRows, 2026)).toMatchInlineSnapshot(
-      `"{"rest":{"header":true,"dynamicTyping":false,"skipEmptyLines":true,"delimitersToGuess":[",","\\t","|",";"]},"header":"A b","out":[{"month":"Jan","name":"Ann","membership":"","membership_date":"2001-05-01","signup_package":false,"notes":"","year":2026},{"month":"Sept","name":"Bo","membership":"","membership_date":"2026-03-04","signup_package":false,"notes":"","year":2026},{"month":"Feb","name":"Cy","membership":"","signup_package":false,"notes":"","year":2026},{"month":"Mar","name":"Di","membership":"","membership_date":"2025-03-07","signup_package":false,"notes":"","year":2026},{"month":"","name":"Ed","membership":"","first_payment_date":"2026-07-08","signup_package":true,"notes":"","year":2026},{"month":"","name":"Fi","membership":"","signup_package":false,"notes":"n","year":2026},{"month":"","name":"Gu","membership":"","signup_package":false,"notes":"","year":2026}]}"`
+      `"{"rest":{"header":true,"dynamicTyping":false,"skipEmptyLines":true,"delimitersToGuess":[",","\\t","|",";"]},"header":"A b","out":[{"month":"Jan","name":"Ann","membership":"","membership_date":"2026-01-05","signup_package":false,"notes":"","year":2026},{"month":"Sept","name":"Bo","membership":"","membership_date":"2026-03-04","signup_package":false,"notes":"","year":2026},{"month":"Feb","name":"Cy","membership":"","signup_package":false,"notes":"","year":2026},{"month":"Mar","name":"Di","membership":"","membership_date":"2025-03-07","signup_package":false,"notes":"","year":2026},{"month":"","name":"Ed","membership":"","first_payment_date":"2026-07-08","signup_package":true,"notes":"","year":2026},{"month":"","name":"Fi","membership":"","signup_package":false,"notes":"n","year":2026},{"month":"","name":"Gu","membership":"","signup_package":false,"notes":"","year":2026}]}"`
     );
     expect(runCsv(parseCancellationsCSV, baseRows, 2026)).toMatchInlineSnapshot(
-      `"{"rest":{"header":true,"dynamicTyping":false,"skipEmptyLines":true,"delimitersToGuess":[",","\\t","|",";"]},"header":"A b","out":[{"month":"Jan","name":"Ann","date":"2001-05-01","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"Sept","name":"Bo","date":"2026-03-04","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"Feb","name":"Cy","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"Mar","name":"Di","date":"2025-03-07","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"","name":"Ed","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"","name":"Fi","date":"2026-01-02","reason":"r","age_group":"Kid","notes":"n","year":2026},{"month":"","name":"Gu","reason":null,"age_group":null,"notes":null,"year":2026}]}"`
+      `"{"rest":{"header":true,"dynamicTyping":false,"skipEmptyLines":true,"delimitersToGuess":[",","\\t","|",";"]},"header":"A b","out":[{"month":"Jan","name":"Ann","date":"2026-01-05","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"Sept","name":"Bo","date":"2026-03-04","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"Feb","name":"Cy","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"Mar","name":"Di","date":"2025-03-07","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"","name":"Ed","reason":null,"age_group":null,"notes":null,"year":2026},{"month":"","name":"Fi","date":"2026-01-02","reason":"r","age_group":"Kid","notes":"n","year":2026},{"month":"","name":"Gu","reason":null,"age_group":null,"notes":null,"year":2026}]}"`
     );
     expect(runCsv(parseHoldsCSV, baseRows, 2026)).toMatchInlineSnapshot(
       `"{"rest":{"header":true,"dynamicTyping":false,"skipEmptyLines":true,"delimitersToGuess":[",","\\t","|",";"]},"header":"A b","out":[{"month":"Jan","name":"Ann","reason":null,"fee":null,"year":2026},{"month":"Sept","name":"Bo","reason":null,"fee":null,"year":2026},{"month":"Feb","name":"Cy","reason":null,"fee":null,"year":2026},{"month":"Mar","name":"Di","reason":null,"fee":null,"year":2026},{"month":"","name":"Ed","reason":null,"fee":null,"year":2026},{"month":"","name":"Fi","reason":"r","fee":null,"year":2026},{"month":"","name":"Gu","start":"2023-04-05","end":"2026-06-07","reason":null,"fee":"$20","year":2026}]}"`
@@ -105,5 +106,18 @@ describe('csv parsers', () => {
     ).toMatchInlineSnapshot(
       `"[[["Error processing CSV data:","consumer boom"],["CSV parsing error:","bad file"],["Error processing CSV data:","consumer boom"],["CSV parsing error:","bad file"],["Error processing CSV data:","consumer boom"],["CSV parsing error:","bad file"],["Error processing CSV data:","consumer boom"],["CSV parsing error:","bad file"]],[["Error processing CSV file. Please check the file format."],["Error parsing CSV file. Please check the file format."],["Error processing CSV file. Please check the file format."],["Error parsing CSV file. Please check the file format."],["Error processing CSV file. Please check the file format."],["Error parsing CSV file. Please check the file format."],["Error processing CSV file. Please check the file format."],["Error parsing CSV file. Please check the file format."]]]"`
     );
+  });
+});
+
+describe('parseDate bare day numbers', () => {
+  it('returns undefined instead of guessing a month and year', () => {
+    expect(parseDate('5', 2026)).toBeUndefined();
+    expect(parseDate('31')).toBeUndefined();
+  });
+
+  it('still parses full and month/day dates', () => {
+    expect(parseDate('2026-03-07')).toBe('2026-03-07');
+    expect(parseDate('3/4', 2026)).toBe('2026-03-04');
+    expect(parseDate('03/07/2025')).toBe('2025-03-07');
   });
 });

@@ -2,7 +2,7 @@
 // Date, month and yes/no normalization shared by the table CSV parsers in lib/csv.
 import { reportConsoleError } from '@/lib/logger';
 
-// MM/DD or DD/MM without a year, or MM/DD/YYYY.
+// MM/DD or DD/MM without a year, YYYY-MM-DD, or MM/DD/YYYY.
 const parseNumericDate = (cleanStr: string, year?: number): string | undefined => {
   // MM/DD or DD/MM without a year — two 1-2-digit numbers separated by / - or .
   const twoPartMatch = cleanStr.match(/^(\d{1,2})[/\-.](\d{1,2})$/);
@@ -10,6 +10,14 @@ const parseNumericDate = (cleanStr: string, year?: number): string | undefined =
     const [, part1, part2] = twoPartMatch as [string, string, string];
     const y = year ?? new Date().getFullYear();
     return `${y}-${part1.padStart(2, '0')}-${part2.padStart(2, '0')}`;
+  }
+
+  // YYYY-MM-DD is taken as written; new Date() would read it as UTC midnight
+  // and shift it to the previous day in Vancouver.
+  const iso = cleanStr.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) {
+    const [, y, m, d] = iso as [string, string, string, string];
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
   }
 
   // MM/DD/YYYY
@@ -35,6 +43,11 @@ export const parseDate = (dateStr: string, year?: number): string | undefined =>
     const numericDate = parseNumericDate(cleanStr, year);
     if (numericDate !== undefined) {
       return numericDate;
+    }
+
+    // A bare day number has no month; new Date('5') would read it as May 2001.
+    if (/^\d{1,2}$/.test(cleanStr)) {
+      return undefined;
     }
 
     // YYYY-MM-DD or any other full date string

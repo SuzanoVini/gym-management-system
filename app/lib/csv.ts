@@ -79,7 +79,7 @@ export type IntroCsvRecord = {
 };
 
 // A bare day number is combined with the month column and the import year.
-const parseIntroDate = (monthStr: string, dayRaw: string, year?: number): string | undefined => {
+const parseDayInMonth = (monthStr: string, dayRaw: string, year?: number): string | undefined => {
   if (/^\d{1,2}$/.test(dayRaw) && year) {
     const monthNum = MONTH_NUMBERS[monthStr.toLowerCase()];
     if (monthNum) {
@@ -93,7 +93,7 @@ const parseIntroDate = (monthStr: string, dayRaw: string, year?: number): string
 const mapIntroRow = (row: CsvRow, year?: number): IntroCsvRecord => {
   const monthStr = normalizeMonth(pick(row, 'MONTH', 'month', 'Month'));
   const dayRaw = pick(row, 'DATE', 'date', 'Date');
-  const date = parseIntroDate(monthStr, dayRaw, year);
+  const date = parseDayInMonth(monthStr, dayRaw, year);
   return {
     month: monthStr,
     date,
@@ -150,11 +150,12 @@ const mapSignupRow = (row: CsvRow, year?: number): SignupCsvRecord => {
     'first_payment_date'
   );
 
+  const month = normalizeMonth(pick(row, 'MONTH', 'month', 'Month'));
   return {
-    month: normalizeMonth(pick(row, 'MONTH', 'month', 'Month')),
+    month,
     name: pick(row, 'NAME', 'name', 'Name'),
     membership: pick(row, 'MEMBERSHIP', 'membership', 'Membership'),
-    membership_date: parseDate(membershipDateRaw, year),
+    membership_date: parseDayInMonth(month, membershipDateRaw, year),
     first_payment_date: parseDate(firstPaymentDateRaw, year),
     signup_package: pick(
       row,
@@ -199,10 +200,11 @@ const mapCancellationRow = (row: CsvRow, year?: number): CancellationCsvRecord =
     'date'
   );
 
+  const month = normalizeMonth(pick(row, 'MONTH', 'month', 'Month'));
   return {
-    month: normalizeMonth(pick(row, 'MONTH', 'month', 'Month')),
+    month,
     name: pick(row, 'NAME', 'name', 'Name'),
-    date: parseDate(cancellationDateRaw, year),
+    date: parseDayInMonth(month, cancellationDateRaw, year),
     reason: pickOrNull(row, 'REASON', 'reason', 'Reason'),
     age_group: pickOrNull(
       row,
