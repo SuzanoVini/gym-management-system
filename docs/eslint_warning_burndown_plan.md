@@ -1,6 +1,6 @@
 # ESLint Warning Burndown Plan
 
-Status: **Decision A selected by user.** Full burndown authorized. No application source changes for this burndown have started; existing uncommitted ESLint installation files are preserved.
+Status: **Complete (2026-09-28).** All tasks T01-T09 committed on develop (999eb2e..202ecae), plus a follow-up moving service-role data access out of API routes into `app/lib/jobs/` and `app/lib/supabase/maintenance.ts` (8dcb3fc). Fast and typed lint: 0 warnings, 0 errors. Both lint scripts now run with `--max-warnings 0`, so any new warning fails CI (fast tier) or a manual `npm run lint:types`. No ESLint suppressions added; existing biome-ignores that moved with code are the only ones carried over.
 
 ## 0. Ground truth (fresh baseline, 2026-09-26)
 

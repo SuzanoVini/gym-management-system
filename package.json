@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "format": "biome format --write",
     "test": "node verify.mjs && node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
@@ -18,7 +18,7 @@
     "quality": "npm run lint && npm run lint:biome && npm run typecheck && npm run test",
     "prepare": "husky",
     "lint:fix": "eslint . --fix",
-    "lint:types": "node --max-old-space-size=6144 ./node_modules/eslint/bin/eslint.js --config eslint.typed.config.mjs .",
+    "lint:types": "node --max-old-space-size=6144 ./node_modules/eslint/bin/eslint.js --config eslint.typed.config.mjs . --max-warnings 0",
     "lint:biome": "biome check",
     "test:lint-rules": "node verify.mjs"
   },
