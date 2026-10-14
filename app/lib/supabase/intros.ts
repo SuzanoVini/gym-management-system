@@ -19,6 +19,15 @@ export {
   setFollowUpReminder,
   undoDismissFollowUp,
 } from './intros/followUpGroups';
+export {
+  buildSpamGroupFilter,
+  countSpamGroup,
+  dismissSpamWarning,
+  fetchSpamIntros,
+  markSpamGroup,
+  restoreSpamGroup,
+  undoSpamMark,
+} from './intros/spam';
 export { subscribeToFollowUpNotes, subscribeToIntros } from './intros/subscriptions';
 
 // ============= INTRO CLASS HISTORY FUNCTIONS =============
