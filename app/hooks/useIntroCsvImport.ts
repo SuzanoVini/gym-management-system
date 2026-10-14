@@ -2,6 +2,8 @@ import { type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { type ImportBatch, useImportUndo } from '@/hooks/useImportUndo';
 import { type IntroCsvRecord, parseIntrosCSV } from '@/lib/csv';
 import { reportConsoleError } from '@/lib/logger';
+import { buildSpamContacts, detectSpamSignals } from '@/lib/spam/detectSpamSignals';
+import { fetchSpamIntros } from '@/lib/supabase/intros';
 import { deleteIntroIds, insertIntroImport } from '@/lib/supabase/introTableActions';
 import type { useUIStore } from '@/store/useUIStore';
 import type { Intro } from '@/types';
@@ -122,6 +124,35 @@ async function finishImport(
   );
 }
 
+// Drops rows that duplicate a known intro, then scores the rest for spam.
+async function selectNewRecords(importPreviewData: IntroCsvRecord[], intros: Intro[]) {
+  // Spam rows are hidden from `intros` but must still block re-import.
+  const spamIntros = await fetchSpamIntros();
+  const knownIntros = [...intros, ...spamIntros];
+  const spamContacts = buildSpamContacts(spamIntros);
+  return (
+    importPreviewData
+      .filter((row) => {
+        if (!row.name || !row.month) {
+          return false;
+        }
+        return !knownIntros.some(
+          (i) =>
+            i.name.toLowerCase().trim() === row.name.toLowerCase().trim() && i.month === row.month
+        );
+      })
+      // Coerce date: string|undefined → string|null to satisfy DB Insert type
+      .map((r) => ({
+        ...r,
+        date: r.date ?? null,
+        spam_signals: detectSpamSignals(
+          { name: r.name, email: r.email, phone: r.phone },
+          spamContacts
+        ),
+      }))
+  );
+}
+
 async function confirmImport({
   importPreviewData,
   intros,
@@ -137,17 +168,7 @@ async function confirmImport({
   }
 
   try {
-    const newRecords = importPreviewData.filter((row) => {
-      if (!row.name || !row.month) {
-        return false;
-      }
-      const isDuplicate = intros.some(
-        (i) =>
-          i.name.toLowerCase().trim() === row.name.toLowerCase().trim() && i.month === row.month
-      );
-      return !isDuplicate;
-    });
-
+    const newRecords = await selectNewRecords(importPreviewData, intros);
     const duplicateCount = importPreviewData.length - newRecords.length;
 
     if (newRecords.length === 0) {
@@ -157,9 +178,7 @@ async function confirmImport({
       return;
     }
 
-    // Coerce date: string|undefined → string|null to satisfy DB Insert type
-    const recordsToInsert = newRecords.map((r) => ({ ...r, date: r.date ?? null }));
-    const { data, error } = await insertIntroImport(recordsToInsert);
+    const { data, error } = await insertIntroImport(newRecords);
 
     if (error) {
       reportConsoleError('Error bulk importing:', error);
