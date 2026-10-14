@@ -20,6 +20,8 @@ import type { Intro } from '@/types';
 import IntroDialogs from './intros/IntroDialogs';
 import IntroFilters from './intros/IntroFilters';
 import IntroImportPreview from './intros/IntroImportPreview';
+import IntroMetrics from './intros/IntroMetrics';
+import { IntroSpamLayer, useIntroSpam } from './intros/IntroSpam';
 import type { IntroTableContext } from './intros/IntroTableContext';
 import { introIdentityColumns } from './intros/introIdentityColumns';
 import { introStatusColumns } from './intros/introStatusColumns';
@@ -39,7 +41,16 @@ function useIntroSelection() {
   const toggleSelection = useSelectionStore((state) => state.toggleSelection);
   const selectAll = useSelectionStore((state) => state.selectAll);
   const clearSelection = useSelectionStore((state) => state.clearSelection);
-  return { selectedIds, toggleSelection, selectAll, clearSelection };
+  const selectedIntro = useSelectionStore((state) => state.selectedIntro);
+  const setSelectedIntro = useSelectionStore((state) => state.setSelectedIntro);
+  return {
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    selectedIntro,
+    setSelectedIntro,
+  };
 }
 
 function useIntroDialogState() {
@@ -68,25 +79,6 @@ async function deleteIntrosInBatches(idsToDelete: string[]) {
       throw error;
     }
   }
-}
-
-function IntroMetrics({ metrics }: { metrics: ReturnType<typeof useIntroListView>['metrics'] }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div className="section-container border-l-4 border-blue-600">
-        <div className="text-sm text-gray-600">Total Intros</div>
-        <div className="text-3xl font-bold mt-1">{metrics.total}</div>
-      </div>
-      <div className="section-container border-l-4 border-green-600">
-        <div className="text-sm text-gray-600">Attended</div>
-        <div className="text-3xl font-bold mt-1">{metrics.attended}</div>
-      </div>
-      <div className="section-container border-l-4 border-purple-600">
-        <div className="text-sm text-gray-600">Signed Up</div>
-        <div className="text-3xl font-bold mt-1">{metrics.signedUp}</div>
-      </div>
-    </div>
-  );
 }
 
 function IntrosHeader({
@@ -196,21 +188,24 @@ function IntrosTableSection({
   );
 }
 
-export default function IntrosTab() {
+interface IntrosTabProps {
+  onIntrosChanged?: () => Promise<void> | void;
+}
+
+export default function IntrosTab({ onIntrosChanged }: IntrosTabProps = {}) {
   const data = useIntros();
   const { intros, loading, error, removeIntro, refresh, silentRefresh } = data;
   const { modals, openModal, closeModal } = useUIStore();
   const { filters, setFilters, clearFiltersForTab } = useIntroFilterState();
   const formerMemberMap = useFormerMembers();
   const selection = useIntroSelection();
-  const selectedIntro = useSelectionStore((state) => state.selectedIntro);
-  const setSelectedIntro = useSelectionStore((state) => state.setSelectedIntro);
   const classTypes = useSettingsStore((s) => s.classTypes);
   const staffMembers = useSettingsStore((s) => s.staffMembers);
   const dialogState = useIntroDialogState();
 
   const csvImport = useIntroCsvImport({ intros, refresh, openModal, closeModal });
   const view = useIntroListView(intros, filters, staffMembers);
+  const introSpam = useIntroSpam(filters.searchTerm, silentRefresh, onIntrosChanged);
 
   const handleUndoDismiss = async () => {
     if (!dialogState.dismissedForUndo) {
@@ -223,7 +218,7 @@ export default function IntrosTab() {
   };
 
   const openIntroModal = (intro: Intro, modal: 'editIntro' | 'followUp') => {
-    setSelectedIntro(intro);
+    selection.setSelectedIntro(intro);
     openModal(modal);
   };
 
@@ -265,6 +260,8 @@ export default function IntrosTab() {
       dialogState.setSelectedIntroForNotes(intro);
       openModal('notesManager');
     },
+    onReviewSpam: introSpam.spam.setReviewIntro,
+    onMarkSpam: (intro: Intro) => introSpam.spam.openConfirm(intro, 'mark'),
   };
 
   if (error) {
@@ -326,14 +323,16 @@ export default function IntrosTab() {
         }}
       />
 
+      <IntroSpamLayer {...introSpam} searchTerm={filters.searchTerm} />
+
       <IntroDialogs
         data={data}
         modals={modals}
         closeModal={closeModal}
         classTypes={classTypes}
         staffMembers={staffMembers}
-        selectedIntro={selectedIntro}
-        setSelectedIntro={setSelectedIntro}
+        selectedIntro={selection.selectedIntro}
+        setSelectedIntro={selection.setSelectedIntro}
         {...dialogState}
         handleUndoDismiss={handleUndoDismiss}
       />

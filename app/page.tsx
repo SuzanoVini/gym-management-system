@@ -73,7 +73,9 @@ function HomeContent() {
                 <div className="animate-fadeIn">
                   {activeTab === 'overview' && <OverviewTab />}
                   {activeTab === 'insights' && <InsightsTab followUps={followUps} />}
-                  {activeTab === 'intros' && <IntrosTab />}
+                  {activeTab === 'intros' && (
+                    <IntrosTab onIntrosChanged={followUps.silentRefresh} />
+                  )}
                   {activeTab === 'followups' && <FollowUpsTab followUps={followUps} />}
                   {activeTab === 'signups' && <SignupsTab />}
                   {activeTab === 'cancellations' && <CancellationsTab />}

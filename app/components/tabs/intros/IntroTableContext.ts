@@ -12,4 +12,6 @@ export interface IntroTableContext {
   handleEditClick: (intro: Intro) => void;
   onManageNotes: (intro: Intro) => void;
   removeIntro: (id: string, name: string) => Promise<void>;
+  onReviewSpam: (intro: Intro) => void;
+  onMarkSpam: (intro: Intro) => void;
 }

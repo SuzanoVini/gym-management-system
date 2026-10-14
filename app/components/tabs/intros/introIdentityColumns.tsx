@@ -1,6 +1,7 @@
-import { AlertTriangle, Mail, Phone } from 'lucide-react';
+import { AlertTriangle, Mail, Phone, ShieldAlert } from 'lucide-react';
 import CopyButton from '@/components/ui/CopyButton';
 import Tooltip from '@/components/ui/Tooltip';
+import { spamLevel } from '@/lib/spam/detectSpamSignals';
 import { formatDate } from '@/lib/supabase/utils';
 import type { Intro } from '@/types';
 import type { IntroTableContext } from './IntroTableContext';
@@ -13,10 +14,43 @@ function formatFormerMemberDate(iso: string): string {
   });
 }
 
+function SpamShield({
+  intro,
+  onReviewSpam,
+}: {
+  intro: Intro;
+  onReviewSpam: IntroTableContext['onReviewSpam'];
+}) {
+  const level = spamLevel(intro);
+  if (!level) {
+    return null;
+  }
+  return (
+    <Tooltip content="Possible spam — click to review">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onReviewSpam(intro);
+        }}
+        className={
+          level === 'strong'
+            ? 'text-amber-500 hover:text-amber-600 focus:outline-none'
+            : 'text-gray-400 hover:text-gray-500 focus:outline-none'
+        }
+        aria-label="Review possible spam"
+      >
+        <ShieldAlert size={14} />
+      </button>
+    </Tooltip>
+  );
+}
+
 export function introIdentityColumns({
   formerMemberMap,
   classTypes,
   setResolvingIntro,
+  onReviewSpam,
 }: IntroTableContext) {
   return [
     {
@@ -47,6 +81,7 @@ export function introIdentityColumns({
                 <span className="text-amber-500 cursor-help text-sm leading-none">⚠</span>
               </Tooltip>
             )}
+            <SpamShield intro={intro} onReviewSpam={onReviewSpam} />
           </div>
         );
       },

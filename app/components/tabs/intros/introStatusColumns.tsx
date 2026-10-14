@@ -1,4 +1,4 @@
-import { Edit2, List, MessageSquare, Trash2 } from 'lucide-react';
+import { Edit2, List, MessageSquare, ShieldBan, Trash2 } from 'lucide-react';
 import FollowUpCheckButton from '@/components/ui/FollowUpCheckButton';
 import OverflowMenu from '@/components/ui/OverflowMenu';
 import { updateIntroAttendance, updateIntroSignupStatus } from '@/lib/supabase/introTableActions';
@@ -13,6 +13,7 @@ export function introStatusColumns({
   handleEditClick,
   onManageNotes,
   removeIntro,
+  onMarkSpam,
 }: IntroTableContext) {
   return [
     {
@@ -112,6 +113,12 @@ export function introStatusColumns({
                 label: 'Edit',
                 icon: Edit2,
                 onClick: () => handleEditClick(intro),
+              },
+              {
+                label: 'Mark as spam',
+                icon: ShieldBan,
+                variant: 'danger',
+                onClick: () => onMarkSpam(intro),
               },
               {
                 label: 'Delete',
