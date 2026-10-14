@@ -4,14 +4,19 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 interface Props {
+  message?: string;
   onUndo: () => void;
   onExpire: () => void;
 }
 
-// Bottom-center undo toast shown after a follow-up is dismissed. Rendered by
-// the parent tab (not the row button) so it survives the dismissed row
-// unmounting. Auto-expires after 30 seconds; does not persist across reloads.
-export default function DismissUndoToast({ onUndo, onExpire }: Props) {
+// Bottom-center undo toast rendered by a parent tab (not the row button) so it
+// survives the affected row unmounting. Auto-expires after 30 seconds; does not
+// persist across reloads.
+export default function DismissUndoToast({
+  message = 'Follow-up dismissed',
+  onUndo,
+  onExpire,
+}: Props) {
   useEffect(() => {
     const timer = setTimeout(onExpire, 30000);
     return () => clearTimeout(timer);
@@ -28,7 +33,7 @@ export default function DismissUndoToast({ onUndo, onExpire }: Props) {
       }}
       className="flex items-center gap-3 bg-slate-900 text-slate-200 text-sm px-4 py-2.5 rounded-lg shadow-2xl border border-slate-700"
     >
-      <span>Follow-up dismissed</span>
+      <span>{message}</span>
       <button
         type="button"
         onClick={onUndo}
