@@ -291,7 +291,7 @@ export function analyzeCSVTemplate(file: File): Promise<TemplateAnalysisResult> 
 
             resolve(analysisResult);
           } catch (error) {
-            reject(new Error(`Failed to analyze CSV template: ${error}`));
+            reject(new Error(`Failed to analyze CSV template: ${String(error)}`));
           }
         },
         error: (error: Error) => {

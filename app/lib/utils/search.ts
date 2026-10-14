@@ -54,8 +54,7 @@ function withinOneEdit(a: string, b: string): boolean {
       j++;
       continue;
     }
-    edits++;
-    if (edits > 1) {
+    if (++edits > 1) {
       return false;
     }
     if (a.length > b.length) {

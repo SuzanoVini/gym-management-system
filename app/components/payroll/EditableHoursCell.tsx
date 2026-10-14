@@ -51,7 +51,7 @@ export default function EditableHoursCell({
     try {
       await onSave(numValue);
       setIsEditing(false);
-    } catch (_error) {
+    } catch {
       // Reset to original value on error
       setCurrentValue(value.toFixed(2));
       setIsEditing(false);
@@ -62,14 +62,14 @@ export default function EditableHoursCell({
 
   const handleBlur = () => {
     if (!isSaving) {
-      handleSave();
+      void handleSave();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSave();
+      void handleSave();
     } else if (e.key === 'Escape') {
       setCurrentValue(value.toFixed(2));
       setIsEditing(false);

@@ -46,7 +46,9 @@ export default function Header({ onLogoClick }: HeaderProps) {
         </div>
         <button
           type="button"
-          onClick={handleLogout}
+          onClick={() => {
+            void handleLogout();
+          }}
           className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/40 text-slate-700 border border-slate-300/70 hover:border-red-400 hover:bg-red-50/80 hover:text-red-600 backdrop-blur-sm rounded-lg transition-all duration-200 flex-shrink-0 shadow-soft hover:shadow-soft-lg active:scale-95 cursor-pointer"
         >
           <LogOut className="w-4 h-4" />

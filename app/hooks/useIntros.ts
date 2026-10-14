@@ -65,7 +65,7 @@ export const useIntros = () => {
             );
           }
         }
-        const created = await createIntro(sanitized);
+        const created: unknown = await createIntro(sanitized);
         await loadIntros();
         errorHandler.notify('Intro added successfully', 'success');
         return created as Intro;
@@ -114,7 +114,7 @@ export const useIntros = () => {
   );
 
   useEffect(() => {
-    loadIntros();
+    void loadIntros();
   }, [loadIntros]);
 
   return {

@@ -56,8 +56,7 @@ export interface Signup extends BaseRecord {
   notes?: string;
   year?: number;
   created_by?: string;
-  // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -74,8 +73,7 @@ export interface Cancellation extends BaseRecord {
   created_by?: string;
   source?: 'manual' | 'cron';
   name_normalized?: string;
-  // biome-ignore lint/suspicious/noExplicitAny: Index signature for dynamic CSV fields
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -144,8 +142,7 @@ export interface ClassHistory {
 export interface Settings {
   id: string;
   key: string;
-  // biome-ignore lint/suspicious/noExplicitAny: Settings value can be any JSON type
-  value: any;
+  value: unknown;
   updated_at: string;
 }
 
@@ -396,8 +393,7 @@ export interface PaginationInfo {
  */
 export interface ModalState {
   isOpen: boolean;
-  // biome-ignore lint/suspicious/noExplicitAny: Modal data can be any record type
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -587,8 +583,7 @@ export interface TemplateAnalysisResult {
 /**
  * Check if a value is a valid Intro
  */
-// biome-ignore lint/suspicious/noExplicitAny: Type guard requires any to check unknown values
-export function isIntro(value: any): value is Intro {
+export function isIntro(value: unknown): value is Intro {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -602,8 +597,7 @@ export function isIntro(value: any): value is Intro {
 /**
  * Check if a value is a valid Signup
  */
-// biome-ignore lint/suspicious/noExplicitAny: Type guard requires any to check unknown values
-export function isSignup(value: any): value is Signup {
+export function isSignup(value: unknown): value is Signup {
   return (
     typeof value === 'object' &&
     value !== null &&

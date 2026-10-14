@@ -21,6 +21,57 @@ interface HoursFormProps {
   initialData?: Partial<TimeEntryFormData>;
 }
 
+function initialHoursFormData(
+  initialData: Partial<TimeEntryFormData> | undefined,
+  defaultDate: string
+): HoursFormData {
+  return {
+    entry_date: initialData?.entry_date !== undefined ? initialData.entry_date : defaultDate,
+    hours: initialData?.hours !== undefined ? initialData.hours : 0,
+    entry_type: initialData?.entry_type !== undefined ? initialData.entry_type : 'regular',
+    notes: initialData?.notes !== undefined ? initialData.notes : '',
+    is_after_school_program:
+      initialData?.is_after_school_program !== undefined
+        ? initialData.is_after_school_program
+        : false,
+  };
+}
+
+function StaffSelect({
+  staff,
+  value,
+  onChange,
+}: {
+  staff: StaffMember[];
+  value: string;
+  onChange: (staffId: string) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <label htmlFor="staff_id" className="form-label">
+        Staff Member
+        <span className="text-red-500 ml-1">*</span>
+      </label>
+      <select
+        id="staff_id"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="form-select"
+        required
+      >
+        <option value="">Select Staff Member</option>
+        {staff
+          .filter((s) => s.is_active)
+          .map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.full_name} ({s.employee_id})
+            </option>
+          ))}
+      </select>
+    </div>
+  );
+}
+
 export default function HoursForm({
   staff,
   onSubmit,
@@ -30,16 +81,9 @@ export default function HoursForm({
   initialData,
 }: HoursFormProps) {
   const defaultDate: string = new Date().toISOString().split('T')[0] || '';
-  const [formData, setFormData] = useState<HoursFormData>({
-    entry_date: initialData?.entry_date !== undefined ? initialData.entry_date : defaultDate,
-    hours: initialData?.hours !== undefined ? initialData.hours : 0,
-    entry_type: initialData?.entry_type !== undefined ? initialData.entry_type : 'regular',
-    notes: initialData?.notes !== undefined ? initialData.notes : '',
-    is_after_school_program:
-      initialData?.is_after_school_program !== undefined
-        ? initialData.is_after_school_program
-        : false,
-  });
+  const [formData, setFormData] = useState<HoursFormData>(
+    initialHoursFormData(initialData, defaultDate)
+  );
 
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [matCleaningChecked, setMatCleaningChecked] = useState(false);
@@ -101,28 +145,7 @@ export default function HoursForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="mb-4">
-          <label htmlFor="staff_id" className="form-label">
-            Staff Member
-            <span className="text-red-500 ml-1">*</span>
-          </label>
-          <select
-            id="staff_id"
-            value={selectedStaffId}
-            onChange={(e) => setSelectedStaffId(e.target.value)}
-            className="form-select"
-            required
-          >
-            <option value="">Select Staff Member</option>
-            {staff
-              .filter((s) => s.is_active)
-              .map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name} ({s.employee_id})
-                </option>
-              ))}
-          </select>
-        </div>
+        <StaffSelect staff={staff} value={selectedStaffId} onChange={setSelectedStaffId} />
 
         <FormField
           label="Date"

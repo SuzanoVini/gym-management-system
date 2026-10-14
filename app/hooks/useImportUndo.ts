@@ -34,7 +34,7 @@ export function useImportUndo() {
       if (!raw) {
         return null;
       }
-      const batch: StoredBatch = JSON.parse(raw);
+      const batch = JSON.parse(raw) as StoredBatch;
       if (Date.now() - batch.savedAt > TTL_MS) {
         localStorage.removeItem(storageKey(tab));
         return null;

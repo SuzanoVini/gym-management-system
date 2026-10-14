@@ -1,6 +1,8 @@
 // app/lib/supabase/profiles.ts
 
+import type { PostgrestSingleResponse } from '@supabase/supabase-js';
 import { errors } from '@/lib/errorHandler';
+import { reportConsoleError } from '@/lib/logger';
 import { supabase } from './client';
 import type { Database } from './types';
 
@@ -51,11 +53,11 @@ export const fetchUserProfile = async (userId: string): Promise<UserProfile | nu
     throw errors.validation('userId', 'User ID is required');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('user_profiles')
     .select('*')
     .eq('id', userId)
-    .single();
+    .single()) as PostgrestSingleResponse<UserProfile>;
 
   if (error) {
     // Profile not found is not an error - user might not have created profile yet
@@ -101,12 +103,12 @@ export const updateUserProfile = async (
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('user_profiles')
     .update(updateData)
     .eq('id', userId)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<UserProfile>;
 
   if (error) {
     throw errors.database('update profile', error.message);
@@ -130,11 +132,11 @@ export const createUserProfile = async (profileData: ProfileInsert): Promise<Use
     throw errors.validation('full_name', 'Name is required');
   }
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('user_profiles')
     .insert([profileData])
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<UserProfile>;
 
   if (error) {
     throw errors.database('create profile', error.message);
@@ -250,7 +252,7 @@ export const deleteProfileAvatar = async (userId: string, updateDatabase = true)
 
     if (deleteError) {
       // Log error but don't throw - avatar might already be deleted
-      console.error('Error deleting avatar from storage:', deleteError);
+      reportConsoleError('Error deleting avatar from storage:', deleteError);
     }
   }
 
@@ -317,8 +319,7 @@ export const updateUserPassword = async (newPassword: string): Promise<boolean> 
  * @param callback - Callback function to handle changes
  * @returns Supabase channel for cleanup
  */
-// biome-ignore lint/suspicious/noExplicitAny: Supabase subscription callback requires any type
-export const subscribeToProfile = (userId: string, callback: (payload: any) => void) => {
+export const subscribeToProfile = (userId: string, callback: (payload: unknown) => void) => {
   return supabase
     .channel(`profile-${userId}-changes`)
     .on(

@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { isSessionExpired } from '@/lib/auth/session';
+import { reportConsoleError } from '@/lib/logger';
 
 // How often an open tab re-checks its own session age.
 const SESSION_CHECK_INTERVAL_MS = 60_000;
@@ -69,16 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await fetchRole(sessionUser.id);
         }
       } catch (error) {
-        console.error('Error getting session:', error);
+        reportConsoleError('Error getting session:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    getSession();
+    void getSession();
 
     const expiryTimer = setInterval(() => {
-      signOutIfExpired().catch((error) => console.error('Session expiry check failed:', error));
+      signOutIfExpired().catch((error) =>
+        reportConsoleError('Session expiry check failed:', error)
+      );
     }, SESSION_CHECK_INTERVAL_MS);
 
     const {
@@ -87,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
       if (sessionUser) {
-        fetchRole(sessionUser.id);
+        void fetchRole(sessionUser.id);
       } else {
         setIsOwner(false);
       }

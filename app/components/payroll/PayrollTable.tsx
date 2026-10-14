@@ -28,6 +28,36 @@ interface PayrollRow extends StaffHours {
   staff_name: string;
 }
 
+type EditableHoursField = 'regular_hours' | 'overtime_hours' | 'vacation_hours' | 'sick_hours';
+
+function hoursColumn({
+  field,
+  label,
+  onUpdateHours,
+  disabled,
+}: {
+  field: EditableHoursField;
+  label: string;
+  onUpdateHours: PayrollTableProps['onUpdateHours'];
+  disabled: boolean;
+}) {
+  return {
+    key: field as keyof PayrollRow,
+    label,
+    sortable: true,
+    render: (value: unknown, row: PayrollRow) =>
+      onUpdateHours ? (
+        <EditableHoursCell
+          value={value as number}
+          onSave={(newValue) => onUpdateHours(row.id, field, newValue)}
+          disabled={disabled}
+        />
+      ) : (
+        <div className="text-right">{(value as number).toFixed(2)}</div>
+      ),
+  };
+}
+
 export default function PayrollTable({
   hours,
   staff,
@@ -106,66 +136,30 @@ export default function PayrollTable({
         <div className="font-medium text-gray-900">{value as string}</div>
       ),
     },
-    {
-      key: 'regular_hours' as keyof PayrollRow,
+    hoursColumn({
+      field: 'regular_hours',
       label: 'Regular',
-      sortable: true,
-      render: (value: unknown, row: PayrollRow) =>
-        onUpdateHours ? (
-          <EditableHoursCell
-            value={value as number}
-            onSave={(newValue) => onUpdateHours(row.id, 'regular_hours', newValue)}
-            disabled={loading || readOnly}
-          />
-        ) : (
-          <div className="text-right">{(value as number).toFixed(2)}</div>
-        ),
-    },
-    {
-      key: 'overtime_hours' as keyof PayrollRow,
+      onUpdateHours,
+      disabled: loading || readOnly,
+    }),
+    hoursColumn({
+      field: 'overtime_hours',
       label: 'OT',
-      sortable: true,
-      render: (value: unknown, row: PayrollRow) =>
-        onUpdateHours ? (
-          <EditableHoursCell
-            value={value as number}
-            onSave={(newValue) => onUpdateHours(row.id, 'overtime_hours', newValue)}
-            disabled={loading || readOnly}
-          />
-        ) : (
-          <div className="text-right">{(value as number).toFixed(2)}</div>
-        ),
-    },
-    {
-      key: 'vacation_hours' as keyof PayrollRow,
+      onUpdateHours,
+      disabled: loading || readOnly,
+    }),
+    hoursColumn({
+      field: 'vacation_hours',
       label: 'Vacation',
-      sortable: true,
-      render: (value: unknown, row: PayrollRow) =>
-        onUpdateHours ? (
-          <EditableHoursCell
-            value={value as number}
-            onSave={(newValue) => onUpdateHours(row.id, 'vacation_hours', newValue)}
-            disabled={loading || readOnly}
-          />
-        ) : (
-          <div className="text-right">{(value as number).toFixed(2)}</div>
-        ),
-    },
-    {
-      key: 'sick_hours' as keyof PayrollRow,
+      onUpdateHours,
+      disabled: loading || readOnly,
+    }),
+    hoursColumn({
+      field: 'sick_hours',
       label: 'Sick',
-      sortable: true,
-      render: (value: unknown, row: PayrollRow) =>
-        onUpdateHours ? (
-          <EditableHoursCell
-            value={value as number}
-            onSave={(newValue) => onUpdateHours(row.id, 'sick_hours', newValue)}
-            disabled={loading || readOnly}
-          />
-        ) : (
-          <div className="text-right">{(value as number).toFixed(2)}</div>
-        ),
-    },
+      onUpdateHours,
+      disabled: loading || readOnly,
+    }),
     {
       key: 'mat_cleaning_count' as keyof PayrollRow,
       label: 'Mat Cleaning',

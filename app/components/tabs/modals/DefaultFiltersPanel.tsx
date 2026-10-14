@@ -247,7 +247,14 @@ export default function DefaultFiltersPanel({ scope }: { scope: DefaultFilterSco
       )}
 
       <div className="flex items-center gap-3 pt-2">
-        <button type="button" onClick={handleSave} disabled={saving} className="btn btn-primary">
+        <button
+          type="button"
+          onClick={() => {
+            void handleSave();
+          }}
+          disabled={saving}
+          className="btn btn-primary"
+        >
           {saving ? 'Saving...' : 'Save defaults'}
         </button>
         {saved && <span className="text-xs text-green-600">Saved</span>}

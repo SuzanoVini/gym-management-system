@@ -94,14 +94,14 @@ describe('detectReminderDate', () => {
     const result = detectReminderDate('call back in 2 weeks', NOW);
     expect(result).not.toBeNull();
     // Should be ~14 days from June 8 = June 22
-    expect(result!.getDate()).toBe(22);
-    expect(result!.getMonth()).toBe(5); // June
+    expect(result?.getDate()).toBe(22);
+    expect(result?.getMonth()).toBe(5); // June
   });
 
   it('detects "follow up in 3 days"', () => {
     const result = detectReminderDate('follow up in 3 days', NOW);
     expect(result).not.toBeNull();
-    expect(result!.getDate()).toBe(11);
+    expect(result?.getDate()).toBe(11);
   });
 
   it('detects "try again in a month"', () => {
@@ -112,14 +112,14 @@ describe('detectReminderDate', () => {
   it('detects "not ready until July"', () => {
     const result = detectReminderDate('not ready until July', NOW);
     expect(result).not.toBeNull();
-    expect(result!.getMonth()).toBe(6); // July
-    expect(result!.getDate()).toBe(1);
+    expect(result?.getMonth()).toBe(6); // July
+    expect(result?.getDate()).toBe(1);
   });
 
   it('detects "after August"', () => {
     const result = detectReminderDate('after August', NOW);
     expect(result).not.toBeNull();
-    expect(result!.getMonth()).toBe(7); // August
+    expect(result?.getMonth()).toBe(7); // August
   });
 
   it('does NOT trigger for bare "in July"', () => {
@@ -130,8 +130,8 @@ describe('detectReminderDate', () => {
   it('detects "end of June"', () => {
     const result = detectReminderDate('end of June', NOW);
     expect(result).not.toBeNull();
-    expect(result!.getMonth()).toBe(5);
-    expect(result!.getDate()).toBe(30);
+    expect(result?.getMonth()).toBe(5);
+    expect(result?.getDate()).toBe(30);
   });
 
   it('detects "next week"', () => {
@@ -142,14 +142,14 @@ describe('detectReminderDate', () => {
   it('detects "next month"', () => {
     const result = detectReminderDate('follow up next month', NOW);
     expect(result).not.toBeNull();
-    expect(result!.getMonth()).toBe(6); // July
+    expect(result?.getMonth()).toBe(6); // July
   });
 
   it('detects "beginning of next month"', () => {
     const result = detectReminderDate('beginning of next month', NOW);
     expect(result).not.toBeNull();
-    expect(result!.getMonth()).toBe(6); // July
-    expect(result!.getDate()).toBe(1);
+    expect(result?.getMonth()).toBe(6); // July
+    expect(result?.getDate()).toBe(1);
   });
 
   it('returns null if detected date is yesterday or earlier', () => {

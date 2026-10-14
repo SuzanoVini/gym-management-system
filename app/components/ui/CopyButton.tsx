@@ -28,7 +28,9 @@ export default function CopyButton({ value, icon: Icon, ariaLabel }: CopyButtonP
     <Tooltip content={copied ? 'Copied!' : value}>
       <button
         type="button"
-        onClick={handleCopy}
+        onClick={(e) => {
+          void handleCopy(e);
+        }}
         aria-label={ariaLabel ?? `Copy ${value}`}
         className={`inline-flex items-center justify-center h-7 w-7 rounded-lg transition-colors duration-150 cursor-pointer ${
           copied

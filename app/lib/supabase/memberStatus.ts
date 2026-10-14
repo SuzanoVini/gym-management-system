@@ -57,10 +57,13 @@ export async function checkMemberStatus(name: string): Promise<MemberStatus> {
       .maybeSingle(),
   ]);
 
-  const signup = signupResult.data;
-  const cancellation = cancellationResult.data;
+  const signup = signupResult.data as { membership_date: string | null } | null;
+  const cancellation = cancellationResult.data as { date: string | null } | null;
   const cancellationDate = cancellation?.date ?? '';
-  const rejoined = hasRejoinedSinceCancellation(memberResult.data, cancellationDate);
+  const rejoined = hasRejoinedSinceCancellation(
+    memberResult.data as RosterEntry | null,
+    cancellationDate
+  );
 
   if (!signup) {
     return { isCurrentMember: rejoined, signupDate: null };
@@ -83,5 +86,5 @@ export async function getMostRecentSignupDate(name: string): Promise<string | nu
     .limit(1)
     .maybeSingle();
 
-  return data?.membership_date ?? null;
+  return (data as { membership_date: string | null } | null)?.membership_date ?? null;
 }

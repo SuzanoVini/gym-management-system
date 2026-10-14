@@ -1,12 +1,16 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type {
+  PostgrestMaybeSingleResponse,
+  PostgrestResponse,
+  SupabaseClient,
+} from '@supabase/supabase-js';
 import type { Member, MemberImportRow } from '@/types';
 import { supabase } from './client';
 
 export const fetchMembers = async (): Promise<Member[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('members')
     .select('*')
-    .order('name', { ascending: true });
+    .order('name', { ascending: true })) as PostgrestResponse<Member>;
 
   if (error) {
     throw error;
@@ -15,13 +19,13 @@ export const fetchMembers = async (): Promise<Member[]> => {
 };
 
 export const fetchLastMemberSyncAt = async (): Promise<string | null> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('members')
     .select('last_sync_at')
     .not('last_sync_at', 'is', null)
     .order('last_sync_at', { ascending: false })
     .limit(1)
-    .maybeSingle();
+    .maybeSingle()) as PostgrestMaybeSingleResponse<Pick<Member, 'last_sync_at'>>;
 
   if (error) {
     throw error;

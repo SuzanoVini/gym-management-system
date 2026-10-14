@@ -123,6 +123,19 @@ function processLine(
   };
 }
 
+type QuickImportTotals = Omit<QuickImportSummary, 'entries' | 'errors'>;
+
+// Categorize an entry's hours into the After School or regular totals
+function addEntryToTotals(totals: QuickImportTotals, entry: QuickImportEntry): void {
+  if (entry.isAfterSchool) {
+    totals.totalAfterSchoolHours += entry.regularHours;
+    totals.totalAfterSchoolOvertimeHours += entry.overtimeHours;
+  } else {
+    totals.totalRegularHours += entry.regularHours;
+    totals.totalOvertimeHours += entry.overtimeHours;
+  }
+}
+
 /**
  * Parse quick import text into structured entries
  *
@@ -133,11 +146,12 @@ export function parseQuickImport(importText: string): QuickImportSummary {
   const lines = importText.split('\n');
   const entries: QuickImportEntry[] = [];
   const errors: string[] = [];
-
-  let totalRegularHours = 0;
-  let totalOvertimeHours = 0;
-  let totalAfterSchoolHours = 0;
-  let totalAfterSchoolOvertimeHours = 0;
+  const totals: QuickImportTotals = {
+    totalRegularHours: 0,
+    totalOvertimeHours: 0,
+    totalAfterSchoolHours: 0,
+    totalAfterSchoolOvertimeHours: 0,
+  };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]?.trim();
@@ -154,26 +168,13 @@ export function parseQuickImport(importText: string): QuickImportSummary {
     }
 
     if (result.entry) {
-      const { entry } = result;
-
-      // Categorize hours
-      if (entry.isAfterSchool) {
-        totalAfterSchoolHours += entry.regularHours;
-        totalAfterSchoolOvertimeHours += entry.overtimeHours;
-      } else {
-        totalRegularHours += entry.regularHours;
-        totalOvertimeHours += entry.overtimeHours;
-      }
-
-      entries.push(entry);
+      addEntryToTotals(totals, result.entry);
+      entries.push(result.entry);
     }
   }
 
   return {
-    totalRegularHours,
-    totalOvertimeHours,
-    totalAfterSchoolHours,
-    totalAfterSchoolOvertimeHours,
+    ...totals,
     entries,
     errors,
   };

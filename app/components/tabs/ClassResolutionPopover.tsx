@@ -3,10 +3,22 @@
 import { useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import Modal from '@/components/ui/Modal';
+import {
+  deleteClassMapping,
+  fetchAffectedIntroIds,
+  getPriorClassMapping,
+  updateIntroClass,
+  updateIntroClassesById,
+} from '@/lib/services/membership-tabs';
 import { upsertClassMapping } from '@/lib/supabase/classMappings';
-import { supabase } from '@/lib/supabase/client';
 import { fetchSettings, updateSettings } from '@/lib/supabase/settings';
 import type { Intro } from '@/types';
+
+type UndoState = {
+  affectedIds: string[];
+  previousClass: string;
+  previousMappingSystemName: string | null;
+};
 
 interface Props {
   intro: Intro;
@@ -15,36 +27,123 @@ interface Props {
   onResolved: () => void;
 }
 
+async function restorePriorMapping(rawClass: string, priorMapping: string | null) {
+  if (priorMapping !== null) {
+    await upsertClassMapping(rawClass, priorMapping).catch((_err) => {
+      // best-effort rollback — ignore failure
+    });
+  } else {
+    await deleteClassMapping(rawClass);
+  }
+}
+
+function UndoBanner({ loading, onUndo }: { loading: boolean; onUndo: () => void }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+      <span className="text-sm text-amber-800">Changes applied</span>
+      <button
+        type="button"
+        onClick={onUndo}
+        disabled={loading}
+        className="text-sm font-medium text-amber-700 hover:text-amber-900"
+      >
+        Undo
+      </button>
+    </div>
+  );
+}
+
+function OwnerResolutionOptions({
+  rawClass,
+  classTypes,
+  selectedClass,
+  onSelectClass,
+  loading,
+  onKeepAsIs,
+  onSaveMappingOnly,
+  onApplyToAll,
+}: {
+  rawClass: string;
+  classTypes: string[];
+  selectedClass: string;
+  onSelectClass: (value: string) => void;
+  loading: boolean;
+  onKeepAsIs: () => void;
+  onSaveMappingOnly: () => void;
+  onApplyToAll: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={onKeepAsIs}
+        disabled={loading}
+        className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm"
+      >
+        <div className="font-medium">Keep as-is</div>
+        <div className="text-gray-500 text-xs">Add "{rawClass}" as a new class type</div>
+      </button>
+
+      <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+        <div className="text-sm font-medium text-gray-700">Change to...</div>
+        <select
+          value={selectedClass}
+          onChange={(e) => onSelectClass(e.target.value)}
+          className="form-select w-full text-sm"
+        >
+          <option value="">Select a class</option>
+          {classTypes.map((ct) => (
+            <option key={ct} value={ct}>
+              {ct}
+            </option>
+          ))}
+        </select>
+        {selectedClass && (
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onSaveMappingOnly}
+              disabled={loading}
+              className="btn btn-secondary flex-1 text-sm"
+            >
+              Save mapping only
+            </button>
+            <button
+              type="button"
+              onClick={onApplyToAll}
+              disabled={loading}
+              className="btn btn-primary flex-1 text-sm"
+            >
+              Apply to all intros
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ClassResolutionPopover({ intro, classTypes, onClose, onResolved }: Props) {
   const { isOwner } = useAuth();
   const rawClass = intro.class || '';
   const [selectedClass, setSelectedClass] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [undoState, setUndoState] = useState<{
-    affectedIds: string[];
-    previousClass: string;
-    previousMappingSystemName: string | null;
-  } | null>(null);
+  const [undoState, setUndoState] = useState<UndoState | null>(null);
 
-  async function getPriorMapping(): Promise<string | null> {
-    const { data } = await supabase
-      .from('class_mappings')
-      .select('system_name')
-      .eq('zenplanner_name', rawClass)
-      .maybeSingle();
-    return data?.system_name ?? null;
+  function fail(message: string) {
+    setError(message);
+    setLoading(false);
   }
 
   async function handleKeepAsIs() {
     setLoading(true);
     setError('');
-    const priorMapping = await getPriorMapping();
+    const priorMapping = await getPriorClassMapping(rawClass);
     try {
       await upsertClassMapping(rawClass, rawClass);
     } catch {
-      setError('Failed to save mapping. Please try again.');
-      setLoading(false);
+      fail('Failed to save mapping. Please try again.');
       return;
     }
     try {
@@ -53,15 +152,8 @@ export default function ClassResolutionPopover({ intro, classTypes, onClose, onR
         await updateSettings('class_types', [...current, rawClass]);
       }
     } catch {
-      if (priorMapping !== null) {
-        await upsertClassMapping(rawClass, priorMapping).catch((_err) => {
-          // best-effort rollback — ignore failure
-        });
-      } else {
-        await supabase.from('class_mappings').delete().eq('zenplanner_name', rawClass);
-      }
-      setError('Failed to update class list. Please try again.');
-      setLoading(false);
+      await restorePriorMapping(rawClass, priorMapping);
+      fail('Failed to update class list. Please try again.');
       return;
     }
     setLoading(false);
@@ -74,12 +166,11 @@ export default function ClassResolutionPopover({ intro, classTypes, onClose, onR
     }
     setLoading(true);
     setError('');
-    const priorMapping = await getPriorMapping();
+    const priorMapping = await getPriorClassMapping(rawClass);
     try {
       await upsertClassMapping(rawClass, selectedClass);
     } catch {
-      setError('Failed to save mapping. Please try again.');
-      setLoading(false);
+      fail('Failed to save mapping. Please try again.');
       return;
     }
     setLoading(false);
@@ -97,34 +188,22 @@ export default function ClassResolutionPopover({ intro, classTypes, onClose, onR
     }
     setLoading(true);
     setError('');
-    const priorMapping = await getPriorMapping();
+    const priorMapping = await getPriorClassMapping(rawClass);
 
-    const { data: affected } = await supabase.from('intros').select('id').eq('class', rawClass);
-    const affectedIds = (affected ?? []).map((r: { id: string }) => r.id);
+    const affectedIds = await fetchAffectedIntroIds(rawClass);
 
     try {
       await upsertClassMapping(rawClass, selectedClass);
     } catch {
-      setError('Failed to save mapping. Please try again.');
-      setLoading(false);
+      fail('Failed to save mapping. Please try again.');
       return;
     }
 
-    const { error: updateError } = await supabase
-      .from('intros')
-      .update({ class: selectedClass })
-      .eq('class', rawClass);
+    const { error: updateError } = await updateIntroClass(rawClass, selectedClass);
 
     if (updateError) {
-      if (priorMapping !== null) {
-        await upsertClassMapping(rawClass, priorMapping).catch((_err) => {
-          // best-effort rollback — ignore failure
-        });
-      } else {
-        await supabase.from('class_mappings').delete().eq('zenplanner_name', rawClass);
-      }
-      setError('Failed to update intros. Please try again.');
-      setLoading(false);
+      await restorePriorMapping(rawClass, priorMapping);
+      fail('Failed to update intros. Please try again.');
       return;
     }
 
@@ -141,15 +220,12 @@ export default function ClassResolutionPopover({ intro, classTypes, onClose, onR
     setLoading(true);
     try {
       if (undoState.affectedIds.length > 0) {
-        await supabase
-          .from('intros')
-          .update({ class: undoState.previousClass })
-          .in('id', undoState.affectedIds);
+        await updateIntroClassesById(undoState.affectedIds, undoState.previousClass);
       }
       if (undoState.previousMappingSystemName !== null) {
         await upsertClassMapping(rawClass, undoState.previousMappingSystemName);
       } else {
-        await supabase.from('class_mappings').delete().eq('zenplanner_name', rawClass);
+        await deleteClassMapping(rawClass);
       }
       setUndoState(null);
       onResolved();
@@ -170,67 +246,31 @@ export default function ClassResolutionPopover({ intro, classTypes, onClose, onR
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         {undoState && (
-          <div className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-            <span className="text-sm text-amber-800">Changes applied</span>
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={loading}
-              className="text-sm font-medium text-amber-700 hover:text-amber-900"
-            >
-              Undo
-            </button>
-          </div>
+          <UndoBanner
+            loading={loading}
+            onUndo={() => {
+              void handleUndo();
+            }}
+          />
         )}
 
         {isOwner ? (
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={handleKeepAsIs}
-              disabled={loading}
-              className="w-full text-left px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm"
-            >
-              <div className="font-medium">Keep as-is</div>
-              <div className="text-gray-500 text-xs">Add "{rawClass}" as a new class type</div>
-            </button>
-
-            <div className="border border-gray-200 rounded-lg p-3 space-y-2">
-              <div className="text-sm font-medium text-gray-700">Change to...</div>
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="form-select w-full text-sm"
-              >
-                <option value="">Select a class</option>
-                {classTypes.map((ct) => (
-                  <option key={ct} value={ct}>
-                    {ct}
-                  </option>
-                ))}
-              </select>
-              {selectedClass && (
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSaveMappingOnly}
-                    disabled={loading}
-                    className="btn btn-secondary flex-1 text-sm"
-                  >
-                    Save mapping only
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleApplyToAll}
-                    disabled={loading}
-                    className="btn btn-primary flex-1 text-sm"
-                  >
-                    Apply to all intros
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <OwnerResolutionOptions
+            rawClass={rawClass}
+            classTypes={classTypes}
+            selectedClass={selectedClass}
+            onSelectClass={setSelectedClass}
+            loading={loading}
+            onKeepAsIs={() => {
+              void handleKeepAsIs();
+            }}
+            onSaveMappingOnly={() => {
+              void handleSaveMappingOnly();
+            }}
+            onApplyToAll={() => {
+              void handleApplyToAll();
+            }}
+          />
         ) : (
           <p className="text-sm text-gray-500">
             Only owners can resolve unrecognised class names. Contact your gym owner.

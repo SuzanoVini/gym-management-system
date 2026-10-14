@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { reportConsoleError } from '@/lib/logger';
 import { fetchUserProfile, type UserProfile } from '@/lib/supabase/profiles';
 import { useSidebarStore } from '@/store/useSidebarStore';
 
@@ -26,13 +27,13 @@ export default function ProfileSection() {
         const profileData = await fetchUserProfile(user.id);
         setProfile(profileData);
       } catch (error) {
-        console.error('Error loading profile:', error);
+        reportConsoleError('Error loading profile:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadProfile();
+    void loadProfile();
   }, [user?.id]);
 
   const handleClick = () => {

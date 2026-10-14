@@ -32,6 +32,14 @@ export interface PayrollExportData {
   job_title: string;
 }
 
+function staffField(
+  staffMember: StaffMember | undefined,
+  field: 'full_name' | 'employee_id' | 'job_title',
+  fallback: string
+): string {
+  return staffMember?.[field] || fallback;
+}
+
 // ============================================================================
 // CSV Generation Functions
 // ============================================================================
@@ -189,23 +197,23 @@ export function formatPayrollForExport(
     const staffMember = staffMap.get(hours.staff_id);
 
     // Parse full name into first and last name
-    const fullName = staffMember?.full_name || 'Unknown';
+    const fullName = staffField(staffMember, 'full_name', 'Unknown');
     const nameParts = fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
     return {
       employee_name: fullName,
-      payroll_id: staffMember?.employee_id || '',
+      payroll_id: staffField(staffMember, 'employee_id', ''),
       first_name: firstName,
       last_name: lastName,
-      job_id: staffMember?.employee_id || '', // Wave uses this for external tracking
+      job_id: staffField(staffMember, 'employee_id', ''), // Wave uses this for external tracking
       department: 'Operations', // Default department - could be made configurable
       overtime: hours.overtime_hours || 0,
       regular: hours.regular_hours || 0,
       vacation: hours.vacation_hours || 0,
-      external_id: staffMember?.employee_id || '',
-      job_title: staffMember?.job_title || '',
+      external_id: staffField(staffMember, 'employee_id', ''),
+      job_title: staffField(staffMember, 'job_title', ''),
     };
   });
 }

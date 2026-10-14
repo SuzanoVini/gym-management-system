@@ -11,6 +11,65 @@ export interface ValidationResult {
   warnings: string[];
 }
 
+const NUMERIC_FIELDS = new Set([
+  'regular_hours',
+  'overtime_hours',
+  'vacation_hours',
+  'sick_hours',
+  'total_hours',
+  'mat_cleaning_count',
+]);
+
+function validateHeaders(headers: string[], errors: string[]): void {
+  const headerSet = new Set<string>();
+  const duplicates: string[] = [];
+  for (const header of headers) {
+    const normalized = header.toLowerCase().trim();
+    if (headerSet.has(normalized)) {
+      duplicates.push(header);
+    } else {
+      headerSet.add(normalized);
+    }
+  }
+
+  if (duplicates.length > 0) {
+    errors.push(`Duplicate column names found: ${duplicates.join(', ')}`);
+  }
+
+  const emptyColumns = headers.filter((header) => !header || header.trim() === '');
+  if (emptyColumns.length > 0) {
+    errors.push(`Found ${emptyColumns.length} column(s) with empty names`);
+  }
+}
+
+function validateSampleData(analysis: TemplateAnalysisResult, warnings: string[]): void {
+  if (analysis.sampleData.length === 0) {
+    return;
+  }
+
+  for (const mapping of analysis.fieldMappings) {
+    const { csvColumn, dbField } = mapping;
+    if (!NUMERIC_FIELDS.has(dbField)) {
+      continue;
+    }
+
+    const sampleValues = analysis.sampleData
+      .map((row) => row[csvColumn])
+      .filter((value) => value !== undefined && value !== null && value !== '');
+    const nonNumericValues = sampleValues.filter((value) => {
+      const cleaned = String(value).replace(/[,$\s]/g, '');
+      return Number.isNaN(Number(cleaned));
+    });
+
+    if (nonNumericValues.length > 0) {
+      warnings.push(
+        `Column "${csvColumn}" (mapped to ${dbField}) contains non-numeric values: ` +
+          `${nonNumericValues.slice(0, 3).join(', ')}${nonNumericValues.length > 3 ? '...' : ''}`
+      );
+    }
+  }
+}
+
 /**
  * Validate file is a CSV
  */
@@ -50,7 +109,6 @@ export function validateCSVFile(file: File): ValidationResult {
 /**
  * Validate template analysis result
  */
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Complex validation requires multiple checks
 export function validateTemplateAnalysis(analysis: TemplateAnalysisResult): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -61,27 +119,7 @@ export function validateTemplateAnalysis(analysis: TemplateAnalysisResult): Vali
     return { valid: false, errors, warnings };
   }
 
-  // Check for duplicate column names
-  const headerSet = new Set<string>();
-  const duplicates: string[] = [];
-  for (const header of analysis.headers) {
-    const normalized = header.toLowerCase().trim();
-    if (headerSet.has(normalized)) {
-      duplicates.push(header);
-    } else {
-      headerSet.add(normalized);
-    }
-  }
-
-  if (duplicates.length > 0) {
-    errors.push(`Duplicate column names found: ${duplicates.join(', ')}`);
-  }
-
-  // Check for empty column names
-  const emptyColumns = analysis.headers.filter((h) => !h || h.trim() === '');
-  if (emptyColumns.length > 0) {
-    errors.push(`Found ${emptyColumns.length} column(s) with empty names`);
-  }
+  validateHeaders(analysis.headers, errors);
 
   // Warn if no data rows (only header)
   if (analysis.rowCount === 0) {
@@ -112,41 +150,7 @@ export function validateTemplateAnalysis(analysis: TemplateAnalysisResult): Vali
     );
   }
 
-  // Validate data types in sample data (basic validation)
-  if (analysis.sampleData.length > 0) {
-    const hourFields = [
-      'regular_hours',
-      'overtime_hours',
-      'vacation_hours',
-      'sick_hours',
-      'total_hours',
-    ];
-    const countFields = ['mat_cleaning_count'];
-
-    for (const mapping of analysis.fieldMappings) {
-      const csvColumn = mapping.csvColumn;
-      const dbField = mapping.dbField;
-
-      // Check if numeric fields contain numeric data
-      if ([...hourFields, ...countFields].includes(dbField)) {
-        const sampleValues = analysis.sampleData
-          .map((row) => row[csvColumn])
-          .filter((val) => val !== undefined && val !== null && val !== '');
-
-        const nonNumericValues = sampleValues.filter((val) => {
-          const cleaned = String(val).replace(/[,$\s]/g, ''); // Remove common formatting
-          return Number.isNaN(Number(cleaned));
-        });
-
-        if (nonNumericValues.length > 0) {
-          warnings.push(
-            `Column "${csvColumn}" (mapped to ${dbField}) contains non-numeric values: ` +
-              `${nonNumericValues.slice(0, 3).join(', ')}${nonNumericValues.length > 3 ? '...' : ''}`
-          );
-        }
-      }
-    }
-  }
+  validateSampleData(analysis, warnings);
 
   return {
     valid: errors.length === 0,

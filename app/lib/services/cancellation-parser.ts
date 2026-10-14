@@ -54,30 +54,43 @@ function extractField(text: string, label: string): string | null {
   return value || null;
 }
 
-function parseToISO(raw: string | null): {
+interface ParsedDate {
   iso: string | null;
   month: string;
   year: number | null;
-} {
+}
+
+// "May 15, 2026" style dates. Returns undefined when the text is not a
+// recognised month name so the caller can fall back to the numeric format.
+function parseTextDate(raw: string): ParsedDate | undefined {
+  const textMatch = raw.match(/([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})/);
+  if (!textMatch) {
+    return undefined;
+  }
+  const [, monthName, dayRaw, yearRaw] = textMatch;
+  if (!monthName || !dayRaw || !yearRaw) {
+    return { iso: null, month: '', year: null };
+  }
+  const monthNum = MONTH_TO_NUM[monthName];
+  if (!monthNum) {
+    return undefined;
+  }
+  const year = parseInt(yearRaw, 10);
+  return {
+    iso: `${yearRaw}-${String(monthNum).padStart(2, '0')}-${dayRaw.padStart(2, '0')}`,
+    month: MONTH_NUM_TO_ABBR[monthNum] ?? '',
+    year,
+  };
+}
+
+function parseToISO(raw: string | null): ParsedDate {
   if (!raw) {
     return { iso: null, month: '', year: null };
   }
 
-  const textMatch = raw.match(/([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})/);
-  if (textMatch) {
-    const [, monthName, dayRaw, yearRaw] = textMatch;
-    if (!monthName || !dayRaw || !yearRaw) {
-      return { iso: null, month: '', year: null };
-    }
-    const monthNum = MONTH_TO_NUM[monthName];
-    if (monthNum) {
-      const year = parseInt(yearRaw, 10);
-      return {
-        iso: `${yearRaw}-${String(monthNum).padStart(2, '0')}-${dayRaw.padStart(2, '0')}`,
-        month: MONTH_NUM_TO_ABBR[monthNum] ?? '',
-        year,
-      };
-    }
+  const textDate = parseTextDate(raw);
+  if (textDate) {
+    return textDate;
   }
 
   const numMatch = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);

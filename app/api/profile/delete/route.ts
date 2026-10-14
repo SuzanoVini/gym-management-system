@@ -1,7 +1,8 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { reportConsoleError } from '@/lib/logger';
+import { deleteAuthUser } from '@/lib/supabase/maintenance';
 
 export async function DELETE() {
   try {
@@ -20,21 +21,20 @@ export async function DELETE() {
     // Must happen before deleteUser so the JWT is still valid for the signOut call.
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) {
-      console.error('Error signing out before account deletion:', signOutError);
+      reportConsoleError('Error signing out before account deletion:', signOutError);
       return NextResponse.json({ error: 'Failed to clear session' }, { status: 500 });
     }
 
     // Delete the auth user; ON DELETE CASCADE removes user_profiles automatically.
-    const admin = createAdminClient();
-    const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);
+    const { error: deleteError } = await deleteAuthUser(user.id);
     if (deleteError) {
-      console.error('Error deleting auth user:', deleteError);
+      reportConsoleError('Error deleting auth user:', deleteError);
       return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in delete account:', error);
+    reportConsoleError('Error in delete account:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

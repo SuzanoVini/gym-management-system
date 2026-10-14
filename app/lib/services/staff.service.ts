@@ -1,7 +1,16 @@
 // app/lib/services/staff.service.ts
 
-import type { StaffMember, StaffMemberFormData } from '@/types';
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import type { StaffMember } from '@/types';
 import { supabase } from '../supabase/client';
+
+export {
+  createStaff,
+  deleteStaff,
+  permanentlyDeleteStaff,
+  reactivateStaff,
+  updateStaff,
+} from './staff.service/mutations';
 
 /**
  * Service Result type for consistent error handling
@@ -17,10 +26,10 @@ export type ServiceResult<T> = {
  */
 export const getAllStaff = async (): Promise<ServiceResult<StaffMember[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('*')
-      .order('full_name', { ascending: true });
+      .order('full_name', { ascending: true })) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;
@@ -41,11 +50,11 @@ export const getAllStaff = async (): Promise<ServiceResult<StaffMember[]>> => {
  */
 export const getActiveStaff = async (): Promise<ServiceResult<StaffMember[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('*')
       .eq('is_active', true)
-      .order('full_name', { ascending: true });
+      .order('full_name', { ascending: true })) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;
@@ -67,7 +76,11 @@ export const getActiveStaff = async (): Promise<ServiceResult<StaffMember[]>> =>
  */
 export const getStaffById = async (id: string): Promise<ServiceResult<StaffMember>> => {
   try {
-    const { data, error } = await supabase.from('staff_members').select('*').eq('id', id).single();
+    const { data, error } = (await supabase
+      .from('staff_members')
+      .select('*')
+      .eq('id', id)
+      .single()) as PostgrestSingleResponse<StaffMember>;
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -97,11 +110,11 @@ export const getStaffByEmployeeId = async (
   employeeId: string
 ): Promise<ServiceResult<StaffMember[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('*')
       .eq('employee_id', employeeId)
-      .order('job_title', { ascending: true });
+      .order('job_title', { ascending: true })) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;
@@ -124,11 +137,11 @@ export const getStaffByEmployeeId = async (
  */
 export const getContractors = async (): Promise<ServiceResult<StaffMember[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('*')
       .eq('is_active', true)
-      .order('full_name', { ascending: true });
+      .order('full_name', { ascending: true })) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;
@@ -159,12 +172,12 @@ export const getStaffByJobTitle = async (
   jobTitle: string
 ): Promise<ServiceResult<StaffMember[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('*')
       .eq('job_title', jobTitle)
       .eq('is_active', true)
-      .order('full_name', { ascending: true });
+      .order('full_name', { ascending: true })) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;
@@ -180,142 +193,6 @@ export const getStaffByJobTitle = async (
 };
 
 /**
- * Create a new staff member
- * @param staffData - Staff member data
- * @returns Promise with data or error
- */
-export const createStaff = async (
-  staffData: StaffMemberFormData
-): Promise<ServiceResult<StaffMember>> => {
-  try {
-    const { data, error } = await supabase
-      .from('staff_members')
-      .insert([staffData])
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    return {
-      data: null,
-      error: err instanceof Error ? err : new Error('Failed to create staff member'),
-    };
-  }
-};
-
-/**
- * Update a staff member
- * @param id - Staff member UUID
- * @param updates - Partial staff member data
- * @returns Promise with data or error
- */
-export const updateStaff = async (
-  id: string,
-  updates: Partial<StaffMemberFormData>
-): Promise<ServiceResult<StaffMember>> => {
-  try {
-    const { data, error } = await supabase
-      .from('staff_members')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    return {
-      data: null,
-      error: err instanceof Error ? err : new Error('Failed to update staff member'),
-    };
-  }
-};
-
-/**
- * Soft delete a staff member (set is_active to false)
- * @param id - Staff member UUID
- * @returns Promise with data or error
- */
-export const deleteStaff = async (id: string): Promise<ServiceResult<StaffMember>> => {
-  try {
-    const { data, error } = await supabase
-      .from('staff_members')
-      .update({ is_active: false })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    return {
-      data: null,
-      error: err instanceof Error ? err : new Error('Failed to delete staff member'),
-    };
-  }
-};
-
-/**
- * Permanently delete a staff member (hard delete)
- * Warning: This cannot be undone. Use deleteStaff for soft delete instead.
- * @param id - Staff member UUID
- * @returns Promise with error only
- */
-export const permanentlyDeleteStaff = async (id: string): Promise<ServiceResult<null>> => {
-  try {
-    const { error } = await supabase.from('staff_members').delete().eq('id', id);
-
-    if (error) {
-      throw error;
-    }
-
-    return { data: null, error: null };
-  } catch (err) {
-    return {
-      data: null,
-      error: err instanceof Error ? err : new Error('Failed to permanently delete staff member'),
-    };
-  }
-};
-
-/**
- * Reactivate a staff member (set is_active to true)
- * @param id - Staff member UUID
- * @returns Promise with data or error
- */
-export const reactivateStaff = async (id: string): Promise<ServiceResult<StaffMember>> => {
-  try {
-    const { data, error } = await supabase
-      .from('staff_members')
-      .update({ is_active: true })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return { data, error: null };
-  } catch (err) {
-    return {
-      data: null,
-      error: err instanceof Error ? err : new Error('Failed to reactivate staff member'),
-    };
-  }
-};
-
-/**
  * Search staff members by name
  * @param searchTerm - Search term to match against full_name
  * @returns Promise with data or error
@@ -324,12 +201,12 @@ export const searchStaffByName = async (
   searchTerm: string
 ): Promise<ServiceResult<StaffMember[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('*')
       .ilike('full_name', `%${searchTerm}%`)
       .eq('is_active', true)
-      .order('full_name', { ascending: true });
+      .order('full_name', { ascending: true })) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;
@@ -351,11 +228,13 @@ export const searchStaffByName = async (
  */
 export const getJobTitles = async (): Promise<ServiceResult<string[]>> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('staff_members')
       .select('job_title')
       .eq('is_active', true)
-      .order('job_title', { ascending: true });
+      .order('job_title', { ascending: true })) as PostgrestResponse<
+      Pick<StaffMember, 'job_title'>
+    >;
 
     if (error) {
       throw error;
@@ -386,7 +265,9 @@ export const getStaffStats = async (): Promise<
   }>
 > => {
   try {
-    const { data, error } = await supabase.from('staff_members').select('*');
+    const { data, error } = (await supabase
+      .from('staff_members')
+      .select('*')) as PostgrestResponse<StaffMember>;
 
     if (error) {
       throw error;

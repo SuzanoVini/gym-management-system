@@ -59,7 +59,12 @@ export default function FollowUpModal({ isOpen, onClose, intro }: FollowUpModalP
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          void handleSubmit(e);
+        }}
+        className="space-y-4"
+      >
         <FormField
           label="Follow-up Note"
           name="note"

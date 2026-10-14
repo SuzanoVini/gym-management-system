@@ -48,22 +48,23 @@ function memberName(row: ZpMemberCsvRow): string {
 // A live membership outranks an upcoming one, which outranks an expired/cancelled one.
 const ZP_STATUS_RANK: Record<string, number> = { CURRENT: 3, HOLD: 2, 'NOT STARTED': 1 };
 
+function mapZpStatus(mbrStatus: string): NonNullable<MemberImportRow['status']> {
+  if (mbrStatus === 'CURRENT' || mbrStatus === 'NOT STARTED') {
+    return 'Active';
+  }
+  if (mbrStatus === 'HOLD') {
+    return 'On Hold';
+  }
+  return 'Inactive';
+}
+
 function mapCsvRow(row: ZpMemberCsvRow): MemberImportRow | null {
   const name = memberName(row);
   if (!name) {
     return null;
   }
 
-  const mbrStatus = getField(row, 'Mbr. Status').toUpperCase();
-
-  let status: MemberImportRow['status'];
-  if (mbrStatus === 'CURRENT' || mbrStatus === 'NOT STARTED') {
-    status = 'Active';
-  } else if (mbrStatus === 'HOLD') {
-    status = 'On Hold';
-  } else {
-    status = 'Inactive';
-  }
+  const status = mapZpStatus(getField(row, 'Mbr. Status').toUpperCase());
 
   const mapped: MemberImportRow = { name, status };
   const email = getField(row, 'Email');

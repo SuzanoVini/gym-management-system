@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { reportConsoleError } from '@/lib/logger';
 
 // Hook for debouncing values
 export function useDebounce<T>(value: T, delay: number): T {
@@ -52,9 +53,9 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
     }
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      return item ? (JSON.parse(item) as T) : initialValue;
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      reportConsoleError(`Error reading localStorage key "${key}":`, error);
       return initialValue;
     }
   });
@@ -67,7 +68,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
           window.localStorage.setItem(key, JSON.stringify(value));
         }
       } catch (error) {
-        console.error(`Error setting localStorage key "${key}":`, error);
+        reportConsoleError(`Error setting localStorage key "${key}":`, error);
       }
     },
     [key]

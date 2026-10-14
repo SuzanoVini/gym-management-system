@@ -1,6 +1,33 @@
 // lib/logger.ts
-import { useCallback, useEffect } from 'react';
 import { errorHandler } from './errorHandler';
+
+export function reportConsoleError(...args: Parameters<typeof console.error>): void {
+  console.error(...args);
+}
+
+export function reportConsoleWarn(...args: Parameters<typeof console.warn>): void {
+  console.warn(...args);
+}
+
+export function reportConsoleLog(...args: Parameters<typeof console.log>): void {
+  console.log(...args);
+}
+
+export function reportConsoleInfo(...args: Parameters<typeof console.info>): void {
+  console.info(...args);
+}
+
+export function reportConsoleDebug(...args: Parameters<typeof console.debug>): void {
+  console.debug(...args);
+}
+
+export function reportConsoleTime(...args: Parameters<typeof console.time>): void {
+  console.time(...args);
+}
+
+export function reportConsoleTimeEnd(...args: Parameters<typeof console.timeEnd>): void {
+  console.timeEnd(...args);
+}
 
 export enum LogLevel {
   DEBUG = 'debug',
@@ -62,7 +89,7 @@ class Logger {
     }
   }
 
-  private async sendToLoggingService(entry: LogEntry) {
+  private sendToLoggingService(entry: LogEntry): void {
     try {
       // Example: Send to Sentry, LogRocket, or custom logging service
       // await fetch('/api/logs', {
@@ -73,7 +100,7 @@ class Logger {
 
       // For now, just store in localStorage for debugging
       if (typeof window !== 'undefined') {
-        const existingLogs = JSON.parse(localStorage.getItem('app_logs') || '[]');
+        const existingLogs = JSON.parse(localStorage.getItem('app_logs') || '[]') as LogEntry[];
         existingLogs.push(entry);
 
         // Keep only last 1000 logs
@@ -152,7 +179,7 @@ class Logger {
   // Get logs for debugging
   getLogs(): LogEntry[] {
     if (typeof window !== 'undefined') {
-      return JSON.parse(localStorage.getItem('app_logs') || '[]');
+      return JSON.parse(localStorage.getItem('app_logs') || '[]') as LogEntry[];
     }
     return [];
   }
@@ -168,29 +195,28 @@ class Logger {
 export const logger = new Logger();
 
 // Performance monitoring utilities
-// biome-ignore lint/complexity/noStaticOnlyClass: Static utilities are intentional for perf tracking.
-export class PerformanceMonitor {
-  private static metrics = new Map<string, number[]>();
+const performanceMetrics = new Map<string, number[]>();
 
-  static startTimer(name: string): () => void {
+export const PerformanceMonitor = {
+  startTimer(name: string): () => void {
     const startTime = performance.now();
 
     return () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
 
-      if (!PerformanceMonitor.metrics.has(name)) {
-        PerformanceMonitor.metrics.set(name, []);
+      if (!performanceMetrics.has(name)) {
+        performanceMetrics.set(name, []);
       }
 
-      PerformanceMonitor.metrics.get(name)?.push(duration);
+      performanceMetrics.get(name)?.push(duration);
 
       logger.debug(`Performance: ${name} took ${duration.toFixed(2)}ms`, 'performance');
     };
-  }
+  },
 
-  static getMetrics(name: string): { avg: number; min: number; max: number; count: number } | null {
-    const times = PerformanceMonitor.metrics.get(name);
+  getMetrics(name: string): { avg: number; min: number; max: number; count: number } | null {
+    const times = performanceMetrics.get(name);
     if (!times || times.length === 0) {
       return null;
     }
@@ -200,12 +226,12 @@ export class PerformanceMonitor {
     const max = Math.max(...times);
 
     return { avg, min, max, count: times.length };
-  }
+  },
 
-  static getAllMetrics(): Record<string, { avg: number; min: number; max: number; count: number }> {
+  getAllMetrics(): Record<string, { avg: number; min: number; max: number; count: number }> {
     const result: Record<string, { avg: number; min: number; max: number; count: number }> = {};
 
-    for (const [name] of PerformanceMonitor.metrics) {
+    for (const [name] of performanceMetrics) {
       const metrics = PerformanceMonitor.getMetrics(name);
       if (metrics) {
         result[name] = metrics;
@@ -213,31 +239,9 @@ export class PerformanceMonitor {
     }
 
     return result;
-  }
+  },
 
-  static clearMetrics() {
-    PerformanceMonitor.metrics.clear();
-  }
-}
-
-// React hook for performance monitoring
-export function usePerformanceMonitor(componentName: string) {
-  useEffect(() => {
-    logger.logComponentLifecycle(componentName, 'mount');
-
-    return () => {
-      logger.logComponentLifecycle(componentName, 'unmount');
-    };
-  }, [componentName]);
-
-  const measureOperation = useCallback(
-    (operationName: string, fn: () => void) => {
-      const endTimer = PerformanceMonitor.startTimer(`${componentName}-${operationName}`);
-      fn();
-      endTimer();
-    },
-    [componentName]
-  );
-
-  return { measureOperation };
-}
+  clearMetrics() {
+    performanceMetrics.clear();
+  },
+};

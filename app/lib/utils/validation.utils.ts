@@ -37,6 +37,24 @@ export interface MultiValidationResult {
   errors: string[];
 }
 
+function validateFullName(fullName: string | undefined, errors: string[]): void {
+  if (!fullName || fullName.trim().length === 0) {
+    errors.push('Full name is required');
+  } else if (fullName.length < 2) {
+    errors.push('Full name must be at least 2 characters');
+  } else if (fullName.length > 100) {
+    errors.push('Full name must not exceed 100 characters');
+  }
+}
+
+function validateJobTitle(jobTitle: string | undefined, errors: string[]): void {
+  if (!jobTitle || jobTitle.trim().length === 0) {
+    errors.push('Job title is required');
+  } else if (jobTitle.length > 100) {
+    errors.push('Job title must not exceed 100 characters');
+  }
+}
+
 // ============================================================================
 // Hours Validation Functions
 // ============================================================================
@@ -243,21 +261,8 @@ export function validateStaffData(data: Partial<StaffMember>): MultiValidationRe
     errors.push('Employee ID is required');
   }
 
-  // Validate full_name (required)
-  if (!data.full_name || data.full_name.trim().length === 0) {
-    errors.push('Full name is required');
-  } else if (data.full_name.length < 2) {
-    errors.push('Full name must be at least 2 characters');
-  } else if (data.full_name.length > 100) {
-    errors.push('Full name must not exceed 100 characters');
-  }
-
-  // Validate job_title (required)
-  if (!data.job_title || data.job_title.trim().length === 0) {
-    errors.push('Job title is required');
-  } else if (data.job_title.length > 100) {
-    errors.push('Job title must not exceed 100 characters');
-  }
+  validateFullName(data.full_name, errors);
+  validateJobTitle(data.job_title, errors);
 
   // Validate is_active (if provided, must be boolean)
   if (data.is_active !== undefined && typeof data.is_active !== 'boolean') {

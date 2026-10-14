@@ -1,12 +1,16 @@
-interface FakeTables {
+import type * as FakeQueryTableModule from '@/lib/supabase/__mocks__/fakeQueryTable';
+
+type FakeTables = {
   staff_hours: Record<string, unknown>[];
   time_entries: Record<string, unknown>[];
-}
+};
 
 let tables: FakeTables;
 
 jest.mock('@/lib/supabase/client', () => {
-  const { makeFakeSupabase } = require('@/lib/supabase/__mocks__/fakeQueryTable');
+  const { makeFakeSupabase } = jest.requireActual<typeof FakeQueryTableModule>(
+    '@/lib/supabase/__mocks__/fakeQueryTable'
+  );
   const sharedTables: FakeTables = {
     staff_hours: [],
     time_entries: [],

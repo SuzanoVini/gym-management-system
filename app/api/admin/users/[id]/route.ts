@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { reportConsoleError } from '@/lib/logger';
 import { requireOwner } from '@/lib/supabase/authorization';
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +24,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    reportConsoleError('Error deleting user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -53,7 +54,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error resetting password:', error);
+    reportConsoleError('Error resetting password:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

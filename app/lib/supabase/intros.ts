@@ -1,17 +1,34 @@
 // app/lib/supabase/intros.ts
 
-import { normalizePersonKey, personKeyString } from '@/lib/utils/normalizePersonKey';
-import type { ClassHistoryFormData, FollowUpNoteFormData, Intro, IntroFormData } from '@/types';
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
+import type {
+  ClassHistory,
+  ClassHistoryFormData,
+  FollowUpNote,
+  FollowUpNoteFormData,
+  Intro,
+  IntroFormData,
+} from '@/types';
 import { supabase } from './client';
+
+export {
+  clearFollowUpReminder,
+  dismissFollowUp,
+  fetchFollowUpNotes,
+  fetchFollowUpNotesByPerson,
+  setFollowUpReminder,
+  undoDismissFollowUp,
+} from './intros/followUpGroups';
+export { subscribeToFollowUpNotes, subscribeToIntros } from './intros/subscriptions';
 
 // ============= INTRO CLASS HISTORY FUNCTIONS =============
 // Fetch class history for a specific intro
 export const fetchIntroClassHistory = async (introId: string) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intro_class_history')
     .select('*')
     .eq('intro_id', introId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<ClassHistory>;
 
   if (error) {
     throw error;
@@ -21,11 +38,11 @@ export const fetchIntroClassHistory = async (introId: string) => {
 
 // Add a new class to intro history
 export const addIntroClassHistory = async (historyEntry: ClassHistoryFormData) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intro_class_history')
     .insert([historyEntry])
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<ClassHistory>;
 
   if (error) {
     throw error;
@@ -38,12 +55,12 @@ export const updateIntroClassHistory = async (
   id: string,
   updates: Partial<ClassHistoryFormData>
 ) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intro_class_history')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<ClassHistory>;
 
   if (error) {
     throw error;
@@ -62,7 +79,7 @@ export const deleteIntroClassHistory = async (id: string) => {
 
 // Fetch intros with their class history
 export const fetchIntrosWithHistory = async (): Promise<Intro[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intros')
     .select(`
       *,
@@ -84,7 +101,7 @@ export const fetchIntrosWithHistory = async (): Promise<Intro[]> => {
         created_at
       )
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })) as PostgrestResponse<Intro>;
 
   if (error) {
     throw error;
@@ -97,12 +114,12 @@ export const updateIntroStatus = async (
   id: string,
   status: 'Active' | 'Cancelled' | 'Completed'
 ) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intros')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<Intro>;
 
   if (error) {
     throw error;
@@ -118,7 +135,7 @@ export const fetchIntros = async (): Promise<Intro[]> => {
   let hasMore = true;
 
   while (hasMore) {
-    const { data, error } = await supabase
+    const { data, error } = (await supabase
       .from('intros')
       .select(`
         *,
@@ -130,7 +147,7 @@ export const fetchIntros = async (): Promise<Intro[]> => {
         )
       `)
       .order('created_at', { ascending: false })
-      .range(from, from + pageSize - 1);
+      .range(from, from + pageSize - 1)) as PostgrestResponse<Intro>;
 
     if (error) {
       throw error;
@@ -149,7 +166,11 @@ export const fetchIntros = async (): Promise<Intro[]> => {
 };
 
 export const createIntro = async (intro: IntroFormData) => {
-  const { data, error } = await supabase.from('intros').insert([intro]).select().single();
+  const { data, error } = (await supabase
+    .from('intros')
+    .insert([intro])
+    .select()
+    .single()) as PostgrestSingleResponse<Intro>;
 
   if (error) {
     throw error;
@@ -158,12 +179,12 @@ export const createIntro = async (intro: IntroFormData) => {
 };
 
 export const updateIntro = async (id: string, updates: Partial<IntroFormData>) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intros')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<Intro>;
 
   if (error) {
     throw error;
@@ -181,7 +202,11 @@ export const deleteIntro = async (id: string) => {
 
 // FOLLOW-UP NOTES
 export const createFollowUpNote = async (note: FollowUpNoteFormData) => {
-  const { data, error } = await supabase.from('follow_up_notes').insert([note]).select().single();
+  const { data, error } = (await supabase
+    .from('follow_up_notes')
+    .insert([note])
+    .select()
+    .single()) as PostgrestSingleResponse<FollowUpNote>;
 
   if (error) {
     throw error;
@@ -199,143 +224,13 @@ export const createFollowUpNote = async (note: FollowUpNoteFormData) => {
   return data;
 };
 
-export const fetchFollowUpNotes = async (introId: string) => {
-  const { data, error } = await supabase
-    .from('follow_up_notes')
-    .select('*')
-    .eq('intro_id', introId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-  return data;
-};
-
-// Fetch all intro IDs for a person group (same normalized email via ilike, then
-// client-side filter by exact normalized name + email equality)
-const fetchPersonGroupIntroIds = async (name: string, email: string): Promise<string[]> => {
-  const key = normalizePersonKey(name, email);
-  if (!key) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from('intros')
-    .select('id, name, email')
-    .ilike('email', key.email);
-
-  if (error) {
-    throw error;
-  }
-
-  const targetKey = personKeyString(key);
-  return (data ?? [])
-    .filter((row) => {
-      const rowKey = normalizePersonKey(row.name, row.email);
-      return rowKey && personKeyString(rowKey) === targetKey;
-    })
-    .map((row) => row.id);
-};
-
-// Fetch notes for the full person group; falls back to single-intro fetch when
-// the person has no email (no grouping possible)
-export const fetchFollowUpNotesByPerson = async (
-  introId: string,
-  name: string,
-  email: string | null | undefined
-) => {
-  const key = normalizePersonKey(name, email);
-  if (!key) {
-    return fetchFollowUpNotes(introId);
-  }
-
-  const introIds = await fetchPersonGroupIntroIds(name, email ?? '');
-  if (introIds.length === 0) {
-    return fetchFollowUpNotes(introId);
-  }
-
-  const { data, error } = await supabase
-    .from('follow_up_notes')
-    .select('*')
-    .in('intro_id', introIds)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-  return data ?? [];
-};
-
-// Resolve write targets for person-level fields: the whole group when the
-// person has an email, otherwise just the opened intro
-const resolvePersonGroupTargets = async (
-  introId: string,
-  name: string,
-  email: string | null | undefined
-): Promise<string[]> => {
-  const key = normalizePersonKey(name, email);
-  if (!key) {
-    return [introId];
-  }
-  const ids = await fetchPersonGroupIntroIds(name, email ?? '');
-  return ids.length > 0 ? ids : [introId];
-};
-
-// Best-effort group write: a failure on one intro doesn't block the others
-const updatePersonGroup = async (
-  targets: string[],
-  values: Partial<Pick<Intro, 'followup_reminder_at' | 'followup_dismissed_at'>>
-): Promise<void> => {
-  await Promise.allSettled(
-    targets.map((id) => supabase.from('intros').update(values).eq('id', id))
-  );
-};
-
-export const setFollowUpReminder = async (
-  introId: string,
-  name: string,
-  email: string | null | undefined,
-  reminderUTC: string
-): Promise<void> => {
-  const targets = await resolvePersonGroupTargets(introId, name, email);
-  await updatePersonGroup(targets, { followup_reminder_at: reminderUTC });
-};
-
-export const clearFollowUpReminder = async (
-  introId: string,
-  name: string,
-  email: string | null | undefined
-): Promise<void> => {
-  const targets = await resolvePersonGroupTargets(introId, name, email);
-  await updatePersonGroup(targets, { followup_reminder_at: null });
-};
-
-export const dismissFollowUp = async (
-  introId: string,
-  name: string,
-  email: string | null | undefined
-): Promise<void> => {
-  const targets = await resolvePersonGroupTargets(introId, name, email);
-  await updatePersonGroup(targets, { followup_dismissed_at: new Date().toISOString() });
-};
-
-export const undoDismissFollowUp = async (
-  introId: string,
-  name: string,
-  email: string | null | undefined
-): Promise<void> => {
-  const targets = await resolvePersonGroupTargets(introId, name, email);
-  await updatePersonGroup(targets, { followup_dismissed_at: null });
-};
-
 export const updateFollowUpNote = async (id: string, note: string) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('follow_up_notes')
     .update({ note })
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<FollowUpNote>;
 
   if (error) {
     throw error;
@@ -349,21 +244,6 @@ export const deleteFollowUpNote = async (id: string) => {
   if (error) {
     throw error;
   }
-};
-
-// REAL-TIME SUBSCRIPTIONS
-export const subscribeToIntros = (callback: (payload: unknown) => void) => {
-  return supabase
-    .channel('intros-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'intros' }, callback)
-    .subscribe();
-};
-
-export const subscribeToFollowUpNotes = (callback: (payload: unknown) => void) => {
-  return supabase
-    .channel('follow-up-notes-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'follow_up_notes' }, callback)
-    .subscribe();
 };
 
 export const toggleFollowUpDone = async (
@@ -388,11 +268,11 @@ export const fetchRecentIntros = async (): Promise<Intro[]> => {
   const cutoffDate = thirtyDaysAgo.toISOString().slice(0, 10);
   const cutoffTs = thirtyDaysAgo.toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('intros')
     .select('*, follow_up_notes(id, note, created_at, staff_name)')
     .or(`date.gte.${cutoffDate},created_at.gte.${cutoffTs}`)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })) as PostgrestResponse<Intro>;
 
   if (error) {
     throw error;

@@ -138,7 +138,7 @@ export const usePayrollStaff = (activeOnly = false) => {
   }, []);
 
   useEffect(() => {
-    loadStaff();
+    void loadStaff();
   }, [loadStaff]);
 
   return {

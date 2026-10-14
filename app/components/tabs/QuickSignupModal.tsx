@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import { supabase } from '@/lib/supabase/client';
+import { updateIntroSignupStatus } from '@/lib/supabase/introTableActions';
 import { createSignup } from '@/lib/supabase/signups';
 import { monthAbbrFromDate, yearFromDate } from '@/lib/utils/date.utils';
 import { useSettingsStore } from '@/store/useSettingsStore';
@@ -20,6 +20,63 @@ function today(): string {
   const iso = new Date().toISOString();
   const dateStr = iso.split('T')[0];
   return dateStr || '2000-01-01';
+}
+
+function MembershipSelect({
+  value,
+  onChange,
+  membershipTypes,
+  error,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  membershipTypes: string[];
+  error: string | undefined;
+}) {
+  return (
+    <div>
+      <label htmlFor="membership" className="block text-sm font-medium text-gray-700 mb-1">
+        Membership <span className="text-red-500">*</span>
+      </label>
+      <select
+        id="membership"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="form-select w-full"
+      >
+        <option value="">Select membership…</option>
+        {membershipTypes.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function PackageCheckbox({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="checkbox"
+        id="signup-package"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 rounded border-gray-300 text-red-600"
+      />
+      <label htmlFor="signup-package" className="text-sm text-gray-700">
+        Package
+      </label>
+    </div>
+  );
 }
 
 interface Props {
@@ -63,10 +120,7 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
     setLoading(true);
     setError('');
 
-    const { error: introError } = await supabase
-      .from('intros')
-      .update({ signed_up: 'Yes' })
-      .eq('id', intro.id);
+    const { error: introError } = await updateIntroSignupStatus(intro.id, 'Yes');
 
     if (introError) {
       setError('Failed to update the intro. Please try again.');
@@ -112,27 +166,12 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
 
         {!step2Failed && (
           <div className="space-y-3">
-            <div>
-              <label htmlFor="membership" className="block text-sm font-medium text-gray-700 mb-1">
-                Membership <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="membership"
-                value={membership}
-                onChange={(e) => setMembership(e.target.value)}
-                className="form-select w-full"
-              >
-                <option value="">Select membership…</option>
-                {membershipTypes.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.membership && (
-                <p className="text-xs text-red-500 mt-1">{fieldErrors.membership}</p>
-              )}
-            </div>
+            <MembershipSelect
+              value={membership}
+              onChange={setMembership}
+              membershipTypes={membershipTypes}
+              error={fieldErrors.membership}
+            />
 
             <div>
               <label htmlFor="signup-date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -169,20 +208,7 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
               )}
             </div>
 
-            {!isASP && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="signup-package"
-                  checked={signupPackage}
-                  onChange={(e) => setSignupPackage(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-red-600"
-                />
-                <label htmlFor="signup-package" className="text-sm text-gray-700">
-                  Package
-                </label>
-              </div>
-            )}
+            {!isASP && <PackageCheckbox checked={signupPackage} onChange={setSignupPackage} />}
           </div>
         )}
 
@@ -198,7 +224,9 @@ export default function QuickSignupModal({ intro, onClose, onSuccess }: Props) {
           {!step2Failed && (
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={() => {
+                void handleSubmit();
+              }}
               disabled={loading}
               className="btn btn-primary"
             >

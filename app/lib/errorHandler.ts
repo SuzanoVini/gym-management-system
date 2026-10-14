@@ -1,4 +1,5 @@
 // lib/errorHandler.ts
+import { reportConsoleError } from './logger';
 
 export class AppError extends Error {
   constructor(
@@ -39,7 +40,7 @@ export const errorHandler = {
           : error,
     };
 
-    console.error('[ERROR]', errorInfo);
+    reportConsoleError('[ERROR]', errorInfo);
 
     // In production, send to error tracking service (Sentry, LogRocket, etc)
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {

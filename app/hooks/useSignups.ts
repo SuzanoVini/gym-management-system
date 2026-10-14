@@ -102,7 +102,7 @@ export const useSignups = () => {
       try {
         await updateSignup(id, updates);
         if (updates.name) {
-          await markMostRecentIntroAsSignedUp(updates.name).catch(() => {
+          await markMostRecentIntroAsSignedUp(updates.name as Signup['name']).catch(() => {
             // Silently ignore sync errors
           });
         }
@@ -138,7 +138,7 @@ export const useSignups = () => {
   );
 
   useEffect(() => {
-    loadSignups();
+    void loadSignups();
   }, [loadSignups]);
 
   useRealtimeRefresh(subscribeToSignups, silentRefresh);

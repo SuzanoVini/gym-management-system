@@ -35,6 +35,116 @@ function getTier(row: Omit<FollowUpRow, 'tier'>, today: Date): 1 | 2 | 3 | 4 | 5
   return 5;
 }
 
+interface PersonGroupState {
+  dismissedKeys: Set<string>;
+  groupReminders: Map<string, string>;
+}
+
+// Person-level state across all fetched intros: a person group is dismissed
+// when ANY intro in the group has followup_dismissed_at set (handles
+// partial best-effort writes), and the group's reminder is the earliest
+// non-null followup_reminder_at.
+function collectPersonGroupState(recentIntros: Intro[]): PersonGroupState {
+  const dismissedKeys = new Set<string>();
+  const groupReminders = new Map<string, string>();
+  for (const intro of recentIntros) {
+    const key = normalizePersonKey(intro.name, intro.email);
+    if (!key) {
+      continue;
+    }
+    const k = personKeyString(key);
+    if (intro.followup_dismissed_at) {
+      dismissedKeys.add(k);
+    }
+    if (intro.followup_reminder_at) {
+      const existing = groupReminders.get(k);
+      if (!existing || intro.followup_reminder_at < existing) {
+        groupReminders.set(k, intro.followup_reminder_at);
+      }
+    }
+  }
+  return { dismissedKeys, groupReminders };
+}
+
+function needsFollowUp(intro: Intro, dismissedKeys: Set<string>): boolean {
+  if (intro.attended !== 'Yes' && intro.attended !== 'No') {
+    return false;
+  }
+  if (intro.signed_up === 'Yes' || intro.signed_up === 'No') {
+    return false;
+  }
+  if (intro.followup_2_at) {
+    return false;
+  }
+  const key = normalizePersonKey(intro.name, intro.email);
+  if (key && dismissedKeys.has(personKeyString(key))) {
+    return false;
+  }
+  return true;
+}
+
+function toFollowUpRow(
+  intro: Intro,
+  groupReminders: Map<string, string>,
+  today: Date
+): FollowUpRow {
+  const introDate = intro.date ? new Date(intro.date) : new Date(intro.created_at);
+  const firstDueDate = addBusinessDays(introDate, 2);
+  firstDueDate.setUTCHours(0, 0, 0, 0);
+
+  const secondDueDate = intro.followup_1_at
+    ? addBusinessDays(new Date(intro.followup_1_at), 5)
+    : null;
+  if (secondDueDate) {
+    secondDueDate.setUTCHours(0, 0, 0, 0);
+  }
+
+  const key = normalizePersonKey(intro.name, intro.email);
+  const groupReminderAt =
+    (key ? groupReminders.get(personKeyString(key)) : undefined) ?? intro.followup_reminder_at;
+
+  const partial = {
+    ...intro,
+    firstDueDate,
+    secondDueDate,
+    isFirstOverdue: !intro.followup_1_at && firstDueDate < today,
+    isSecondOverdue: !!intro.followup_1_at && !!secondDueDate && secondDueDate < today,
+    isDueToday: !intro.followup_1_at && firstDueDate.toDateString() === today.toDateString(),
+    hasActiveReminder: isReminderActive(groupReminderAt),
+  };
+
+  return {
+    ...partial,
+    tier: getTier(partial, today),
+  } as FollowUpRow;
+}
+
+function compareFollowUpRows(a: FollowUpRow, b: FollowUpRow): number {
+  if (a.tier !== b.tier) {
+    return a.tier - b.tier;
+  }
+  const aDate = a.date ?? a.created_at;
+  const bDate = b.date ?? b.created_at;
+  return aDate < bDate ? -1 : aDate > bDate ? 1 : 0;
+}
+
+function buildFollowUpRows(recentIntros: Intro[], noteQuery: string, today: Date): FollowUpRow[] {
+  const { dismissedKeys, groupReminders } = collectPersonGroupState(recentIntros);
+
+  const base = recentIntros
+    .filter((intro) => needsFollowUp(intro, dismissedKeys))
+    .map((intro) => toFollowUpRow(intro, groupReminders, today));
+
+  const filtered =
+    noteQuery.trim() === ''
+      ? base
+      : base.filter((row) =>
+          row.follow_up_notes?.some((n) => n.note.toLowerCase().includes(noteQuery.toLowerCase()))
+        );
+
+  return filtered.sort(compareFollowUpRows);
+}
+
 export function useFollowUps() {
   const [recentIntros, setRecentIntros] = useState<Intro[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +177,7 @@ export function useFollowUps() {
   }, []);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const [today, setToday] = useState(() => {
@@ -93,96 +203,10 @@ export function useFollowUps() {
     return () => clearTimeout(id);
   }, [today]);
 
-  const rows = useMemo<FollowUpRow[]>(() => {
-    // Person-level state across all fetched intros: a person group is dismissed
-    // when ANY intro in the group has followup_dismissed_at set (handles
-    // partial best-effort writes), and the group's reminder is the earliest
-    // non-null followup_reminder_at.
-    const dismissedKeys = new Set<string>();
-    const groupReminders = new Map<string, string>();
-    for (const intro of recentIntros) {
-      const key = normalizePersonKey(intro.name, intro.email);
-      if (!key) {
-        continue;
-      }
-      const k = personKeyString(key);
-      if (intro.followup_dismissed_at) {
-        dismissedKeys.add(k);
-      }
-      if (intro.followup_reminder_at) {
-        const existing = groupReminders.get(k);
-        if (!existing || intro.followup_reminder_at < existing) {
-          groupReminders.set(k, intro.followup_reminder_at);
-        }
-      }
-    }
-
-    const base = recentIntros
-      .filter((intro) => {
-        if (intro.attended !== 'Yes' && intro.attended !== 'No') {
-          return false;
-        }
-        if (intro.signed_up === 'Yes' || intro.signed_up === 'No') {
-          return false;
-        }
-        if (intro.followup_2_at) {
-          return false;
-        }
-        const key = normalizePersonKey(intro.name, intro.email);
-        if (key && dismissedKeys.has(personKeyString(key))) {
-          return false;
-        }
-        return true;
-      })
-      .map((intro) => {
-        const introDate = intro.date ? new Date(intro.date) : new Date(intro.created_at);
-        const firstDueDate = addBusinessDays(introDate, 2);
-        firstDueDate.setUTCHours(0, 0, 0, 0);
-
-        const secondDueDate = intro.followup_1_at
-          ? addBusinessDays(new Date(intro.followup_1_at), 5)
-          : null;
-        if (secondDueDate) {
-          secondDueDate.setUTCHours(0, 0, 0, 0);
-        }
-
-        const key = normalizePersonKey(intro.name, intro.email);
-        const groupReminderAt =
-          (key ? groupReminders.get(personKeyString(key)) : undefined) ??
-          intro.followup_reminder_at;
-
-        const partial = {
-          ...intro,
-          firstDueDate,
-          secondDueDate,
-          isFirstOverdue: !intro.followup_1_at && firstDueDate < today,
-          isSecondOverdue: !!intro.followup_1_at && !!secondDueDate && secondDueDate < today,
-          isDueToday: !intro.followup_1_at && firstDueDate.toDateString() === today.toDateString(),
-          hasActiveReminder: isReminderActive(groupReminderAt),
-        };
-
-        return {
-          ...partial,
-          tier: getTier(partial, today),
-        } as FollowUpRow;
-      });
-
-    const filtered =
-      noteQuery.trim() === ''
-        ? base
-        : base.filter((row) =>
-            row.follow_up_notes?.some((n) => n.note.toLowerCase().includes(noteQuery.toLowerCase()))
-          );
-
-    return filtered.sort((a, b) => {
-      if (a.tier !== b.tier) {
-        return a.tier - b.tier;
-      }
-      const aDate = a.date ?? a.created_at;
-      const bDate = b.date ?? b.created_at;
-      return aDate < bDate ? -1 : aDate > bDate ? 1 : 0;
-    });
-  }, [recentIntros, noteQuery, today]);
+  const rows = useMemo<FollowUpRow[]>(
+    () => buildFollowUpRows(recentIntros, noteQuery, today),
+    [recentIntros, noteQuery, today]
+  );
 
   const overdueCount = useMemo(
     () => rows.filter((r) => r.tier === 1 || r.tier === 3).length,

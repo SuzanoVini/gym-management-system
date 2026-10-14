@@ -1,15 +1,16 @@
 // app/lib/supabase/signups.ts
 
+import type { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 import type { Signup, SignupFormData } from '@/types';
 import { supabase } from './client';
 
 // SIGNUPS
 export const fetchSignups = async (): Promise<Signup[]> => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('signups')
     .select('*')
     .order('created_at', { ascending: false })
-    .range(0, 9999); // Up to 10,000 records
+    .range(0, 9999)) as PostgrestResponse<Signup>; // Up to 10,000 records
 
   if (error) {
     throw error;
@@ -18,7 +19,11 @@ export const fetchSignups = async (): Promise<Signup[]> => {
 };
 
 export const createSignup = async (signup: SignupFormData) => {
-  const { data, error } = await supabase.from('signups').insert([signup]).select().single();
+  const { data, error } = (await supabase
+    .from('signups')
+    .insert([signup])
+    .select()
+    .single()) as PostgrestSingleResponse<Signup>;
 
   if (error) {
     throw error;
@@ -27,12 +32,12 @@ export const createSignup = async (signup: SignupFormData) => {
 };
 
 export const updateSignup = async (id: string, updates: Partial<SignupFormData>) => {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('signups')
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .single()) as PostgrestSingleResponse<Signup>;
 
   if (error) {
     throw error;

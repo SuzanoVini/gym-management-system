@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyCronRequest } from '@/lib/cron';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { reportConsoleError } from '@/lib/logger';
+import { pingDatabase } from '@/lib/supabase/maintenance';
 
 export async function GET(request: Request) {
   try {
@@ -9,14 +10,11 @@ export async function GET(request: Request) {
       return unauthorizedResponse;
     }
 
-    const supabase = createAdminClient();
-
     // Perform a simple database query to keep the project active
-    // Using settings table as it's lightweight
-    const { error } = await supabase.from('settings').select('id').limit(1).single();
+    const { error } = await pingDatabase();
 
     if (error) {
-      console.error('Keep-alive query error:', error);
+      reportConsoleError('Keep-alive query error:', error);
       return NextResponse.json(
         { error: 'Database query failed', details: error.message },
         { status: 500 }
@@ -29,7 +27,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Keep-alive error:', error);
+    reportConsoleError('Keep-alive error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

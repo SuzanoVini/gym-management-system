@@ -8,7 +8,7 @@ jest.mock('@/lib/supabase/client', () => ({
 
 import { supabase } from '@/lib/supabase/client';
 
-const mockFrom = supabase.from as jest.Mock;
+const mockFrom = (supabase as unknown as { from: jest.Mock }).from;
 
 function mockChain(resolveWith: { error: unknown }) {
   const chain = {

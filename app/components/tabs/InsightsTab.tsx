@@ -1,17 +1,22 @@
 'use client';
 
 import { CheckCircle } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useDismissedInsights } from '@/hooks/useDismissedInsights';
-import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { useInsights } from '@/hooks/useInsights';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
-import { addBusinessDays } from '@/lib/utils/businessDays';
 import type { Insight } from '@/types';
 import { InsightCard } from './InsightCard';
+import { type FollowUpsSummary, withFollowUpInsight } from './InsightsTab/buildFollowUpInsight';
+import InsightToasts from './InsightsTab/InsightToasts';
+import { useInsightActions } from './InsightsTab/useInsightActions';
+import { useInsightsDateRange } from './InsightsTab/useInsightsDateRange';
+import { useInsightToasts } from './InsightsTab/useInsightToasts';
+
+export { buildFollowUpInsight } from './InsightsTab/buildFollowUpInsight';
 
 const INSIGHTS_DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: '1month', label: 'Last Month' },
@@ -32,99 +37,35 @@ const insightDataHash = (data: unknown): string => {
   return h.toString(36);
 };
 
-interface Toast {
-  id: string;
-  message: string;
-  insightId: string;
-}
-
 interface InsightsTabProps {
-  followUps: {
-    rows: FollowUpRow[];
-    overdueCount: number;
-    remindersDueCount: number;
-  };
+  followUps: FollowUpsSummary;
 }
 
-// One source of truth for follow-up urgency: the same useFollowUps rows that
-// drive the Follow Ups tab and sidebar badge, so this card disappears exactly
-// when follow-up is up to date.
-export function buildFollowUpInsight(followUps: InsightsTabProps['followUps']): Insight | null {
-  if (followUps.overdueCount === 0 && followUps.remindersDueCount === 0) {
-    return null;
-  }
+function InsightsLoading() {
+  return (
+    <div className="flex items-center justify-center h-96">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4" />
+        <p className="text-gray-600">Analyzing your data...</p>
+      </div>
+    </div>
+  );
+}
 
-  if (followUps.overdueCount === 0) {
-    return {
-      id: 'follow-ups-due',
-      title: `${followUps.remindersDueCount} Follow-Up Reminder${followUps.remindersDueCount === 1 ? '' : 's'} Due`,
-      message: `${followUps.remindersDueCount} follow-up reminder${followUps.remindersDueCount === 1 ? ' is' : 's are'} due. Handle these while the lead is still warm.`,
-      icon: 'Clock',
-      color: 'orange',
-      priority: 'medium',
-      impact: 'Improves intro-to-signup follow-through',
-      actions: [
-        'Open the Follow Ups tab',
-        'Contact due leads first',
-        'Log each contact attempt',
-        'Set reminders for anyone who needs more time',
-      ],
-      category: 'operational',
-    };
-  }
-
-  const overdue = followUps.rows.filter((r) => r.tier === 1 || r.tier === 3);
-  const neverContacted = overdue.filter((r) => r.tier === 1).length;
-  const awaitingSecond = overdue.length - neverContacted;
-
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  const severelyOverdue = overdue.some((r) => {
-    const due = r.tier === 1 ? r.firstDueDate : r.secondDueDate;
-    return due !== null && addBusinessDays(due, 5) < today;
-  });
-
-  const byStaff = overdue.reduce<Record<string, number>>((acc, r) => {
-    const staff = r.staff || 'Unassigned';
-    acc[staff] = (acc[staff] || 0) + 1;
-    return acc;
-  }, {});
-  const staffBreakdown = Object.entries(byStaff)
-    .sort((a, b) => b[1] - a[1])
-    .map(([staff, count]) => `• ${count} from ${staff}'s classes`)
-    .join('\n');
-
-  const splitParts = [
-    neverContacted > 0 ? `${neverContacted} never contacted (overdue)` : null,
-    awaitingSecond > 0 ? `${awaitingSecond} awaiting 2nd contact (overdue)` : null,
-  ].filter(Boolean);
-
-  return {
-    id: 'follow-ups-due',
-    title: `${overdue.length} Follow-Up${overdue.length === 1 ? '' : 's'} Overdue`,
-    message: `${splitParts.join(' · ')}\n\n${staffBreakdown}\n\nThese are active leads that need contact before they go cold.`,
-    icon: 'AlertCircle',
-    color: 'red',
-    priority: severelyOverdue ? 'critical' : 'high',
-    impact: 'Improves intro-to-signup follow-through',
-    actions: [
-      'Open the Follow Ups tab',
-      'Contact overdue leads first',
-      'Log each contact attempt',
-      'Set reminders for anyone who needs more time',
-    ],
-    category: 'operational',
-  };
+function InsightsEmptyState() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+      <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+      <h3 className="text-xl font-bold text-gray-900 mb-2">Everything Looks Good!</h3>
+      <p className="text-gray-600">No critical issues detected. Your gym is running smoothly.</p>
+    </div>
+  );
 }
 
 export default function InsightsTab({ followUps }: InsightsTabProps) {
-  const [dateRange, setDateRange] = useState('3months');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [tempStartDate, setTempStartDate] = useState('');
-  const [tempEndDate, setTempEndDate] = useState('');
+  const range = useInsightsDateRange();
+  const { dateRange, customStartDate, customEndDate } = range;
   const [showDismissed, setShowDismissed] = useState(false);
-  const [toasts, setToasts] = useState<Toast[]>([]);
   const revenuePerMember = useRevenueSetting();
 
   const { filteredData, loading, error, refresh } = useAnalyticsData({
@@ -138,9 +79,7 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
     revenuePerMember,
   });
 
-  const followUpInsight = buildFollowUpInsight(followUps);
-
-  const insights = followUpInsight ? [followUpInsight, ...baseInsights] : baseInsights;
+  const insights = withFollowUpInsight(followUps, baseInsights);
 
   const { isDismissed, markDone, snooze, dismiss, restore, dismissed } = useDismissedInsights();
 
@@ -151,68 +90,12 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
     []
   );
 
-  // Toast management
-  const toastTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const { toasts, addToast, dismissToast, removeToastsFor } = useInsightToasts();
 
-  const addToast = useCallback((insightId: string, message: string) => {
-    const id = `${insightId}-${Date.now()}`;
-    setToasts((prev) => [...prev, { id, message, insightId }]);
-    toastTimers.current[id] = setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
-  }, []);
-
-  const dismissToast = useCallback((toastId: string) => {
-    clearTimeout(toastTimers.current[toastId]);
-    setToasts((prev) => prev.filter((t) => t.id !== toastId));
-  }, []);
-
-  // Clean up timers on unmount
-  useEffect(
-    () => () => {
-      for (const timer of Object.values(toastTimers.current)) {
-        clearTimeout(timer);
-      }
-    },
-    []
+  const { handleMarkDone, handleSnooze, handleDismiss, handleRestore } = useInsightActions(
+    { markDone, snooze, dismiss, restore },
+    { addToast, removeToastsFor }
   );
-
-  const handleMarkDone = useCallback(
-    (insightId: string, dataHash: string) => {
-      markDone(insightId, dataHash);
-      addToast(insightId, 'Marked as done');
-    },
-    [markDone, addToast]
-  );
-
-  const handleSnooze = useCallback(
-    (insightId: string, dataHash: string, days = 7) => {
-      snooze(insightId, dataHash, days);
-      addToast(insightId, `Snoozed for ${days} days`);
-    },
-    [snooze, addToast]
-  );
-
-  const handleDismiss = useCallback(
-    (insightId: string, dataHash: string) => {
-      dismiss(insightId, dataHash);
-      addToast(insightId, 'Insight dismissed');
-    },
-    [dismiss, addToast]
-  );
-
-  const handleRestore = useCallback(
-    (insightId: string) => {
-      restore(insightId);
-      setToasts((prev) => prev.filter((t) => t.insightId !== insightId));
-    },
-    [restore]
-  );
-
-  const handleApplyCustomDates = () => {
-    setCustomStartDate(tempStartDate);
-    setCustomEndDate(tempEndDate);
-  };
 
   const visibleInsights = insights.filter((i) => {
     const hash = getInsightHash(i);
@@ -224,21 +107,20 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
   ).length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4" />
-          <p className="text-gray-600">Analyzing your data...</p>
-        </div>
-      </div>
-    );
+    return <InsightsLoading />;
   }
 
   if (error) {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button type="button" onClick={refresh} className="btn btn-primary">
+        <button
+          type="button"
+          onClick={() => {
+            void refresh();
+          }}
+          className="btn btn-primary"
+        >
           Retry
         </button>
       </div>
@@ -248,36 +130,14 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
       {/* Toast notifications */}
-      {toasts.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-          {toasts.map((toast) => (
-            <div
-              key={toast.id}
-              className="flex items-center gap-3 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg text-sm"
-            >
-              <span>{toast.message}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  handleRestore(toast.insightId);
-                  dismissToast(toast.id);
-                }}
-                className="text-blue-400 hover:text-blue-300 font-medium"
-              >
-                Undo
-              </button>
-              <button
-                type="button"
-                onClick={() => dismissToast(toast.id)}
-                className="text-gray-400 hover:text-gray-300"
-                aria-label="Close notification"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <InsightToasts
+        toasts={toasts}
+        onUndo={(toast) => {
+          handleRestore(toast.insightId);
+          dismissToast(toast.id);
+        }}
+        onClose={dismissToast}
+      />
 
       <div className="space-y-6">
         {/* Header */}
@@ -289,7 +149,13 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
                 Actionable recommendations based on your actual data
               </p>
             </div>
-            <button type="button" onClick={refresh} className="btn btn-primary">
+            <button
+              type="button"
+              onClick={() => {
+                void refresh();
+              }}
+              className="btn btn-primary"
+            >
               Refresh
             </button>
           </div>
@@ -300,12 +166,12 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
               idPrefix="insights"
               options={INSIGHTS_DATE_RANGE_OPTIONS}
               dateRange={dateRange}
-              onSelectRange={setDateRange}
-              tempStartDate={tempStartDate}
-              tempEndDate={tempEndDate}
-              onTempStartDateChange={setTempStartDate}
-              onTempEndDateChange={setTempEndDate}
-              onApplyCustomDates={handleApplyCustomDates}
+              onSelectRange={range.setDateRange}
+              tempStartDate={range.tempStartDate}
+              tempEndDate={range.tempEndDate}
+              onTempStartDateChange={range.setTempStartDate}
+              onTempEndDateChange={range.setTempEndDate}
+              onApplyCustomDates={range.handleApplyCustomDates}
               customRangeBoxClassName="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-red-200"
             />
           </div>
@@ -313,13 +179,7 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
 
         {/* Insights */}
         {visibleInsights.length === 0 && !showDismissed ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Everything Looks Good!</h3>
-            <p className="text-gray-600">
-              No critical issues detected. Your gym is running smoothly.
-            </p>
-          </div>
+          <InsightsEmptyState />
         ) : (
           <div className="space-y-4">
             {insights.map((insight: Insight) => {

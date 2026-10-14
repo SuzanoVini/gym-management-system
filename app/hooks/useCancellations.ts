@@ -132,7 +132,7 @@ export const useCancellations = () => {
   );
 
   useEffect(() => {
-    loadCancellations();
+    void loadCancellations();
   }, [loadCancellations]);
 
   useRealtimeRefresh(subscribeToCancellations, silentRefresh);
