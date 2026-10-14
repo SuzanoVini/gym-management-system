@@ -6,7 +6,7 @@ export function fetchMemberJourneyRecords(name: string, nameNormalized?: string)
   const escapedName = escapeIlike(name);
 
   return Promise.all([
-    supabase.from('intros').select('*').ilike('name', escapedName),
+    supabase.from('intros').select('*').eq('is_spam', false).ilike('name', escapedName),
     supabase.from('signups').select('*').ilike('name', escapedName),
     supabase.from('holds').select('*').eq('name_normalized', key),
     supabase.from('cancellations').select('*').eq('name_normalized', key),

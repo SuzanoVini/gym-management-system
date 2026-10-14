@@ -32,6 +32,7 @@ async function run() {
     const { data: intro } = await supabase
       .from('intros')
       .select('id, name, signed_up')
+      .eq('is_spam', false)
       .ilike('name', signup.name.toLowerCase().trim())
       .order('date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })

@@ -26,6 +26,7 @@ const fetchPersonGroupIntroIds = async (name: string, email: string): Promise<st
     return [];
   }
 
+  // spam-gate: allow — follow-up state is written to the whole person group; harmless on spam rows
   const { data, error } = (await supabase
     .from('intros')
     .select('id, name, email')

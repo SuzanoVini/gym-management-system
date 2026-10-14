@@ -72,6 +72,7 @@ export async function getPriorClassMapping(rawClass: string): Promise<string | n
 }
 
 export async function fetchAffectedIntroIds(rawClass: string): Promise<string[]> {
+  // spam-gate: allow — the rename also touches spam rows, so undo must restore them
   const { data } = await supabase.from('intros').select('id').eq('class', rawClass);
   return (data ?? []).map((record: { id: string }) => record.id);
 }

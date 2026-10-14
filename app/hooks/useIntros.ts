@@ -52,6 +52,7 @@ export const useIntros = () => {
       try {
         const sanitized = stripUndefined(validation.data) as IntroFormData;
         if (sanitized.date) {
+          // spam-gate: allow — a manual add matching a spam booking should still warn as a duplicate
           const { data: dup } = await supabase
             .from('intros')
             .select('id')

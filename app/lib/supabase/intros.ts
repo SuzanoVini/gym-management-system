@@ -77,38 +77,6 @@ export const deleteIntroClassHistory = async (id: string) => {
   }
 };
 
-// Fetch intros with their class history
-export const fetchIntrosWithHistory = async (): Promise<Intro[]> => {
-  const { data, error } = (await supabase
-    .from('intros')
-    .select(`
-      *,
-      follow_up_notes (
-        id,
-        note,
-        created_at,
-        staff_name
-      ),
-      intro_class_history (
-        id,
-        month,
-        date,
-        time,
-        class,
-        staff,
-        attended,
-        notes,
-        created_at
-      )
-    `)
-    .order('created_at', { ascending: false })) as PostgrestResponse<Intro>;
-
-  if (error) {
-    throw error;
-  }
-  return data || [];
-};
-
 // Update intro status
 export const updateIntroStatus = async (
   id: string,
@@ -146,6 +114,7 @@ export const fetchIntros = async (): Promise<Intro[]> => {
           staff_name
         )
       `)
+      .eq('is_spam', false)
       .order('created_at', { ascending: false })
       .range(from, from + pageSize - 1)) as PostgrestResponse<Intro>;
 
@@ -271,6 +240,7 @@ export const fetchRecentIntros = async (): Promise<Intro[]> => {
   const { data, error } = (await supabase
     .from('intros')
     .select('*, follow_up_notes(id, note, created_at, staff_name)')
+    .eq('is_spam', false)
     .or(`date.gte.${cutoffDate},created_at.gte.${cutoffTs}`)
     .order('date', { ascending: false })) as PostgrestResponse<Intro>;
 
@@ -292,6 +262,7 @@ export const markFollowUp1 = async (id: string): Promise<void> => {
 
 export const markFollowUp2 = async (id: string): Promise<void> => {
   // Guard: verify followup_1_at is set before writing
+  // spam-gate: allow — lookup by id of a row the user already sees
   const { data } = await supabase.from('intros').select('followup_1_at').eq('id', id).single();
   if (!data?.followup_1_at) {
     return;
@@ -327,6 +298,7 @@ export const markMostRecentIntroAsSignedUp = async (name: string): Promise<void>
   const { data: intro } = await supabase
     .from('intros')
     .select('id, signed_up')
+    .eq('is_spam', false)
     .ilike('name', name.toLowerCase().trim())
     .order('date', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
