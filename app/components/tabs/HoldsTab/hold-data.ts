@@ -1,3 +1,4 @@
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import type { Hold } from '@/types';
 
 export type HoldStatus = 'unknown' | 'upcoming' | 'ended' | 'active';
@@ -41,13 +42,11 @@ export function filterHolds(
   });
 
   if (filters.searchTerm.trim()) {
-    const search = filters.searchTerm.toLowerCase().trim();
-    filtered = filtered.filter(
-      (hold) =>
-        hold.name.toLowerCase().includes(search) ||
-        hold.reason?.toLowerCase().includes(search) ||
-        hold.start?.includes(search) ||
-        hold.end?.includes(search)
+    filtered = filtered.filter((hold) =>
+      searchMatches(
+        buildSearchIndex([hold.name, hold.reason, hold.start, hold.end]),
+        filters.searchTerm
+      )
     );
   }
   return filtered;

@@ -15,6 +15,7 @@ import {
   type DisplayMember,
   summarizeMemberPlans,
 } from '@/lib/members/memberRoster';
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import MemberJourneyPanel from './members/MemberJourneyPanel';
 import MemberPlanBreakdown from './members/MemberPlanBreakdown';
 import MemberRosterTable from './members/MemberRosterTable';
@@ -174,13 +175,11 @@ function useMemberFilters(derivedMembers: DisplayMember[]) {
   const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = useMemo(() => {
-    const query = search.toLowerCase().trim();
+    const query = search.trim();
     return derivedMembers.filter((member) => {
       const matchesSearch =
         !query ||
-        member.name.toLowerCase().includes(query) ||
-        member.email?.toLowerCase().includes(query) ||
-        member.phone?.toLowerCase().includes(query);
+        searchMatches(buildSearchIndex([member.name, member.email], [member.phone]), query);
       const matchesPlan = planFilter === 'all' || member.membership_type === planFilter;
       const matchesStatus =
         statusFilter === 'all' || toRosterStatus(member.derivedStatus) === statusFilter;

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import type { TabFilters } from '@/store/useFilterStore';
 import type { Signup } from '@/types';
 
@@ -28,14 +29,17 @@ export function useSignupListModel({ signups, filters, sortOrder }: SignupListMo
     });
 
     if (filters.searchTerm.trim()) {
-      const search = filters.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(
-        (signup) =>
-          signup.name.toLowerCase().includes(search) ||
-          signup.membership?.toLowerCase().includes(search) ||
-          signup.membership_date?.includes(search) ||
-          signup.first_payment_date?.includes(search) ||
-          signup.notes?.toLowerCase().includes(search)
+      filtered = filtered.filter((signup) =>
+        searchMatches(
+          buildSearchIndex([
+            signup.name,
+            signup.membership,
+            signup.membership_date,
+            signup.first_payment_date,
+            signup.notes,
+          ]),
+          filters.searchTerm
+        )
       );
     }
     return filtered;

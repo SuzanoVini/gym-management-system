@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import type { TabFilters } from '@/store/useFilterStore';
 import type { Cancellation } from '@/types';
 
@@ -35,14 +36,17 @@ export function useCancellationsListData({
       return matchesMonth && matchesReason && matchesAgeGroup && matchesYear;
     });
     if (filters.searchTerm.trim()) {
-      const search = filters.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(
-        (cancellation) =>
-          cancellation.name.toLowerCase().includes(search) ||
-          cancellation.reason?.toLowerCase().includes(search) ||
-          cancellation.date?.includes(search) ||
-          cancellation.age_group?.toLowerCase().includes(search) ||
-          cancellation.notes?.toLowerCase().includes(search)
+      filtered = filtered.filter((cancellation) =>
+        searchMatches(
+          buildSearchIndex([
+            cancellation.name,
+            cancellation.reason,
+            cancellation.date,
+            cancellation.age_group,
+            cancellation.notes,
+          ]),
+          filters.searchTerm
+        )
       );
     }
     return filtered;
