@@ -1,4 +1,4 @@
-# GB Kitsilano Gym - Operations & Management System
+# Gym Operations & Management System
 
 ![Next.js](https://img.shields.io/badge/Next.js_15-black?style=flat&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
