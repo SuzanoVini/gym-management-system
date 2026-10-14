@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import type { TabFilters } from '@/store/useFilterStore';
 import type { Intro } from '@/types';
 
 function introMatchesSearch(intro: Intro, searchTerm: string): boolean | undefined {
   return (
     !searchTerm ||
-    intro.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intro.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    intro.phone?.includes(searchTerm)
+    searchMatches(buildSearchIndex([intro.name, intro.email], [intro.phone]), searchTerm)
   );
 }
 

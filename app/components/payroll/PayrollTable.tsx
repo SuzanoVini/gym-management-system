@@ -3,6 +3,7 @@
 import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Table from '@/components/ui/Table';
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import type { StaffHours, StaffMember } from '@/types';
 import EditableHoursCell from './EditableHoursCell';
 
@@ -94,7 +95,7 @@ export default function PayrollTable({
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter((row) =>
-        row.staff_name.toLowerCase().includes(searchTerm.toLowerCase())
+        searchMatches(buildSearchIndex([row.staff_name]), searchTerm)
       );
     }
 

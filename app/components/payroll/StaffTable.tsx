@@ -3,6 +3,7 @@
 import { Edit2, UserCheck, UserX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Table from '@/components/ui/Table';
+import { buildSearchIndex, searchMatches } from '@/lib/utils/search';
 import type { StaffMember } from '@/types';
 
 interface StaffTableProps {
@@ -38,12 +39,8 @@ export default function StaffTable({
 
     // Apply search filter
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (s) =>
-          s.full_name.toLowerCase().includes(term) ||
-          s.employee_id.toLowerCase().includes(term) ||
-          s.job_title.toLowerCase().includes(term)
+      filtered = filtered.filter((s) =>
+        searchMatches(buildSearchIndex([s.full_name, s.employee_id, s.job_title]), searchTerm)
       );
     }
 
