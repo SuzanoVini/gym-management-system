@@ -1,5 +1,11 @@
 import { getEmailTextBody, getZenPlannerBookingEmails } from '@/lib/gmail';
 import { MONTH_TO_NUM, type ParsedBooking, parseBookingEmail } from '@/lib/services/booking-parser';
+import { pickDedupSurvivor } from '@/lib/spam/dedupSurvivor';
+import {
+  buildSpamContacts,
+  detectSpamSignals,
+  type SpamContacts,
+} from '@/lib/spam/detectSpamSignals';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { canonicalizeStaffName } from '@/lib/utils/canonicalizeStaffName';
 
@@ -25,6 +31,7 @@ interface DedupIntroRow {
   class: string;
   email: string | null;
   phone: string | null;
+  is_spam: boolean | null;
 }
 
 export interface IntroImportContext {
@@ -120,7 +127,19 @@ async function enrichExistingIntro(
   }
 }
 
-async function importIntroMessage(ctx: IntroImportContext, messageId: string): Promise<void> {
+async function loadSpamContacts(supabase: AdminClient): Promise<SpamContacts> {
+  const { data: spamRows } = await supabase
+    .from('intros')
+    .select('email_normalized, phone_normalized')
+    .eq('is_spam', true);
+  return buildSpamContacts(spamRows ?? []);
+}
+
+async function importIntroMessage(
+  ctx: IntroImportContext,
+  messageId: string,
+  spamContacts: SpamContacts
+): Promise<void> {
   const body = await getEmailTextBody(messageId);
   const booking = parseBookingEmail(body);
 
@@ -151,6 +170,10 @@ async function importIntroMessage(ctx: IntroImportContext, messageId: string): P
     email: booking.email,
     staff: canonicalizeStaffName(booking.staff, ctx.staffList),
     status: 'Active',
+    spam_signals: detectSpamSignals(
+      { name: booking.name, email: booking.email, phone: booking.phone },
+      spamContacts
+    ),
   });
 
   if (insertError) {
@@ -163,6 +186,7 @@ async function importIntroMessage(ctx: IntroImportContext, messageId: string): P
 
 async function importIntroMessages(ctx: IntroImportContext): Promise<number> {
   const messages = await getZenPlannerBookingEmails();
+  const spamContacts = await loadSpamContacts(ctx.supabase);
 
   for (const message of messages) {
     if (!message.id) {
@@ -170,7 +194,7 @@ async function importIntroMessages(ctx: IntroImportContext): Promise<number> {
     }
 
     try {
-      await importIntroMessage(ctx, message.id);
+      await importIntroMessage(ctx, message.id, spamContacts);
     } catch (err) {
       ctx.errors.push(`Error processing message ${message.id}: ${String(err)}`);
     }
@@ -190,28 +214,22 @@ function collectDuplicateIds(allIntros: DedupIntroRow[]): string[] {
       seen.set(key, intro);
       continue;
     }
-    // Score by number of filled fields (email + phone)
-    const priorScore = (prior.email ? 1 : 0) + (prior.phone ? 1 : 0);
-    const currentScore = (intro.email ? 1 : 0) + (intro.phone ? 1 : 0);
-    if (currentScore > priorScore) {
-      toDelete.push(prior.id);
-      seen.set(key, intro);
-    } else {
-      toDelete.push(intro.id);
-    }
+    const { keep, drop } = pickDedupSurvivor(prior, intro);
+    toDelete.push(drop.id);
+    seen.set(key, keep);
   }
 
   return toDelete;
 }
 
-// Dedup pass: find records with matching name + date + time, keep the one with more info
+// Dedup pass: find records with matching name + date + time, keep spam, else the one with more info
 async function dedupeIntros(supabase: AdminClient): Promise<number> {
   let deduped = 0;
   try {
     // spam-gate: allow — dedup must see spam to keep the flag
     const { data: allIntros } = await supabase
       .from('intros')
-      .select('id, name, date, time, class, email, phone')
+      .select('id, name, date, time, class, email, phone, is_spam')
       .order('created_at', { ascending: true })
       .overrideTypes<DedupIntroRow[], { merge: false }>();
 
