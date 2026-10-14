@@ -56,6 +56,7 @@ async function findExistingIntro(
   isoDate: string,
   resolvedClassName: string
 ): Promise<ExistingIntro | null> {
+  // spam-gate: allow — spam must keep blocking re-import
   const { data: existing } = await supabase
     .from('intros')
     .select('id, email, phone, class')
@@ -66,6 +67,7 @@ async function findExistingIntro(
     .maybeSingle<ExistingIntro>();
 
   if (!existing && resolvedClassName !== booking.className) {
+    // spam-gate: allow — spam must keep blocking re-import
     const { data: rawExisting } = await supabase
       .from('intros')
       .select('id, email, phone, class')
@@ -206,6 +208,7 @@ function collectDuplicateIds(allIntros: DedupIntroRow[]): string[] {
 async function dedupeIntros(supabase: AdminClient): Promise<number> {
   let deduped = 0;
   try {
+    // spam-gate: allow — dedup must see spam to keep the flag
     const { data: allIntros } = await supabase
       .from('intros')
       .select('id, name, date, time, class, email, phone')
