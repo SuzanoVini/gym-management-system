@@ -4,79 +4,101 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
-![Deployed on Vercel](https://img.shields.io/badge/Deployed_on_Vercel-000?style=flat&logo=vercel)
+![CI](https://img.shields.io/badge/CI-lint_·_typecheck_·_tests-2ea44f?style=flat&logo=githubactions&logoColor=white)
 
-A full-stack operations platform built for **Gracie Barra Kitsilano**, a Brazilian jiu-jitsu gym in Vancouver, BC. The gym was managing members, payroll, and class attendance across scattered spreadsheets. This replaced all of that with one system.
+One place to run a membership gym: every prospect's trial class, the follow-ups that turn them into members, sign-ups, holds, cancellations, the member roster, insights on what's working, and staff payroll at the end of the period.
 
-**Live demo:** *(custom domain coming soon)*
+![A tour of the dashboard: overview, insights, intros, follow-ups and a member's journey](docs/media/tour.gif)
 
----
-
-## Background
-
-As program director at the gym, I was responsible for tracking member signups, intro classes, cancellations, holds, and payroll across a mix of Excel and Google Sheets files with no connection between them. Answering a simple question like "how many members signed up in March vs cancelled in April?" meant opening three files and doing mental math. Tracking which intro class leads had been followed up on was basically impossible.
-
-I built this to fix that: one platform where the whole operation lives, from a prospect's first trial class through to payroll export at the end of the month.
+> Everything shown here is fictional demo data from [`demo-data/`](demo-data/). Names use made-up people, emails use the reserved `example.com` domains, and phones use the reserved `555-01xx` block.
 
 ---
 
-## What it does
+## Why it exists
 
-**Member lifecycle tracking**
+I built this while working as program director at a Brazilian jiu-jitsu gym in Vancouver (Gracie Barra Kitsilano). The operation lived in a pile of disconnected Excel and Google Sheets files. A question like "how many people signed up in March versus cancelled in April?" meant opening three files and doing the math by hand, and nobody could say which trial-class leads had been followed up.
 
-Four record types cover the full member journey: Intros (trial classes), Signups, Cancellations, and Holds. Each has its own tab with filters, CSV import, bulk operations, and a year selector that only shows years where data actually exists.
+This replaced the spreadsheets. It runs the gym day to day, which meant real data, real edge cases, and constraints you don't hit in a tutorial project.
 
-**Intro class follow-up system**
+---
 
-When a prospect comes in for a free trial class, staff log the intro and can add timestamped follow-up notes at each contact attempt. The system tracks follow-up status so no lead falls through the cracks. Staff can also log multiple class visits for the same prospect before they decide to sign up.
+## How it works
 
-**Payroll hours tracking**
+A member's life in the gym has four stages, and each has its own tab:
 
-Staff hours are entered and tracked by bi-weekly payroll period. The system handles regular hours, overtime, and mat cleaning bonuses. Export generates a file that matches the exact column format and staff ordering the gym's accountant expects, configurable through a format editor so it can adapt if the accountant's template changes.
+```
+Intro (trial class) ──► Sign-up ──► Hold (pause) ──► Cancellation
+        │                                                 │
+        └──── follow-ups until they decide ───────────────┘── can come back as a new intro
+```
 
-**Actionable insights**
+Every tab works the same way: filter, search, import a CSV, edit inline. The tabs feed each other. Importing a sign-up marks that person's intro as converted, a cancellation closes any active hold, and someone who cancelled and books a new trial class gets flagged as a returning former member.
 
-The Insights tab auto-generates observations from the underlying data: things like a spike in cancellations from a specific reason, stale intro leads going cold, or intro-to-signup conversion falling below average. Each insight can be marked as done, snoozed, or dismissed, and resurfaces automatically if the numbers shift again.
+### Overview and insights
 
-**Analytics overview**
+The dashboard answers "how are we doing?" at a glance: intros, sign-ups, cancellations, net growth, conversion rate and active holds for any date range. Below that, the system writes its own observations from the data, such as the top cancellation reason, holds ending this week, or members who cancelled recently for reasons that may have changed. Each insight can be marked done, snoozed or dismissed, and it comes back if the numbers shift again.
 
-Monthly signup and cancellation trends, membership type breakdown, churn rate, and revenue estimates, all rendered with Recharts. Filters for date range and year keep the view focused on the period you care about.
+![Overview dashboard with headline numbers and generated insights](docs/media/overview.png)
 
-**CSV import with year resolution**
+### Intros and follow-ups
 
-The gym's existing spreadsheets had dates formatted as `MM/DD` with no year. The import flow asks you to confirm the year before writing anything, which prevents old records from getting the wrong year stamped on them. The year picker also lives inside each tab's filter row for quick viewing by period.
+A prospect's free trial class is an intro. Staff record whether they attended and signed up, and the Follow Ups tab lists every lead still waiting on a decision, with a timestamped note for each contact attempt so nobody falls through the cracks.
 
-**Automated Zen Planner imports**
+![Intros table with attendance and sign-up status](docs/media/intros-table.png)
 
-Zen Planner (the gym's billing/booking system) has no public API on its plan, but it does send notification emails. Scheduled importers read booking, hold, and cancellation emails through the Gmail API and turn them into records — deduplicated against natural keys, enriched rather than duplicated when a record already exists, and with Zen Planner's class names translated through a mapping table that staff can extend from the UI when a new name appears.
+![Follow-ups queue for leads still deciding](docs/media/followups.png)
 
-**Member roster with derived status**
+### Importing a spreadsheet
 
-The full member roster syncs from Zen Planner's CSV export. Each member's displayed status (Active, On Hold, Alumni) isn't taken from the export — it's derived from the system's own lifecycle records, comparing their latest signup against their latest cancellation and any currently active hold. A journey view assembles every touchpoint (intro classes, signups, holds, cancellations) into one timeline per member.
+The gym's history came from spreadsheets, so every tab imports CSV. The preview shows exactly what will be written, duplicates are skipped, and the last import can be undone. Dates written as `MM/DD` with no year get the year you confirm, so old records are never stamped with the wrong one.
 
-**Access control**
+![Importing four intros from a CSV file](docs/media/import.gif)
 
-Two roles: `owner` and `staff`. Owners get access to payroll, configuration, and admin settings. Staff see member data only. Row Level Security on every Supabase table enforces this at the database level, not just the UI.
+### Spam bookings
+
+The online booking form attracts junk. Each imported booking is scored for spam signals (foreign phone formats, emails with long strings of digits, one-word or slang names), and a shield marks suspect rows. One click shows why a booking was flagged. Marking it as spam hides it from every count and strongly flags any later booking from the same email or phone. The action can be undone.
+
+![Reviewing a flagged booking, marking it as spam, then undoing](docs/media/spam.gif)
+
+### Members and their journey
+
+The roster syncs from the billing system's CSV export. A member's status (Active, On Hold, Alumni) isn't copied from that export. It's derived from the gym's own records, comparing the latest sign-up with the latest cancellation and any active hold. The journey view puts every touchpoint for one person on a single timeline.
+
+![A member's journey from intro to sign-up to cancellation](docs/media/members-journey.png)
+
+### Payroll
+
+Owners enter staff hours by pay period: regular, overtime, vacation, sick and mat-cleaning bonuses. Hours can be typed in, pasted as quick text, or imported from CSV, where the app works out whether the file holds staff or hours from its columns. The export matches the accountant's exact column format and staff order, and a format editor adapts it if their template changes.
+
+![Payroll hours summary for a pay period](docs/media/payroll-hours.png)
+
+### Roles
+
+There are two roles. **Staff** handle the day-to-day work. **Owners** also get payroll, account management and settings. The rules are enforced in the database with Row Level Security, not just hidden in the menu, and a database trigger stops anyone from promoting their own account. Owners manage accounts and roles from the Users page, which spells out what each role can do.
+
+![User management with role permissions](docs/media/admin.png)
+
+### Automated imports
+
+The billing and booking system has no public API on the gym's plan, but it does send notification emails. Scheduled importers read those emails through the Gmail API and turn bookings, holds and cancellations into records. They're deduplicated on natural keys, existing records are enriched rather than duplicated, and class names are translated through a mapping table staff can extend from the UI.
+
+<p align="center"><img src="docs/media/mobile-overview.png" alt="The dashboard at phone width" width="260"></p>
 
 ---
 
 ## Tech stack
 
-**Next.js 15** (App Router) for the full-stack framework. Server and client components in the same project, file-based routing across dashboard, payroll, profile, and admin pages.
-
-**TypeScript** throughout. Strict mode caught a fair number of bugs before runtime, especially in the CSV parsing and date handling logic.
-
-**Supabase** for the database and auth. PostgreSQL with Row Level Security policies on every table. All schema changes are versioned SQL migrations applied through the Supabase CLI, so nothing gets modified directly in the dashboard.
-
-**Tailwind CSS v4** for styling. No external component library; all UI components (Table, Modal, YearFilter, etc.) are custom-built.
-
-**Zustand** for state management. Four stores cover filter state, UI state (modals open/closed), multi-tab record selection, and sidebar state.
-
-**Zod** for validation on both form inputs and CSV rows during import, catching malformed data before it reaches the database.
-
-**Recharts** for data visualisation across the Overview and Insights tabs.
-
-**Biome** as linter and formatter, enforced through a pre-commit hook via lint-staged and Husky.
+| | |
+|---|---|
+| **Next.js 15** (App Router) | Server and client components in one project, with dashboard, payroll, profile and admin pages |
+| **TypeScript** (strict) | Caught real bugs before runtime, especially in CSV parsing and date handling |
+| **Supabase** | PostgreSQL with Row Level Security on every table; every schema change is a versioned SQL migration |
+| **Tailwind CSS v4** | No component library. Table, Modal, filters and the rest are custom |
+| **Zustand** | Filter, UI, selection and sidebar state |
+| **Zod** | Validates form input and every CSV row before it reaches the database |
+| **Recharts** | Charts on the Overview and Insights tabs |
+| **Jest + Playwright** | Unit, schema and end-to-end tests |
+| **ESLint + Biome** | Zero-warning lint gate, plus a pre-commit hook through Husky and lint-staged |
 
 ---
 
@@ -86,79 +108,91 @@ Two roles: `owner` and `staff`. Owners get access to payroll, configuration, and
 app/
 ├── api/
 │   ├── cron/            # Gmail importers, keep-alive, follow-up auto-marker
-│   ├── members/import/  # Zen Planner roster CSV sync
-│   └── admin/           # User and role management endpoints
+│   ├── members/import/  # Member roster CSV sync
+│   └── admin/           # Account and role management (owner only)
 ├── components/
 │   ├── layout/          # Header, sidebar, navigation
-│   ├── tabs/            # One component per major feature tab
-│   │   ├── forms/       # IntroForm, SignupForm, CancellationForm, HoldForm
-│   │   └── modals/      # Follow-up notes, settings, and import preview modals
-│   ├── payroll/         # Hours entry, period selector, export, import, staff management
-│   └── ui/              # Shared: Table, Modal, FilterBar, PaginationBar, etc.
-├── hooks/               # Data hooks: useIntros, useSignups, useInsights, useStaffHours, etc.
+│   ├── tabs/            # One component per feature tab, with forms/ and modals/
+│   ├── payroll/         # Hours entry, periods, import, export, staff
+│   └── ui/              # Shared Table, Modal, FilterBar, PaginationBar, ...
+├── hooks/               # Data hooks: useIntros, useSignups, useInsights, ...
 ├── lib/
-│   ├── supabase/        # DB queries, one file per table
-│   ├── services/        # Email parsers, payroll calculations, CSV format logic
-│   ├── utils/           # Date math, business days, person-name normalization
-│   └── csv.ts           # CSV parsing for all record types
+│   ├── supabase/        # Database queries, one file per table
+│   ├── services/        # Email parsers, payroll import and export, CSV formats
+│   ├── spam/            # Spam signal detection for bookings
+│   └── csv.ts           # CSV parsing for every record type
 ├── store/               # Zustand stores
 └── types/               # Shared TypeScript types
 
-docs/                    # SRS, SDD, database reference, test plan
+demo-data/               # Fictional CSVs for every import, plus their generator
+docs/                    # SRS, SDD, database reference, test plan, README media
 e2e/                     # Playwright end-to-end specs
-supabase/
-└── migrations/          # Versioned SQL migrations, applied via Supabase CLI
+supabase/migrations/     # Versioned SQL migrations
 ```
 
-Each tab follows the same pattern: a hook fetches and caches data, the tab component handles filtering and selection, and forms and modals live in subdirectories. That consistency made it straightforward to add new tabs without rethinking the structure each time.
+Every tab follows the same pattern: a hook fetches and caches the data, the tab handles filtering and selection, and its forms and modals sit next to it. That made new tabs cheap to add.
 
-The email importers run on an external scheduler (cron-job.org) calling the `/api/cron/*` endpoints with a bearer secret; two housekeeping jobs run on Vercel cron. All scheduled endpoints are idempotent, so re-runs are always safe.
+The email importers run on an external scheduler that calls the `/api/cron/*` endpoints with a bearer secret, and two housekeeping jobs run on Vercel cron. Every scheduled endpoint is idempotent, so re-runs are safe.
 
 ---
 
-## Getting started
+## Run it yourself
 
-### What you need
+### You need
 
-- Node.js 18+
-- A Supabase project (free tier works)
-- Supabase CLI: `npm install -g supabase`
+- Node.js 20
+- A free [Supabase](https://supabase.com) project
+- The Supabase CLI (`npx supabase` works without installing it)
 
-### Setup
+### 1. Install
 
 ```bash
-git clone https://github.com/SuzanoVini/gb-kitsilano-gym.git
-cd gb-kitsilano-gym
+git clone https://github.com/SuzanoVini/gym-management-system.git
+cd gym-management-system
 npm install
-```
-
-Copy the environment file and fill in your Supabase credentials:
-
-```bash
 cp .env.example .env.local
 ```
 
+### 2. Connect your Supabase project
+
+Fill in `.env.local` from your project's **Settings → API** page:
+
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-CRON_SECRET=any_random_string
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+SUPABASE_SERVICE_ROLE_KEY=<service role key>   # server only: account management
+CRON_SECRET=<any random string>
 ```
 
-Apply the migrations to your Supabase project:
+The `GMAIL_*` variables are only needed for the automated email importers. Leave them blank to run everything else.
+
+### 3. Create the database
 
 ```bash
-supabase link --project-ref your_project_ref
-supabase db push
+npx supabase link --project-ref <project-ref>
+npx supabase db push
 ```
 
-Start the dev server:
+### 4. Create your owner account
+
+In the Supabase dashboard, add a user under **Authentication → Users**. New accounts start as staff, so promote yours in the **SQL Editor**:
+
+```sql
+update user_profiles set role = 'owner'
+where id = (select id from auth.users where email = 'you@example.com');
+```
+
+### 5. Add your branding (optional)
+
+The app ships without any gym's logo or name and shows "Gym Ops" until you set your own. Drop your images in `public/brand/` and point the `NEXT_PUBLIC_BRAND_*` variables at them. [`public/brand/README.md`](public/brand/README.md) has the two-minute version.
+
+### 6. Start it and load the demo data
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Create a user in your Supabase dashboard under Authentication, then log in.
+Open [localhost:3000](http://localhost:3000) and log in. To fill the app with the same fictional data shown above, import the files in [`demo-data/`](demo-data/) in the order its [README](demo-data/README.md) lists: intros, sign-ups, holds, cancellations, members, then payroll.
 
 ---
 
@@ -166,44 +200,38 @@ Open [http://localhost:3000](http://localhost:3000). Create a user in your Supab
 
 | Command | What it runs |
 |---------|--------------|
-| `npm run test` | Jest unit and schema suites |
+| `npm test` | Jest unit and schema suites |
 | `npm run test:coverage` | Unit tests with the enforced 70% coverage floor |
-| `npm run e2e` | Playwright end-to-end suite (needs `TEST_EMAIL` / `TEST_PASSWORD` for a test login) |
-| `npm run quality` | Lint + typecheck + tests — the pre-release gate |
+| `npm run e2e` | Playwright end-to-end suite (needs `TEST_EMAIL` and `TEST_PASSWORD` for a test login) |
+| `npm run quality` | Lint, Biome, typecheck and tests: the same gate CI runs on every push |
 
-The strategy behind what gets tested at which layer is documented in the [test plan](docs/test-plan.md).
+The reasoning behind what gets tested at which layer is in the [test plan](docs/test-plan.md).
 
 ---
 
 ## Documentation
 
-- [Software Requirements Specification](docs/SRS.md) — what the system is required to do, including the Zen Planner integration boundary
-- [Software Design Document](docs/SDD.md) — architecture, key decisions, and trade-offs
-- [Database Schema Reference](docs/database.md) — tables, enums, triggers, and the RLS model
-- [Test Plan](docs/test-plan.md) — the three-layer testing strategy
+- [Software Requirements Specification](docs/SRS.md): what the system must do, including the billing-system integration boundary
+- [Software Design Document](docs/SDD.md): architecture, key decisions and trade-offs
+- [Database Schema Reference](docs/database.md): tables, enums, triggers and the RLS model
+- [Test Plan](docs/test-plan.md): the three-layer testing strategy
 
 ---
 
 ## What's next
 
-- Integrate the after-school program pickup system (shared Supabase project, `asp_`-prefixed tables, mounted under its own route section)
-- Add screenshots to this README
-- CI pipeline (lint, typecheck, tests on every push)
-- Mobile layout improvements
-- Email reminders for intro class follow-ups
+- Fold in the after-school program pickup system (same Supabase project, `asp_`-prefixed tables, its own route section)
+- Tighten the phone layout (some header buttons still overflow at narrow widths)
+- Email reminders for intro follow-ups
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ---
 
 ## About
 
-Built by **Vinicius Suzano** - Computer Information Systems, Vancouver, BC.
-
-I built this while working as program director at Gracie Barra Kitsilano. The spreadsheet situation was genuinely bad, so I decided to fix it myself. It grew into a full platform the gym now runs on day to day, which meant real data, real edge cases, and the kind of constraints that don't show up in tutorial projects.
-
-[GitHub](https://github.com/SuzanoVini)
+Built by **Vinicius Suzano**, Computer Information Systems, Vancouver, BC. [GitHub](https://github.com/SuzanoVini)
