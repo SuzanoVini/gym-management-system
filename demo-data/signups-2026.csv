@@ -1,0 +1,80 @@
+MONTH,DATE,NAME,MEMBERSHIP,1ST PAYMENT DATE,SIGN-UP PACKAGE?,NOTES
+Jan,2,Olivia Zimmer,Integrity,2026-01-03,Yes,Referred by a friend
+Jan,11,Declan Anderson,Legacy,2026-01-25,No,
+Jan,15,Lucas Fontaine,Legacy,2026-01-15,No,Referred by a friend
+Jan,19,Kai Varga,Flex 20,2026-01-26,Yes,
+Jan,21,Iris Dubois,Integrity,2026-01-21,Yes,
+Jan,27,Tomas Fontaine,Special,2026-01-27,No,
+Feb,2,Zoe Jovanovic,Legacy,2026-02-03,Yes,
+Feb,10,Bianca Novak,Flex 10,2026-02-10,No,
+Feb,11,Leo Dalton,Legacy,2026-02-12,Yes,Referred by a friend
+Feb,15,Bianca Fontaine,Integrity,2026-02-16,No,
+Feb,15,Sami Whitfield,Special,2026-02-16,Yes,
+Feb,16,Jonah Okafor,Flex 10,2026-02-16,No,
+Mar,5,Andre Valdez,Integrity,2026-03-06,No,
+Mar,7,Amira Young,Special,2026-03-14,No,"Walk-in, no intro class"
+Mar,11,Emma Okafor,Integrity,2026-03-11,Yes,Referred by a friend
+Mar,13,Felix Quinn,Special,2026-03-13,Yes,"Walk-in, no intro class"
+Mar,14,Zoe Hayes,Special,2026-03-14,Yes,Referred by a friend
+Mar,19,Hugo Okafor,Integrity,2026-03-19,Yes,
+Mar,20,Lena Weston,Integrity,2026-03-20,Yes,
+Mar,21,Emma Ramirez,Integrity,2026-03-21,Yes,
+Mar,24,Aiko Whitfield,Integrity,2026-04-07,No,Referred by a friend
+Mar,25,Ines Ito,Flex 10,2026-04-08,Yes,
+Mar,29,Noah Kaur,Special,2026-03-29,Yes,
+Mar,29,Kenji Novak,Integrity,2026-04-05,Yes,
+Apr,4,Hugo Novak,Flex 20,2026-04-04,Yes,
+Apr,4,Elena Garcia,Special,2026-04-04,No,
+Apr,4,Sami Holloway,Flex 10,2026-04-04,No,
+Apr,5,Aiko Abbott,Integrity,2026-04-19,Yes,"Walk-in, no intro class"
+Apr,9,Theo Novak,Integrity,2026-04-09,Yes,Referred by a friend
+Apr,10,Chloe Garcia,Flex 10,2026-04-10,Yes,
+Apr,12,Jasper Dubois,Special,2026-04-12,No,
+Apr,13,Esme Ibarra,Legacy,2026-04-13,No,
+Apr,28,Liam Quinn,Special,2026-05-05,Yes,Referred by a friend
+Apr,30,Lena Petrov,Flex 10,2026-05-07,Yes,
+May,1,Leah Ellison,Integrity,2026-05-01,No,
+May,2,Freya Fischer,Legacy,2026-05-02,Yes,
+May,3,Lena Zhou,Legacy,2026-05-10,Yes,
+May,3,Sofia Moreau,Integrity,2026-05-04,No,
+May,6,Ethan Mendes,Flex 20,2026-05-13,Yes,
+May,7,Mateo Bennett,Legacy,2026-05-08,Yes,Referred by a friend
+May,9,Marco Larsen,Integrity,2026-05-23,Yes,Referred by a friend
+May,12,Aria Yilmaz,Legacy,2026-05-26,No,
+May,17,Gabriel Yilmaz,Flex 10,2026-05-31,No,Referred by a friend
+May,18,Iris Santos,Flex 10,2026-05-19,Yes,
+May,30,Owen Yilmaz,Legacy,2026-05-31,No,Referred by a friend
+Jun,2,Sofia Bennett,Integrity,2026-06-02,No,"Walk-in, no intro class"
+Jun,6,Arjun Okafor,Flex 10,2026-06-06,Yes,
+Jun,6,Lucas Jensen,Integrity,2026-06-06,Yes,Referred by a friend
+Jun,12,Isla Kaur,Legacy,2026-06-13,Yes,"Walk-in, no intro class"
+Jun,16,Priya Yilmaz,Integrity,2026-06-16,No,
+Jun,19,Kai Lindqvist,Flex 10,2026-06-19,Yes,
+Jul,2,Aiko Quinn,Flex 10,2026-07-09,Yes,
+Jul,3,Jonah Thornton,Special,2026-07-10,Yes,
+Jul,28,Aiden Fischer,Legacy,2026-08-04,Yes,Referred by a friend
+Jul,31,Rafael Dubois,Integrity,2026-07-31,No,Referred by a friend
+Aug,8,Olivia Carvalho,Flex 20,2026-08-08,No,
+Aug,14,Noah Carvalho,Legacy,2026-08-15,No,
+Aug,18,Esme Carvalho,Legacy,2026-08-19,Yes,
+Aug,20,Nora Jensen,Integrity,2026-08-21,Yes,
+Aug,29,Bianca Tanaka,Integrity,2026-09-12,No,Referred by a friend
+Sep,1,Lena Whitfield,Integrity,2026-09-15,Yes,"Walk-in, no intro class"
+Sep,11,Aria Varga,Legacy,2026-09-18,No,Referred by a friend
+Sep,13,Hana Dalton,Legacy,2026-09-27,No,
+Sep,14,Aria Jensen,Integrity,2026-09-14,No,Referred by a friend
+Sep,16,Rowan Hayes,Legacy,2026-09-17,Yes,
+Sep,17,Rafael Sinclair,Integrity,2026-09-18,No,
+Sep,19,Maya Anderson,Integrity,2026-09-19,No,
+Sep,20,Aiden Ramirez,Special,2026-09-20,No,Referred by a friend
+Sep,24,Andre Young,Integrity,2026-09-24,No,
+Sep,25,Talia Xu,Legacy,2026-10-02,Yes,
+Sep,30,Priya Weston,Integrity,2026-10-14,No,
+Oct,2,Lucia Varga,Flex 20,2026-10-03,No,
+Oct,2,Felix Nakamura,Legacy,2026-10-03,No,
+Oct,3,Ivy Moreau,Legacy,2026-10-10,Yes,
+Oct,4,Aria Valdez,Flex 10,2026-10-11,No,
+Oct,7,Marco Jovanovic,Integrity,2026-10-07,Yes,
+Oct,8,Olivia Nakamura,Integrity,2026-10-08,No,
+Oct,10,Yuki Oliveira,Flex 10,2026-10-11,Yes,"Walk-in, no intro class"
+Oct,11,Yuki Whitfield,Special,2026-10-18,No,"Walk-in, no intro class"

@@ -403,7 +403,7 @@
   }
 }
 
-/* Gracie Barra Brand Colors */
+/* Brand colors */
 :root {
   --gb-red: #dc2626;
   --gb-dark-red: #b91c1c;
@@ -417,7 +417,7 @@
   --sidebar-width-expanded: 16rem; /* 256px */
   --sidebar-width-collapsed: 4rem; /* 64px */
 
-  /* Gracie Barra Enhanced Colors */
+  /* Enhanced brand colors */
   --gb-primary: #dc2626; /* Red 600 */
   --gb-primary-dark: #991b1b; /* Red 800 */
   --gb-primary-light: #f87171; /* Red 400 */
@@ -1066,7 +1066,7 @@ body.modal-open {
 
 /* ===========================
    Payroll System Styles
-   Matching Old Gracie Barra Payroll Design
+   Matching the original payroll design
    =========================== */
 
 /* Payroll Page - Blue gradient background */
@@ -1187,7 +1187,7 @@ body.modal-open {
   font-size: 14px;
 }
 
-/* Override button styles for payroll - Use Gracie Barra colors */
+/* Override button styles for payroll - use brand colors */
 .payroll-page .btn-primary {
   background: #dc143c;
   color: white;

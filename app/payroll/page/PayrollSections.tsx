@@ -4,25 +4,29 @@ import type { ComponentProps } from 'react';
 import PayrollTable from '@/components/payroll/PayrollTable';
 import StaffTable from '@/components/payroll/StaffTable';
 import InfoTip from '@/components/ui/InfoTip';
+import { brand } from '@/lib/brand';
 import type { PayrollPeriod, StaffHours, StaffMember } from '@/types';
 
 export function PayrollHeader() {
   return (
     <div className="payroll-header">
-      <Image
-        src="/logo-payroll.png"
-        alt="Gracie Barra Kitsilano Logo"
-        width={80}
-        height={80}
-        className="drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)]"
-        priority
-      />
+      {brand.badgeUrl && (
+        <Image
+          src={brand.badgeUrl}
+          alt={`${brand.name} logo`}
+          width={80}
+          height={80}
+          className="drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)]"
+          unoptimized
+          priority
+        />
+      )}
       <div>
         <h1
           className="text-4xl font-bold m-0"
           style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
         >
-          Gracie Barra Kitsilano
+          {brand.name}
         </h1>
         <p
           className="text-xl mt-1 mb-0"

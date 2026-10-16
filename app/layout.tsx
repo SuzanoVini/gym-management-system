@@ -4,12 +4,14 @@ import './globals.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './components/providers/AuthProvider';
 import Portal from './components/ui/portal';
+import { brand } from './lib/brand';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'GB Kitsilano - Gym Management',
-  description: 'Comprehensive gym management system for GB Kitsilano',
+  title: `${brand.shortName} - Gym Management`,
+  description: `Comprehensive gym management system for ${brand.shortName}`,
+  icons: { icon: brand.iconUrl || '/icon.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
