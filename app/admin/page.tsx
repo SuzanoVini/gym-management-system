@@ -76,7 +76,7 @@ export default function AdminPage() {
   const { isOpen } = useSidebarStore();
   const router = useRouter();
   return (
-    <ProtectedRoute>
+    <ProtectedRoute ownerOnly>
       <div className="app-shell" data-sidebar={isOpen ? 'expanded' : 'collapsed'}>
         <Header onLogoClick={() => router.push('/')} />
         <Sidebar activeTab="admin" setActiveTab={(tab) => router.push(`/?tab=${tab}`)} />

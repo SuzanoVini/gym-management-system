@@ -114,12 +114,14 @@ function TabItem(props: TabItemProps) {
   return <TabButton {...props} />;
 }
 
+const OWNER_ONLY_TABS = new Set(['admin', 'payroll']);
+
 export default function Sidebar({ activeTab, setActiveTab, followUpBadgeCount = 0 }: SidebarProps) {
   const { isOpen, closeSidebar } = useSidebarStore();
   const { isOwner } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const visibleTabs = isOwner ? tabs : tabs.filter((t) => t.id !== 'admin');
+  const visibleTabs = isOwner ? tabs : tabs.filter((t) => !OWNER_ONLY_TABS.has(t.id));
 
   const handleTabClick = (tabId: string, route?: string) => {
     if (route && tabId !== 'payroll') {

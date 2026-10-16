@@ -20,7 +20,7 @@ export default function PayrollPage() {
   const payroll = usePayrollPage();
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute ownerOnly>
       <div className="payroll-page">
         <div className="payroll-container">
           {/* Header */}
