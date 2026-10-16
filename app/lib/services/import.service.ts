@@ -6,6 +6,7 @@ import {
   hoursCsvSchema,
   type ImportResult,
   type ParsedData,
+  type StaffCsvRow,
   staffCsvSchema,
   type ValidatedData,
   type ValidationError,
@@ -33,6 +34,7 @@ export {
   validateFileSize,
   validateFileType,
 } from './import.service/helpers';
+export { saveHoursRows, saveStaffRows } from './import.service/persist';
 export type {
   CSVType,
   EntryType,
@@ -152,51 +154,46 @@ function formatValidationErrors(invalid: ValidationError[]): string[] {
   return errors;
 }
 
+type Validated<T> = ImportResult & { rows: T[] };
+
 /**
- * Import staff data from CSV file
- *
- * @param file - CSV file containing staff data
- * @returns Import result with success status, count, and errors
+ * Validate a staff CSV and return the rows that passed, alongside the result
+ * summary. Writes nothing; see saveStaffRows for persistence.
  */
-export async function importStaffCSV(file: File): Promise<ImportResult> {
+export async function validateStaffCSV(file: File): Promise<Validated<StaffCsvRow>> {
   try {
-    // Parse CSV
     const parsedData = await parseCSVFromFile(file);
 
     if (parsedData.length === 0) {
-      return {
-        success: false,
-        imported: 0,
-        errors: ['CSV file is empty'],
-      };
+      return { success: false, imported: 0, errors: ['CSV file is empty'], rows: [] };
     }
 
-    // Map columns
-    const headers = Object.keys(parsedData[0] ?? {});
-    const columnMapping = mapCSVColumns(headers);
-
-    // Transform data
+    const columnMapping = mapCSVColumns(Object.keys(parsedData[0] ?? {}));
     const staffRecords = transformToStaffRecords(parsedData, columnMapping);
-
-    // Validate data
     const { valid, invalid } = validateImportData(staffRecords, staffCsvSchema);
 
-    // Format validation errors
-    const errors = formatValidationErrors(invalid);
-
-    // Return results
     return {
       success: valid.length > 0,
       imported: valid.length,
-      errors,
+      errors: formatValidationErrors(invalid),
+      rows: valid,
     };
   } catch (error) {
     return {
       success: false,
       imported: 0,
       errors: [error instanceof Error ? error.message : 'Unknown error during import'],
+      rows: [],
     };
   }
+}
+
+/**
+ * Validate staff data from a CSV file (summary only).
+ */
+export async function importStaffCSV(file: File): Promise<ImportResult> {
+  const { rows: _rows, ...result } = await validateStaffCSV(file);
+  return result;
 }
 
 // Additional validation: flag duplicate entries (same employee, same date).
@@ -223,62 +220,57 @@ function checkDuplicateHours(valid: HoursCsvRow[], errors: string[]): number {
 }
 
 /**
- * Import hours data from CSV file
- *
- * @param file - CSV file containing hours data
- * @param periodId - Payroll period ID to associate hours with
- * @returns Import result with success status, count, and errors
+ * Validate an hours CSV and return the rows that passed, alongside the result
+ * summary. Writes nothing; see saveHoursRows for persistence.
  */
-export async function importHoursCSV(file: File, periodId: string): Promise<ImportResult> {
+export async function validateHoursCSV(
+  file: File,
+  periodId: string
+): Promise<Validated<HoursCsvRow>> {
   try {
-    // Validate period ID
     if (!periodId || periodId.trim() === '') {
       return {
         success: false,
         imported: 0,
         errors: ['Period ID is required for hours import'],
+        rows: [],
       };
     }
 
-    // Parse CSV
     const parsedData = await parseCSVFromFile(file);
 
     if (parsedData.length === 0) {
-      return {
-        success: false,
-        imported: 0,
-        errors: ['CSV file is empty'],
-      };
+      return { success: false, imported: 0, errors: ['CSV file is empty'], rows: [] };
     }
 
-    // Map columns
-    const headers = Object.keys(parsedData[0] ?? {});
-    const columnMapping = mapCSVColumns(headers);
-
-    // Transform data
+    const columnMapping = mapCSVColumns(Object.keys(parsedData[0] ?? {}));
     const hoursRecords = transformToHoursRecords(parsedData, columnMapping);
-
-    // Validate data
     const { valid, invalid } = validateImportData(hoursRecords, hoursCsvSchema);
-
-    // Format validation errors
     const errors = formatValidationErrors(invalid);
-
     const uniqueCount = checkDuplicateHours(valid, errors);
 
-    // Return results
     return {
       success: valid.length > 0 && uniqueCount === valid.length,
       imported: valid.length,
       errors,
+      rows: valid,
     };
   } catch (error) {
     return {
       success: false,
       imported: 0,
       errors: [error instanceof Error ? error.message : 'Unknown error during import'],
+      rows: [],
     };
   }
+}
+
+/**
+ * Validate hours data from a CSV file (summary only).
+ */
+export async function importHoursCSV(file: File, periodId: string): Promise<ImportResult> {
+  const { rows: _rows, ...result } = await validateHoursCSV(file, periodId);
+  return result;
 }
 
 // ============================================================================

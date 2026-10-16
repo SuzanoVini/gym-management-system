@@ -7,7 +7,9 @@ export interface ImportPreview {
   headers: string[];
 }
 
-export function useCsvFileImport(onImport: (file: File, type: 'staff' | 'hours') => Promise<void>) {
+export function useCsvFileImport(
+  onImport: (file: File, type: 'staff' | 'hours') => Promise<string | undefined>
+) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileType, setFileType] = useState<'staff' | 'hours'>('hours');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -88,8 +90,8 @@ export function useCsvFileImport(onImport: (file: File, type: 'staff' | 'hours')
     setSuccess(null);
 
     try {
-      await onImport(fileInputRef.current.files[0], fileType);
-      setSuccess(`Successfully imported ${preview?.rowCount} records`);
+      const message = await onImport(fileInputRef.current.files[0], fileType);
+      setSuccess(message ?? `Successfully imported ${preview?.rowCount} records`);
       setPreview(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
