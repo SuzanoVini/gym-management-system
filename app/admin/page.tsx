@@ -8,12 +8,14 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import ProtectedRoute from '@/components/providers/ProtectedRoute';
 import { useSidebarStore } from '@/store/useSidebarStore';
 import { AddUserModal, DeleteUserModal, ResetPasswordModal } from './page/AdminUserModals';
+import { RolePermissionsCard } from './page/RoleControls';
 import { UsersTable } from './page/UsersTable';
 import {
   useAddUserModal,
   useAdminUsers,
   useDeleteUserModal,
   useResetPasswordModal,
+  useRoleChange,
 } from './page/useAdminUsers';
 
 function AdminPageContent() {
@@ -22,6 +24,7 @@ function AdminPageContent() {
   const addModal = useAddUserModal(state);
   const deleteModal = useDeleteUserModal(state);
   const resetPwModal = useResetPasswordModal(state);
+  const roleChange = useRoleChange(state);
   const { users, loading, selectedUser, successMessage } = state;
 
   return (
@@ -33,7 +36,10 @@ function AdminPageContent() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-sm text-slate-500">{users.length} staff account(s)</p>
+          <p className="text-sm text-slate-500">
+            {users.length} {users.length === 1 ? 'account' : 'accounts'} · roles control who can
+            open Payroll and this page
+          </p>
         </div>
       </div>
 
@@ -45,15 +51,27 @@ function AdminPageContent() {
           </div>
         )}
 
+        {roleChange.error && (
+          <div className="px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+            {roleChange.error}
+          </div>
+        )}
+
         {/* Main table card */}
         <UsersTable
           users={users}
           loading={loading.initial}
           currentUserId={currentUser?.id}
+          roleSaving={loading.role}
           onAdd={addModal.open}
+          onRoleChange={(user, role) => {
+            void roleChange.changeRole(user, role);
+          }}
           onResetPassword={resetPwModal.open}
           onDelete={deleteModal.open}
         />
+
+        <RolePermissionsCard />
       </div>
 
       {/* Add User Modal */}
