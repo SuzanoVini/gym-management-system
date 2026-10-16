@@ -82,8 +82,6 @@ There are two roles. **Staff** handle the day-to-day work. **Owners** also get p
 
 The billing and booking system has no public API on the gym's plan, but it does send notification emails. Scheduled importers read those emails through the Gmail API and turn bookings, holds and cancellations into records. They're deduplicated on natural keys, existing records are enriched rather than duplicated, and class names are translated through a mapping table staff can extend from the UI.
 
-<p align="center"><img src="docs/media/mobile-overview.png" alt="The dashboard at phone width" width="260"></p>
-
 ---
 
 ## Tech stack
