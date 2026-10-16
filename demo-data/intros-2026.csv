@@ -1,0 +1,212 @@
+MONTH,DATE,TIME,CLASS,NAME,EMAIL,PHONE,STAFF,ATTENDED,SIGNED UP
+Jan,2,6:30 AM,MUAY THAI,Olivia Zimmer,olivia.zimmer@example.org,604-555-0114,Felipe Costa,Yes,Yes
+Jan,6,6:00 PM,Jiu-Jitsu Drills,Declan Bennett,declan.bennett@example.net,604-555-0109,Chloe Nguyen,Yes,No
+Jan,6,12:00 PM,GB1,Lucas Fontaine,lucas.fontaine@example.com,604-555-0111,Ana Torres,Yes,Yes
+Jan,8,6:30 AM,MUAY THAI,Liam Weston,liam.weston@example.com,604-555-0103,Chloe Nguyen,Yes,No
+Jan,8,5:30 PM,Juniors & Teens,Andre Rossi,andre.rossi@example.org,604-555-0113,Ben Carter,No,
+Jan,9,7:15 PM,GB 1/2,Declan Anderson,declan.anderson@example.net,604-555-0105,Felipe Costa,Yes,Yes
+Jan,11,6:30 AM,GB1,Sofia Dalton,sofia.dalton@example.net,604-555-0108,Emma Walsh,Yes,No
+Jan,11,12:00 PM,Jiu-Jitsu Drills,Kai Varga,kai.varga@example.org,604-555-0110,Diego Ramos,Yes,Yes
+Jan,12,4:45 PM,Kids 7 - 9 yo,Nadia Kowalski,nadia.kowalski@example.com,604-555-0106,Ana Torres,Yes,No
+Jan,13,10:00 AM,Women's,Emma Esposito,emma.esposito@example.org,604-555-0104,Chloe Nguyen,Yes,No
+Jan,14,6:00 PM,Women's,Gabriel Mendes,gabriel.mendes@example.org,604-555-0100,Ben Carter,Yes,No
+Jan,14,4:00 PM,Kids & Parents,Andre Lindqvist,andre.lindqvist@example.com,604-555-0107,Ben Carter,No,
+Jan,16,4:00 PM,Kids 3 - 6 yo,Iris Dubois,iris.dubois@example.net,604-555-0101,Chloe Nguyen,Yes,Yes
+Jan,18,6:00 PM,GB1,Aiko Valdez,aiko.valdez@example.net,604-555-0112,Diego Ramos,Yes,No
+Jan,24,5:30 PM,Juniors & Teens,Tomas Fontaine,tomas.fontaine@example.com,604-555-0102,Emma Walsh,Yes,Yes
+Jan,26,11:00 AM,Juniors & Teens,Zoe Jovanovic,zoe.jovanovic@example.net,604-555-0115,Chloe Nguyen,Yes,Yes
+Feb,1,12:00 PM,GB1,Bianca Dubois,bianca.dubois@example.net,604-555-0118,Emma Walsh,No,
+Feb,2,7:15 PM,GB 1/2,Yuki Yilmaz,yuki.yilmaz@example.net,604-555-0127,Chloe Nguyen,No,
+Feb,3,6:30 AM,GB 1/2,Bianca Novak,bianca.novak@example.org,604-555-0132,Ana Torres,Yes,Yes
+Feb,6,12:00 PM,GB 1/2,Bianca Fontaine,bianca.fontaine@example.org,604-555-0119,Felipe Costa,Yes,Yes
+Feb,7,5:30 PM,Juniors & Teens,Jonah Okafor,jonah.okafor@example.com,604-555-0116,Diego Ramos,Yes,Yes
+Feb,7,7:15 PM,MUAY THAI,Owen Valdez,owen.valdez@example.net,604-555-0122,Diego Ramos,Yes,No
+Feb,9,12:00 PM,MUAY THAI,Leo Dalton,leo.dalton@example.com,604-555-0121,Chloe Nguyen,Yes,Yes
+Feb,9,10:00 AM,Women's,Chloe Anderson,chloe.anderson@example.net,604-555-0131,Felipe Costa,Yes,No
+Feb,10,6:00 PM,GB1,Chloe Greer,chloe.greer@example.org,604-555-0123,Diego Ramos,No,
+Feb,11,10:15 AM,Kids 7 - 9 yo,Hugo Varga,hugo.varga@example.org,604-555-0129,Chloe Nguyen,No,
+Feb,14,6:30 AM,No Gi,Sami Whitfield,sami.whitfield@example.org,604-555-0120,Emma Walsh,Yes,Yes
+Feb,14,4:45 PM,Kids 6 - 8 yo,Freya Novak,freya.novak@example.com,604-555-0124,Ben Carter,No,
+Feb,17,10:15 AM,Kids 6 - 8 yo,Zoe Zhou,zoe.zhou@example.net,604-555-0125,Ben Carter,Yes,No
+Feb,17,6:30 AM,No Gi,Priya Kaur,priya.kaur@example.com,604-555-0133,Ana Torres,Yes,No
+Feb,21,12:00 PM,GB 1/2,Rowan Carvalho,rowan.carvalho@example.org,604-555-0126,Emma Walsh,No,
+Feb,24,6:30 AM,GB 1/2,Andre Valdez,andre.valdez@example.net,604-555-0130,Ana Torres,Yes,Yes
+Feb,24,9:30 AM,Kids & Parents,Liam Esposito,liam.esposito@example.net,604-555-0134,Ana Torres,Yes,No
+Feb,25,12:00 PM,GB 1/2,Esme Abbott,esme.abbott@example.org,604-555-0117,Ana Torres,Yes,No
+Feb,27,10:00 AM,Women's,Emma Ellison,emma.ellison@example.net,604-555-0128,Felipe Costa,No,
+Mar,1,7:15 PM,MUAY THAI,Isla Fischer,isla.fischer@example.org,604-555-0143,Ana Torres,Yes,No
+Mar,2,6:00 PM,MUAY THAI,Nora Yilmaz,nora.yilmaz@example.com,604-555-0142,Ana Torres,No,
+Mar,3,6:30 AM,BJJ Fundamentals,Emma Okafor,emma.okafor@example.com,604-555-0137,Diego Ramos,Yes,Yes
+Mar,3,5:30 PM,Juniors & Teens,Mia Thornton,mia.thornton@example.net,604-555-0144,Chloe Nguyen,Yes,No
+Mar,5,12:00 PM,GB1,Arjun Rossi,arjun.rossi@example.org,604-555-0145,Felipe Costa,No,
+Mar,6,10:00 AM,Women's,Yuki Sinclair,yuki.sinclair@example.org,604-555-0149,Ben Carter,Yes,No
+Mar,7,6:30 AM,GB1,Lucas Greer,lucas.greer@example.com,604-555-0148,Ana Torres,No,
+Mar,7,9:30 AM,Kids & Parents,Zoe Hayes,zoe.hayes@example.com,604-555-0151,Diego Ramos,Yes,Yes
+Mar,8,9:30 AM,Kids & Parents,Ivy Bennett,ivy.bennett@example.org,604-555-0156,Ana Torres,No,
+Mar,9,9:30 AM,Kids & Parents,Nadia Garcia,nadia.garcia@example.net,604-555-0140,Diego Ramos,Yes,No
+Mar,12,9:30 AM,Kids 3 - 6 yo,Hugo Okafor,hugo.okafor@example.net,604-555-0157,Chloe Nguyen,Yes,Yes
+Mar,15,6:00 PM,GB 1/2,Aiko Whitfield,aiko.whitfield@example.org,604-555-0153,Diego Ramos,Yes,Yes
+Mar,16,6:30 AM,No Gi,Emma Ramirez,emma.ramirez@example.org,604-555-0136,Ben Carter,Yes,Yes
+Mar,17,10:15 AM,Kids 7 - 9 yo,Freya Hayes,freya.hayes@example.net,604-555-0154,Emma Walsh,Yes,No
+Mar,18,10:15 AM,Kids 7 - 9 yo,Tomas Kowalski,tomas.kowalski@example.com,604-555-0138,Emma Walsh,Yes,No
+Mar,18,7:15 PM,No Gi,Gabriel Young,gabriel.young@example.com,604-555-0139,Ben Carter,No,
+Mar,19,6:30 AM,No Gi,Ines Ito,ines.ito@example.org,604-555-0135,Emma Walsh,Yes,Yes
+Mar,20,6:30 AM,Jiu-Jitsu Drills,Lena Weston,lena.weston@example.org,604-555-0152,Ben Carter,Yes,Yes
+Mar,21,10:00 AM,Women's,Isla Hayes,isla.hayes@example.net,604-555-0146,Felipe Costa,Yes,No
+Mar,22,6:30 AM,GB1,Noah Kaur,noah.kaur@example.net,604-555-0147,Felipe Costa,Yes,Yes
+Mar,23,4:45 PM,Kids 6 - 8 yo,Esme Dalton,esme.dalton@example.com,604-555-0141,Emma Walsh,No,
+Mar,23,9:30 AM,Kids 3 - 6 yo,Omar Thornton,omar.thornton@example.com,604-555-0150,Ana Torres,Yes,No
+Mar,25,11:00 AM,Juniors & Teens,Kenji Novak,kenji.novak@example.net,604-555-0155,Emma Walsh,Yes,Yes
+Mar,29,7:15 PM,GB1,Hugo Novak,hugo.novak@example.net,604-555-0158,Diego Ramos,Yes,Yes
+Apr,1,12:00 PM,GB1,Chloe Garcia,chloe.garcia@example.net,604-555-0159,Emma Walsh,Yes,Yes
+Apr,2,7:15 PM,GB 1/2,Declan Morrison,declan.morrison@example.com,604-555-0162,Ben Carter,No,
+Apr,2,6:00 PM,Jiu-Jitsu Drills,Elena Garcia,elena.garcia@example.com,604-555-0163,Emma Walsh,Yes,Yes
+Apr,2,6:30 AM,MUAY THAI,Caleb Tanaka,caleb.tanaka@example.net,604-555-0168,Chloe Nguyen,Yes,No
+Apr,3,6:00 PM,Jiu-Jitsu Drills,Sami Holloway,sami.holloway@example.com,604-555-0179,Diego Ramos,Yes,Yes
+Apr,4,12:00 PM,GB1,Theo Novak,theo.novak@example.com,604-555-0180,Felipe Costa,Yes,Yes
+Apr,4,6:30 AM,GB1,Leah Rossi,leah.rossi@example.net,236-555-0109,Felipe Costa,Yes,
+Apr,5,6:00 PM,GB 1/2,Tomas Carvalho,tomas.carvalho@example.org,604-555-0160,Diego Ramos,No,
+Apr,7,7:15 PM,GB1,Leo Tanaka,leo.tanaka@example.com,604-555-0165,Ben Carter,Yes,No
+Apr,9,5:30 PM,Juniors & Teens,Esme Ibarra,esme.ibarra@example.org,604-555-0167,Ana Torres,Yes,Yes
+Apr,10,10:00 AM,Women's,Jasper Dubois,jasper.dubois@example.org,604-555-0170,Chloe Nguyen,Yes,Yes
+Apr,12,12:00 PM,Jiu-Jitsu Drills,Mateo Dubois,mateo.dubois@example.com,604-555-0174,Ana Torres,No,
+Apr,13,4:00 PM,Kids & Parents,Freya Quinn,freya.quinn@example.net,604-555-0166,Chloe Nguyen,No,
+Apr,14,6:00 PM,Jiu-Jitsu Drills,Sofia Anderson,sofia.anderson@example.net,604-555-0173,Ana Torres,Yes,No
+Apr,18,6:00 PM,Jiu-Jitsu Drills,Olivia Ito,olivia.ito@example.com,604-555-0176,Emma Walsh,No,
+Apr,22,10:15 AM,Kids 6 - 8 yo,Nora Greer,nora.greer@example.net,604-555-0172,Felipe Costa,No,
+Apr,24,6:00 PM,MUAY THAI,Liam Quinn,liam.quinn@example.com,604-555-0175,Ben Carter,Yes,Yes
+Apr,25,11:00 AM,Juniors & Teens,Freya Fischer,freya.fischer@example.org,604-555-0177,Ben Carter,Yes,Yes
+Apr,26,6:00 PM,MUAY THAI,Tomas Ibarra,tomas.ibarra@example.org,604-555-0178,Felipe Costa,Yes,No
+Apr,27,12:00 PM,MUAY THAI,Lena Zhou,lena.zhou@example.com,604-555-0164,Diego Ramos,Yes,Yes
+Apr,27,7:15 PM,GB 1/2,Sofia Moreau,sofia.moreau@example.org,604-555-0171,Ben Carter,Yes,Yes
+Apr,28,4:45 PM,Kids 6 - 8 yo,Lena Petrov,lena.petrov@example.net,604-555-0161,Ben Carter,Yes,Yes
+Apr,29,12:00 PM,Jiu-Jitsu Drills,Mateo Bennett,mateo.bennett@example.org,604-555-0169,Ana Torres,Yes,Yes
+May,1,10:00 AM,Women's,Leah Ellison,leah.ellison@example.com,604-555-0189,Ben Carter,Yes,Yes
+May,2,6:00 PM,MUAY THAI,Theo Varga,theo.varga@example.com,604-555-0191,Felipe Costa,Yes,No
+May,2,7:15 PM,GB1,Ethan Mendes,ethan.mendes@example.com,604-555-0197,Felipe Costa,Yes,Yes
+May,4,10:00 AM,Women's,Talia Ueda,talia.ueda@example.net,236-555-0107,Diego Ramos,Yes,
+May,5,7:15 PM,GB1,Aria Yilmaz,aria.yilmaz@example.com,604-555-0181,Felipe Costa,Yes,Yes
+May,8,10:15 AM,Kids 7 - 9 yo,Amira Lindqvist,amira.lindqvist@example.net,604-555-0184,Chloe Nguyen,Yes,No
+May,8,12:00 PM,MUAY THAI,Ethan Whitfield,ethan.whitfield@example.org,604-555-0199,Felipe Costa,Yes,No
+May,9,12:00 PM,No Gi,Lucas Garcia,lucas.garcia@example.org,604-555-0193,Ana Torres,No,
+May,9,4:00 PM,Kids & Parents,Marco Larsen,marco.larsen@example.org,604-555-0196,Ben Carter,Yes,Yes
+May,11,9:30 AM,Kids & Parents,Owen Ueda,owen.ueda@example.net,604-555-0187,Ana Torres,No,
+May,11,9:30 AM,Kids & Parents,Lucas Ellison,lucas.ellison@example.com,604-555-0192,Ben Carter,No,
+May,13,12:00 PM,MUAY THAI,Iris Santos,iris.santos@example.com,604-555-0182,Felipe Costa,Yes,Yes
+May,13,4:00 PM,Kids 3 - 6 yo,Aiko Hayes,aiko.hayes@example.org,604-555-0194,Ana Torres,Yes,No
+May,13,10:00 AM,Women's,Gabriel Morrison,gabriel.morrison@example.net,604-555-0198,Chloe Nguyen,Yes,No
+May,16,10:00 AM,Women's,Felix Holloway,felix.holloway@example.net,604-555-0195,Ben Carter,Yes,No
+May,17,10:00 AM,Women's,Gabriel Yilmaz,gabriel.yilmaz@example.com,604-555-0190,Diego Ramos,Yes,Yes
+May,22,7:15 PM,GB1,Elena Dalton,elena.dalton@example.net,604-555-0183,Emma Walsh,Yes,No
+May,23,4:00 PM,Kids 3 - 6 yo,Sami Brennan,sami.brennan@example.com,604-555-0186,Diego Ramos,Yes,No
+May,24,5:30 PM,Juniors & Teens,Amira Patel,amira.patel@example.com,604-555-0185,Emma Walsh,Yes,No
+May,26,7:15 PM,GB1,Owen Yilmaz,owen.yilmaz@example.net,604-555-0188,Felipe Costa,Yes,Yes
+May,27,4:00 PM,Kids 3 - 6 yo,Lucas Castillo,lucas.castillo@example.com,778-555-0100,Ana Torres,Yes,No
+Jun,4,4:45 PM,Kids 7 - 9 yo,Olivia Jensen,olivia.jensen@example.net,778-555-0108,Chloe Nguyen,Yes,No
+Jun,4,6:00 PM,Women's,Lucas Jensen,lucas.jensen@example.com,778-555-0116,Diego Ramos,Yes,Yes
+Jun,6,6:30 AM,GB1,Arjun Okafor,arjun.okafor@example.org,778-555-0109,Felipe Costa,Yes,Yes
+Jun,9,6:00 PM,Women's,Jasper Oliveira,jasper.oliveira@example.net,778-555-0103,Emma Walsh,No,
+Jun,10,6:00 PM,GB1,Kai Lindqvist,kai.lindqvist@example.org,778-555-0106,Diego Ramos,Yes,Yes
+Jun,11,4:45 PM,Kids 7 - 9 yo,Ravi Jensen,ravi.jensen@example.net,778-555-0102,Ben Carter,Yes,No
+Jun,14,12:00 PM,MUAY THAI,Priya Yilmaz,priya.yilmaz@example.org,778-555-0110,Diego Ramos,Yes,Yes
+Jun,15,6:00 PM,GB1,Isla Sinclair,isla.sinclair@example.org,778-555-0112,Ben Carter,No,
+Jun,20,10:00 AM,Women's,Wesley Esposito,wesley.esposito@example.com,778-555-0104,Ana Torres,Yes,No
+Jun,22,6:30 AM,GB1,Nadia Esposito,nadia.esposito@example.org,778-555-0107,Ben Carter,Yes,No
+Jun,22,4:45 PM,Kids 7 - 9 yo,Leah Santos,leah.santos@example.org,778-555-0115,Chloe Nguyen,No,
+Jun,23,4:00 PM,Kids & Parents,Leah Brennan,leah.brennan@example.com,778-555-0101,Diego Ramos,No,
+Jun,26,12:00 PM,GB1,Sofia Sinclair,sofia.sinclair@example.org,778-555-0113,Felipe Costa,Yes,No
+Jun,27,5:30 PM,Juniors & Teens,Aiko Quinn,aiko.quinn@example.com,778-555-0105,Chloe Nguyen,Yes,Yes
+Jun,29,4:45 PM,Kids 6 - 8 yo,Jonah Thornton,jonah.thornton@example.net,778-555-0111,Ana Torres,Yes,Yes
+Jun,30,6:30 AM,Jiu-Jitsu Drills,Nadia Novak,nadia.novak@example.com,778-555-0114,Diego Ramos,Yes,No
+Jun,30,11:00 AM,Juniors & Teens,Tomas Ito,tomas.ito@example.org,778-555-0117,Chloe Nguyen,Yes,No
+Jul,5,6:00 PM,GB1,Mateo Garcia,mateo.garcia@example.org,778-555-0122,Ben Carter,Yes,No
+Jul,6,4:45 PM,Kids 6 - 8 yo,Rowan Jovanovic,rowan.jovanovic@example.org,778-555-0127,Diego Ramos,No,
+Jul,10,12:00 PM,Jiu-Jitsu Drills,Felix Varga,felix.varga@example.net,778-555-0120,Chloe Nguyen,Yes,No
+Jul,10,12:00 PM,No Gi,Esme Ito,esme.ito@example.com,778-555-0128,Ana Torres,No,
+Jul,11,7:15 PM,GB1,Ezra Hayes,ezra.hayes@example.net,778-555-0124,Emma Walsh,Yes,No
+Jul,21,7:15 PM,GB1,Olivia Anderson,olivia.anderson@example.org,778-555-0121,Emma Walsh,Yes,No
+Jul,21,4:00 PM,Kids & Parents,Leah Hayes,leah.hayes@example.org,778-555-0126,Diego Ramos,No,
+Jul,21,5:30 PM,Juniors & Teens,Kai Morrison,kai.morrison@example.com,778-555-0132,Chloe Nguyen,Yes,No
+Jul,22,6:00 PM,Women's,Aiden Fischer,aiden.fischer@example.net,778-555-0118,Felipe Costa,Yes,Yes
+Jul,24,5:30 PM,Juniors & Teens,Zoe Dalton,zoe.dalton@example.org,778-555-0119,Ana Torres,Yes,No
+Jul,24,10:00 AM,Women's,Marco Tanaka,marco.tanaka@example.net,778-555-0130,Ana Torres,No,
+Jul,25,9:30 AM,Kids 3 - 6 yo,Lucas Santos,lucas.santos@example.com,778-555-0123,Felipe Costa,Yes,No
+Jul,26,4:45 PM,Kids 7 - 9 yo,Rafael Dubois,rafael.dubois@example.org,778-555-0131,Ana Torres,Yes,Yes
+Jul,29,4:45 PM,Kids 7 - 9 yo,Isla Morrison,isla.morrison@example.com,778-555-0125,Emma Walsh,Yes,No
+Jul,29,6:30 AM,GB1,Andre Esposito,andre.esposito@example.net,778-555-0129,Felipe Costa,Yes,No
+Aug,2,7:15 PM,MUAY THAI,Lucia Kowalski,lucia.kowalski@example.net,778-555-0134,Diego Ramos,Yes,No
+Aug,3,7:15 PM,GB1,Declan Nakamura,declan.nakamura@example.net,778-555-0147,Chloe Nguyen,No,
+Aug,4,11:00 AM,Juniors & Teens,Olivia Carvalho,olivia.carvalho@example.org,778-555-0136,Chloe Nguyen,Yes,Yes
+Aug,5,12:00 PM,GB1,Noah Carvalho,noah.carvalho@example.org,778-555-0135,Ben Carter,Yes,Yes
+Aug,6,6:30 AM,GB1,Aiko Varga,aiko.varga@example.com,778-555-0137,Ben Carter,No,
+Aug,6,10:15 AM,Kids 7 - 9 yo,Jasper Young,jasper.young@example.com,778-555-0149,Emma Walsh,No,
+Aug,7,12:00 PM,No Gi,Mei Zhou,mei.zhou@example.org,778-555-0140,Diego Ramos,No,
+Aug,10,5:30 PM,Juniors & Teens,Rowan Novak,rowan.novak@example.org,778-555-0143,Ben Carter,No,
+Aug,11,6:00 PM,GB1,Hugo Carvalho,hugo.carvalho@example.net,778-555-0139,Diego Ramos,Yes,No
+Aug,13,6:00 PM,No Gi,Jonah Patel,jonah.patel@example.org,778-555-0144,Diego Ramos,Yes,No
+Aug,13,12:00 PM,No Gi,Declan Hayes,declan.hayes@example.net,778-555-0148,Diego Ramos,Yes,No
+Aug,14,6:00 PM,Women's,Esme Carvalho,esme.carvalho@example.com,778-555-0138,Ana Torres,Yes,Yes
+Aug,14,6:00 PM,Women's,Elena Ueda,elena.ueda@example.org,778-555-0141,Diego Ramos,No,
+Aug,18,11:00 AM,Juniors & Teens,Nora Jensen,nora.jensen@example.com,778-555-0142,Diego Ramos,Yes,Yes
+Aug,19,6:30 AM,GB 1/2,Ivy Varga,ivy.varga@example.org,778-555-0150,Emma Walsh,Yes,No
+Aug,21,6:00 PM,Jiu-Jitsu Drills,Mei Ramirez,mei.ramirez@example.org,778-555-0133,Ben Carter,Yes,No
+Aug,21,5:30 PM,Juniors & Teens,Bianca Tanaka,bianca.tanaka@example.net,778-555-0146,Ben Carter,Yes,Yes
+Aug,24,5:30 PM,Juniors & Teens,Elena Castillo,elena.castillo@example.net,778-555-0145,Ana Torres,Yes,No
+Sep,5,6:00 PM,Women's,Declan Quinn,declan.quinn@example.com,778-555-0177,Emma Walsh,Yes,No
+Sep,6,6:00 PM,Jiu-Jitsu Drills,Leah Xu,leah.xu@example.com,778-555-0156,Ana Torres,Yes,No
+Sep,7,9:30 AM,Kids & Parents,Aria Varga,aria.varga@example.org,778-555-0154,Felipe Costa,Yes,Yes
+Sep,10,7:15 PM,GB1,Mateo Lindqvist,mateo.lindqvist@example.org,778-555-0162,Felipe Costa,Yes,No
+Sep,10,10:15 AM,Kids 6 - 8 yo,Hana Dalton,hana.dalton@example.org,778-555-0173,Diego Ramos,Yes,Yes
+Sep,11,4:00 PM,Kids & Parents,Bianca Moreau,bianca.moreau@example.org,778-555-0159,Felipe Costa,Yes,No
+Sep,11,6:00 PM,Jiu-Jitsu Drills,Aiden Ramirez,aiden.ramirez@example.net,778-555-0163,Felipe Costa,Yes,Yes
+Sep,11,5:30 PM,Juniors & Teens,Aria Jensen,aria.jensen@example.org,778-555-0169,Emma Walsh,Yes,Yes
+Sep,12,7:15 PM,No Gi,Rafael Sinclair,rafael.sinclair@example.com,778-555-0178,Ben Carter,Yes,Yes
+Sep,13,6:30 AM,Jiu-Jitsu Drills,Maya Anderson,maya.anderson@example.org,778-555-0170,Emma Walsh,Yes,Yes
+Sep,15,7:15 PM,Jiu-Jitsu Drills,Rowan Hayes,rowan.hayes@example.com,778-555-0166,Diego Ramos,Yes,Yes
+Sep,16,6:00 PM,GB1,Bro,fastdeals@example.com,+92 300 0000123,,,
+Sep,16,7:15 PM,No Gi,Kamran Rq,kr48812937@example.net,0300 000 0456,,,
+Sep,17,7:15 PM,No Gi,Talia Xu,talia.xu@example.org,778-555-0175,Diego Ramos,Yes,Yes
+Sep,20,7:15 PM,GB1,Caleb Dubois,caleb.dubois@example.org,778-555-0157,Diego Ramos,No,
+Sep,20,6:30 AM,MUAY THAI,Owen Dalton,owen.dalton@example.net,778-555-0167,Chloe Nguyen,No,
+Sep,21,6:30 AM,GB1,Liam Rossi,liam.rossi@example.net,778-555-0164,Ben Carter,No,
+Sep,23,5:30 PM,Juniors & Teens,Chloe Hayes,chloe.hayes@example.net,778-555-0152,Ana Torres,No,
+Sep,23,4:45 PM,Kids 6 - 8 yo,Andre Young,andre.young@example.com,778-555-0160,Ana Torres,Yes,Yes
+Sep,25,9:30 AM,BJJ Fundamentals,Ravi Varga,ravi.varga@example.org,778-555-0151,Emma Walsh,Yes,No
+Sep,25,12:00 PM,MUAY THAI,Ivy Rossi,ivy.rossi@example.org,778-555-0165,Diego Ramos,Yes,No
+Sep,26,6:30 AM,No Gi,Lucia Varga,lucia.varga@example.com,778-555-0153,Ben Carter,Yes,Yes
+Sep,26,6:00 PM,MUAY THAI,Ivy Moreau,ivy.moreau@example.org,778-555-0171,Ben Carter,Yes,Yes
+Sep,26,10:00 AM,Women's,Priya Weston,priya.weston@example.org,778-555-0176,Diego Ramos,Yes,Yes
+Sep,27,5:30 PM,Juniors & Teens,Aria Valdez,aria.valdez@example.net,778-555-0155,Felipe Costa,Yes,Yes
+Sep,28,6:30 AM,GB1,Marco Jovanovic,marco.jovanovic@example.com,778-555-0172,Chloe Nguyen,Yes,Yes
+Sep,29,6:00 PM,GB1,Felix Nakamura,felix.nakamura@example.net,778-555-0161,Diego Ramos,Yes,Yes
+Sep,29,7:15 PM,MUAY THAI,Tomas Yilmaz,tomas.yilmaz@example.net,778-555-0168,Ana Torres,No,
+Sep,30,7:15 PM,MUAY THAI,Olivia Nakamura,olivia.nakamura@example.org,778-555-0158,Ben Carter,Yes,Yes
+Sep,30,9:30 AM,Kids 3 - 6 yo,Hugo Holloway,hugo.holloway@example.org,778-555-0174,Ben Carter,Yes,No
+Oct,3,12:00 PM,GB1,Test User,tu99102938@example.org,604-555-0199,,,
+Oct,4,10:00 AM,Women's,Gabriel Zimmer,gabriel.zimmer@example.com,778-555-0191,Ben Carter,,
+Oct,6,6:00 PM,No Gi,Gabriel Oliveira,gabriel.oliveira@example.com,778-555-0184,Ana Torres,,
+Oct,6,9:30 AM,Kids 3 - 6 yo,Rowan Moreau,rowan.moreau@example.net,778-555-0198,Emma Walsh,,
+Oct,6,10:15 AM,Kids 6 - 8 yo,Nora Young,nora.young@example.net,236-555-0102,Felipe Costa,,
+Oct,8,5:30 PM,Juniors & Teens,Maya Whitfield,maya.whitfield@example.net,778-555-0199,Ben Carter,Yes,
+Oct,9,10:00 AM,Women's,Asdf,asdf@example.com,+92 311 0000789,,,
+Oct,10,12:00 PM,Jiu-Jitsu Drills,Theo Sinclair,theo.sinclair@example.com,778-555-0180,Chloe Nguyen,,
+Oct,10,4:00 PM,Kids 3 - 6 yo,Ines Whitfield,ines.whitfield@example.net,778-555-0193,Emma Walsh,,
+Oct,11,9:30 AM,Kids 3 - 6 yo,Jonah Zhou,jonah.zhou@example.net,778-555-0189,Ana Torres,Yes,
+Oct,12,6:30 AM,GB1,Arjun Ito,arjun.ito@example.net,778-555-0187,Diego Ramos,Yes,
+Oct,12,7:15 PM,GB1,Iris Brennan,iris.brennan@example.org,236-555-0103,Felipe Costa,,
+Oct,13,9:30 AM,Kids & Parents,Yuki Nakamura,yuki.nakamura@example.net,778-555-0188,Chloe Nguyen,,
+Oct,14,6:00 PM,Jiu-Jitsu Drills,Sofia Kaur,sofia.kaur@example.net,778-555-0183,Ana Torres,,
+Oct,15,6:00 PM,No Gi,Leo Anderson,leo.anderson@example.com,236-555-0100,Ana Torres,,
+Oct,16,7:15 PM,GB1,Aiko Fontaine,aiko.fontaine@example.org,778-555-0195,Chloe Nguyen,,
+Oct,18,10:00 AM,Women's,Lucas Jovanovic,lucas.jovanovic@example.net,778-555-0190,Diego Ramos,,
+Oct,20,12:00 PM,GB 1/2,Marco Fischer,marco.fischer@example.com,778-555-0194,Felipe Costa,,
+Oct,24,4:45 PM,Kids 7 - 9 yo,Aria Brennan,aria.brennan@example.org,778-555-0179,Chloe Nguyen,,
+Oct,25,6:00 PM,MUAY THAI,Ines Varga,ines.varga@example.com,778-555-0186,Diego Ramos,,
+Oct,26,12:00 PM,No Gi,Iris Kowalski,iris.kowalski@example.org,778-555-0182,Chloe Nguyen,,
+Oct,27,4:45 PM,Kids 7 - 9 yo,Sofia Fischer,sofia.fischer@example.net,778-555-0192,Felipe Costa,,
+Oct,28,7:15 PM,No Gi,Felix Fischer,felix.fischer@example.net,236-555-0104,Chloe Nguyen,,
+Oct,29,6:30 AM,GB1,Leo Santos,leo.santos@example.org,778-555-0181,Chloe Nguyen,,
+Oct,29,5:30 PM,Juniors & Teens,Hugo Hayes,hugo.hayes@example.com,236-555-0101,Ben Carter,,
+Oct,30,12:00 PM,No Gi,Mia Valdez,mia.valdez@example.net,778-555-0185,Ben Carter,,
+Oct,30,6:30 AM,GB 1/2,Olivia Petrov,olivia.petrov@example.net,778-555-0196,Diego Ramos,,
+Oct,31,4:00 PM,Kids & Parents,Aria Morrison,aria.morrison@example.com,778-555-0197,Emma Walsh,,

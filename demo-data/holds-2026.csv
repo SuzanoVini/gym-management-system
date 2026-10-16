@@ -1,0 +1,27 @@
+MONTH,NAME,START DATE,END DATE,REASON,FEE
+Jan,Iris Castillo,2026-01-04,2026-02-03,Travel,$25
+Jan,Liam Zimmer,2026-01-04,2026-01-18,Travel,$25
+Jan,Bianca Ibarra,2026-01-14,2026-02-13,Break Time,$25
+Jan,Leo Ueda,2026-01-16,2026-02-15,Illness,Waived
+Jan,Mia Morrison,2026-01-29,2026-02-19,Travel,$25
+Jan,Aiko Fischer,2026-01-30,2026-03-16,Travel,$25
+Feb,Mia Ellison,2026-02-10,2026-04-11,Illness,Waived
+Feb,Marco Kowalski,2026-02-18,2026-04-04,Break Time,$25
+Mar,Ivy Lindqvist,2026-03-09,2026-04-23,Break Time,$25
+Mar,Iris Lindqvist,2026-03-19,2026-04-18,Illness,Waived
+Apr,Sofia Kowalski,2026-04-01,2026-05-01,Work,$25
+Apr,Mia Jovanovic,2026-04-15,2026-06-14,Travel,$25
+Apr,Rafael Ramirez,2026-04-19,2026-05-10,Injury,Waived
+May,Caleb Mendes,2026-05-23,2026-06-06,Work,$25
+May,Ezra Rossi,2026-05-24,2026-06-23,Travel,$25
+May,Liam Young,2026-05-25,2026-06-15,Injury,Waived
+Jun,Liam Ueda,2026-06-12,2026-07-12,Travel,$25
+Jun,Talia Hayes,2026-06-22,2026-07-06,Travel,$25
+Jul,Wesley Novak,2026-07-22,2026-08-12,Travel,$25
+Aug,Andre Kaur,2026-08-06,2026-10-05,Injury,Waived
+Aug,Olivia Ibarra,2026-08-18,2026-09-17,Injury,Waived
+Sep,Elena Kaur,2026-09-02,2026-10-17,Work,$25
+Sep,Sami Ellison,2026-09-15,2026-10-15,Illness,Waived
+Sep,Aria Fischer,2026-09-24,2026-10-24,Travel,$25
+Oct,Aria Ibarra,2026-10-03,2026-11-17,Illness,Waived
+Oct,Mateo Novak,2026-10-12,2026-11-26,Injury,Waived
