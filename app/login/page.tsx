@@ -1,21 +1,18 @@
 'use client';
 
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import BrandLogo from '@/components/ui/BrandLogo';
 
 function LoginHeader({ isResetMode }: { isResetMode: boolean }) {
   return (
     <div className="text-center mb-8">
       <div className="bg-gradient-to-br from-white to-slate-50 p-4 rounded-xl inline-block mb-4 shadow-soft">
-        <Image
-          src="/brand/gb-logo-title.png"
-          alt="GB Kitsilano"
+        <BrandLogo
           className="mx-auto h-28 w-auto max-w-[160px] object-contain"
           width={160}
           height={112}
-          priority
         />
       </div>
       <p className="mt-4 text-center text-sm text-slate-600 font-medium">

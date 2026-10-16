@@ -1,8 +1,9 @@
 // lib/config.ts
+import { brand } from './brand';
 import { reportConsoleError } from './logger';
 export const config = {
   app: {
-    name: 'GB Kitsilano Management',
+    name: `${brand.name} Management`,
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
   },

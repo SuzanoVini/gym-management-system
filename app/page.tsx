@@ -16,6 +16,7 @@ import MembersTab from './components/tabs/MembersTab';
 import OverviewTab from './components/tabs/OverviewTab';
 import SignupsTab from './components/tabs/SignupsTab';
 import { useFollowUps } from './hooks/useFollowUps';
+import { brand } from './lib/brand';
 import { useSidebarStore } from './store/useSidebarStore';
 
 const VALID_TABS = [
@@ -89,7 +90,7 @@ function HomeContent() {
             <footer className="bg-white/60 backdrop-blur-md border-t border-slate-200/60 mt-12">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <p className="text-center text-sm text-slate-600 font-medium">
-                  &copy; {new Date().getFullYear()} Gracie Barra Kitsilano. All rights reserved.
+                  &copy; {new Date().getFullYear()} {brand.name}. All rights reserved.
                 </p>
               </div>
             </footer>

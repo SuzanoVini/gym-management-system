@@ -89,3 +89,7 @@ pickup-route*/
 
 # Supabase
 supabase/migrations/RUN_IN_ORDER.md
+
+# Gym branding stays out of the repo; see public/brand/README.md
+public/brand/*
+!public/brand/README.md

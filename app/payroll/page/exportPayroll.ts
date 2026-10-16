@@ -1,3 +1,4 @@
+import { brand } from '@/lib/brand';
 import { getHoursForPeriod } from '@/lib/services/hours.service';
 import { parseDate } from '@/lib/utils/date.utils';
 import { escapeCsvValue } from '@/lib/utils/export.utils';
@@ -137,13 +138,13 @@ function buildCsvContent(period: PayrollPeriod, headers: string[], rows: string[
   const dateRange = `${formatHeaderDate(period.start_date)}-${formatHeaderDate(period.end_date)}`;
 
   // Build CSV with exact accountant template structure:
-  // Row 1: "Summary Report - Kitsilano Brazilian Jiu Jitsu Inc."
+  // Row 1: "Summary Report - <company legal name>"
   // Row 2: Date range
   // Row 3: Blank
   // Row 4: Column headers
   // Row 5+: Data rows
   const csvLines = [
-    ['Summary Report - Kitsilano Brazilian Jiu Jitsu Inc.'],
+    [`Summary Report - ${brand.companyName}`],
     [dateRange],
     [], // Blank row
     headers,
