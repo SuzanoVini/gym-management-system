@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { reportConsoleError } from '@/lib/logger';
+import { ROLE_INFO, type UserRole } from './roles';
 import type { AddUserForm, AdminLoadingState, AdminUser, FieldErrors } from './types';
+
+const EMPTY_ADD_FORM: AddUserForm = { email: '', full_name: '', password: '', role: 'staff' };
 
 export function useAdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -9,6 +12,7 @@ export function useAdminUsers() {
     add: false,
     delete: false,
     resetPw: false,
+    role: false,
   });
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -68,7 +72,7 @@ function validateAddForm(addForm: AddUserForm): FieldErrors {
 
 export function useAddUserModal({ setUsers, setLoading, showSuccess }: AdminUsersState) {
   const [isOpen, setIsOpen] = useState(false);
-  const [form, setForm] = useState<AddUserForm>({ email: '', full_name: '', password: '' });
+  const [form, setForm] = useState<AddUserForm>(EMPTY_ADD_FORM);
   const [errors, setErrors] = useState<FieldErrors>({});
 
   async function handleSubmit(e: React.FormEvent) {
@@ -95,7 +99,7 @@ export function useAddUserModal({ setUsers, setLoading, showSuccess }: AdminUser
         setUsers((prev) => [...prev, data.user as AdminUser]);
       }
       setIsOpen(false);
-      setForm({ email: '', full_name: '', password: '' });
+      setForm(EMPTY_ADD_FORM);
       setErrors({});
       showSuccess('User created successfully');
     } finally {
@@ -110,7 +114,7 @@ export function useAddUserModal({ setUsers, setLoading, showSuccess }: AdminUser
 
   const close = () => {
     setIsOpen(false);
-    setForm({ email: '', full_name: '', password: '' });
+    setForm(EMPTY_ADD_FORM);
     setErrors({});
   };
 
@@ -216,4 +220,41 @@ export function useResetPasswordModal({
   };
 
   return { isOpen, password, setPassword, errors, handleSubmit, open, close };
+}
+
+export function useRoleChange({ setUsers, setLoading, showSuccess }: AdminUsersState) {
+  const [error, setError] = useState('');
+
+  async function changeRole(user: AdminUser, role: UserRole) {
+    if (role === user.role) {
+      return;
+    }
+    const name = user.full_name ?? user.email;
+    if (
+      role === 'owner' &&
+      !confirm(`Give ${name} full owner access, including payroll and accounts?`)
+    ) {
+      return;
+    }
+    setError('');
+    setLoading((prev) => ({ ...prev, role: true }));
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role }),
+      });
+      if (!res.ok) {
+        const d = (await res.json()) as { error?: string };
+        setError(d.error ?? 'Failed to change role');
+        return;
+      }
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role } : u)));
+      showSuccess(`${name} is now ${ROLE_INFO[role].label}`);
+    } finally {
+      setLoading((prev) => ({ ...prev, role: false }));
+    }
+  }
+
+  return { changeRole, error };
 }

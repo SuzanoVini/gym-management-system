@@ -2,6 +2,8 @@
 
 import { Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import { RoleSelect } from './RoleControls';
+import { ROLE_INFO } from './roles';
 import type { AdminUser } from './types';
 import type { useAddUserModal, useDeleteUserModal, useResetPasswordModal } from './useAdminUsers';
 
@@ -13,7 +15,7 @@ interface AddUserModalProps {
 export function AddUserModal({ modal, loading }: AddUserModalProps) {
   const { form, setForm, errors } = modal;
   return (
-    <Modal isOpen={modal.isOpen} onClose={modal.close} title="Add Staff Account" size="sm">
+    <Modal isOpen={modal.isOpen} onClose={modal.close} title="Add Account" size="sm">
       <form
         onSubmit={(e) => {
           void modal.handleSubmit(e);
@@ -66,6 +68,17 @@ export function AddUserModal({ modal, loading }: AddUserModalProps) {
             placeholder="Min. 8 characters"
           />
           {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+        </div>
+        <div>
+          <span className="form-label">Role</span>
+          <div className="flex items-center gap-3">
+            <RoleSelect
+              role={form.role}
+              label="Role for the new account"
+              onChange={(role) => setForm((prev) => ({ ...prev, role }))}
+            />
+            <span className="text-xs text-gray-500">{ROLE_INFO[form.role].summary}</span>
+          </div>
         </div>
         <div className="flex gap-3 pt-2">
           <button type="button" className="btn btn-tertiary flex-1" onClick={modal.close}>

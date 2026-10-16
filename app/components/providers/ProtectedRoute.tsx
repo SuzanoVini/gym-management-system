@@ -6,17 +6,25 @@ import { useAuth } from './AuthProvider';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  // Staff are sent back to the dashboard; RLS still guards the data itself.
+  ownerOnly?: boolean;
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+export default function ProtectedRoute({ children, ownerOnly = false }: ProtectedRouteProps) {
+  const { user, isOwner, loading } = useAuth();
   const router = useRouter();
+  const blocked = ownerOnly && !isOwner;
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (loading) {
+      return;
     }
-  }, [user, loading, router]);
+    if (!user) {
+      router.push('/login');
+    } else if (blocked) {
+      router.replace('/');
+    }
+  }, [user, loading, blocked, router]);
 
   if (loading) {
     return (
@@ -26,7 +34,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!user || blocked) {
     return null;
   }
 

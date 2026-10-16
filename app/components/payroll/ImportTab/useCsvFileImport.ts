@@ -1,15 +1,21 @@
 import { useRef, useState } from 'react';
+import { detectCSVType } from '@/lib/services/import.service/transform';
 
 export interface ImportPreview {
   filename: string;
   type: 'staff' | 'hours';
   rowCount: number;
   headers: string[];
+  detected: boolean;
 }
 
-export function useCsvFileImport(onImport: (file: File, type: 'staff' | 'hours') => Promise<void>) {
+type ImportType = 'staff' | 'hours';
+
+export function useCsvFileImport(
+  onImport: (file: File, type: ImportType) => Promise<string | undefined>
+) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [fileType, setFileType] = useState<'staff' | 'hours'>('hours');
+  const [fileType, setFileType] = useState<ImportType>('hours');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -40,12 +46,17 @@ export function useCsvFileImport(onImport: (file: File, type: 'staff' | 'hours')
         return;
       }
       const headers = firstLine.split(',').map((h) => h.trim());
+      // Pick the import type from the columns; the radio stays as a manual override.
+      const detectedType = detectCSVType(headers);
+      const type = detectedType === 'unknown' ? fileType : detectedType;
+      setFileType(type);
 
       setPreview({
         filename: file.name,
-        type: fileType,
+        type,
         rowCount: lines.length - 1,
         headers,
+        detected: detectedType !== 'unknown',
       });
       setError(null);
     };
@@ -88,8 +99,8 @@ export function useCsvFileImport(onImport: (file: File, type: 'staff' | 'hours')
     setSuccess(null);
 
     try {
-      await onImport(fileInputRef.current.files[0], fileType);
-      setSuccess(`Successfully imported ${preview?.rowCount} records`);
+      const message = await onImport(fileInputRef.current.files[0], fileType);
+      setSuccess(message ?? `Successfully imported ${preview?.rowCount} records`);
       setPreview(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';

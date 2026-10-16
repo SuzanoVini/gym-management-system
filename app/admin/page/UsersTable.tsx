@@ -1,6 +1,8 @@
 'use client';
 
 import { KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
+import { RoleSelect } from './RoleControls';
+import type { UserRole } from './roles';
 import type { AdminUser } from './types';
 
 function formatDate(dateString: string): string {
@@ -14,11 +16,20 @@ function formatDate(dateString: string): string {
 interface UserRowProps {
   user: AdminUser;
   isCurrentUser: boolean;
+  roleSaving: boolean;
+  onRoleChange: (user: AdminUser, role: UserRole) => void;
   onResetPassword: (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
 }
 
-function UserRow({ user: u, isCurrentUser, onResetPassword, onDelete }: UserRowProps) {
+function UserRow({
+  user: u,
+  isCurrentUser,
+  roleSaving,
+  onRoleChange,
+  onResetPassword,
+  onDelete,
+}: UserRowProps) {
   return (
     <tr className="border-t border-slate-100 hover:bg-slate-50/60 transition-colors">
       <td className="px-6 py-4">
@@ -35,6 +46,17 @@ function UserRow({ user: u, isCurrentUser, onResetPassword, onDelete }: UserRowP
         </div>
       </td>
       <td className="px-6 py-4 text-gray-500 text-sm">{u.email}</td>
+      <td
+        className="px-6 py-4"
+        title={isCurrentUser ? "You can't change your own role" : undefined}
+      >
+        <RoleSelect
+          role={u.role}
+          label={`Role for ${u.full_name ?? u.email}`}
+          disabled={isCurrentUser || roleSaving}
+          onChange={(role) => onRoleChange(u, role)}
+        />
+      </td>
       <td className="px-6 py-4 text-gray-400 text-sm hidden sm:table-cell">
         {formatDate(u.created_at)}
       </td>
@@ -77,7 +99,9 @@ interface UsersTableProps {
   users: AdminUser[];
   loading: boolean;
   currentUserId: string | undefined;
+  roleSaving: boolean;
   onAdd: () => void;
+  onRoleChange: (user: AdminUser, role: UserRole) => void;
   onResetPassword: (user: AdminUser) => void;
   onDelete: (user: AdminUser) => void;
 }
@@ -86,7 +110,9 @@ export function UsersTable({
   users,
   loading,
   currentUserId,
+  roleSaving,
   onAdd,
+  onRoleChange,
   onResetPassword,
   onDelete,
 }: UsersTableProps) {
@@ -95,7 +121,7 @@ export function UsersTable({
       {/* Card header */}
       <div className="px-6 py-4 border-b border-slate-200/80 flex justify-between items-center">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Staff Accounts</h2>
+          <h2 className="text-base font-semibold text-gray-900">Accounts</h2>
           <p className="text-sm text-slate-400 mt-0.5">
             {users.length} {users.length === 1 ? 'user' : 'users'}
           </p>
@@ -124,6 +150,9 @@ export function UsersTable({
                 <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium">
                   Email
                 </th>
+                <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium">
+                  Role
+                </th>
                 <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium hidden sm:table-cell">
                   Created
                 </th>
@@ -141,6 +170,8 @@ export function UsersTable({
                   key={u.id}
                   user={u}
                   isCurrentUser={currentUserId === u.id}
+                  roleSaving={roleSaving}
+                  onRoleChange={onRoleChange}
                   onResetPassword={onResetPassword}
                   onDelete={onDelete}
                 />

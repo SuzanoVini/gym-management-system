@@ -8,7 +8,12 @@ import {
   saveQuickImportEntries,
   setManualHours,
 } from '@/lib/services/hours.service';
-import { importHoursCSV, importStaffCSV } from '@/lib/services/import.service';
+import {
+  saveHoursRows,
+  saveStaffRows,
+  validateHoursCSV,
+  validateStaffCSV,
+} from '@/lib/services/import.service';
 import type { PayrollPeriod, StaffHoursFormData, StaffMember, StaffMemberFormData } from '@/types';
 
 type PeriodApi = ReturnType<typeof usePayrollPeriod>;
@@ -125,28 +130,42 @@ export function createImportHandlers({
   refreshStaff: StaffApi['refresh'];
   refreshHours: HoursApi['refresh'];
 }) {
-  const handleImport = async (file: File, type: 'staff' | 'hours') => {
+  // Validate the whole file first, then save; returns the message shown to the user.
+  const importStaffFile = async (file: File): Promise<string> => {
+    const validated = await validateStaffCSV(file);
+    if (!validated.success) {
+      throw new Error(validated.errors.join('\n'));
+    }
+    const saved = await saveStaffRows(validated.rows);
+    if (!saved.success) {
+      throw new Error(saved.errors.join('\n'));
+    }
+    await refreshStaff();
+    return `Imported ${saved.imported} staff members`;
+  };
+
+  const importHoursFile = async (file: File): Promise<string> => {
+    if (!currentPeriod) {
+      throw new Error('Please select a payroll period first');
+    }
+    const validated = await validateHoursCSV(file, currentPeriod.id);
+    if (!validated.success) {
+      throw new Error(validated.errors.join('\n'));
+    }
+    const saved = await saveHoursRows(currentPeriod, validated.rows);
+    await refreshHours();
+    if (!saved.success) {
+      throw new Error(saved.errors.join('\n'));
+    }
+    const skipped = saved.skipped > 0 ? ` (${saved.skipped} already imported, skipped)` : '';
+    return `Imported ${saved.imported} hour entries into ${currentPeriod.period_label}${skipped}`;
+  };
+
+  const handleImport = async (file: File, type: 'staff' | 'hours'): Promise<string> => {
     try {
-      if (type === 'staff') {
-        const result = await importStaffCSV(file);
-        if (result.success) {
-          errorHandler.notify(`Successfully imported ${result.imported} staff members`, 'success');
-          await refreshStaff();
-        } else {
-          throw new Error(result.errors.join('\n'));
-        }
-      } else {
-        if (!currentPeriod) {
-          throw new Error('Please select a payroll period first');
-        }
-        const result = await importHoursCSV(file, currentPeriod.id);
-        if (result.success) {
-          errorHandler.notify(`Successfully imported ${result.imported} hour entries`, 'success');
-          await refreshHours();
-        } else {
-          throw new Error(result.errors.join('\n'));
-        }
-      }
+      const message = await (type === 'staff' ? importStaffFile(file) : importHoursFile(file));
+      errorHandler.notify(message, 'success');
+      return message;
     } catch (err) {
       errorHandler.handle(err, 'handleImport');
       throw err;

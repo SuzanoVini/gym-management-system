@@ -8,7 +8,7 @@ import { useCsvFileImport } from './ImportTab/useCsvFileImport';
 import { useQuickImport } from './ImportTab/useQuickImport';
 
 interface ImportTabProps {
-  onImport: (file: File, type: 'staff' | 'hours') => Promise<void>;
+  onImport: (file: File, type: 'staff' | 'hours') => Promise<string | undefined>;
   onQuickImport?: (staffId: string, textData: string) => Promise<void>;
   staff?: StaffMember[];
   loading?: boolean;
@@ -117,7 +117,7 @@ export default function ImportTab({
         </div>
 
         {/* Preview */}
-        {preview && <ImportPreviewCard preview={preview} />}
+        {preview && <ImportPreviewCard preview={preview} type={fileType} />}
 
         {/* Error Message */}
         {error && (
