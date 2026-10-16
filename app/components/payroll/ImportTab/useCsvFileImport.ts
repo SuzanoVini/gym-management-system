@@ -1,17 +1,21 @@
 import { useRef, useState } from 'react';
+import { detectCSVType } from '@/lib/services/import.service/transform';
 
 export interface ImportPreview {
   filename: string;
   type: 'staff' | 'hours';
   rowCount: number;
   headers: string[];
+  detected: boolean;
 }
 
+type ImportType = 'staff' | 'hours';
+
 export function useCsvFileImport(
-  onImport: (file: File, type: 'staff' | 'hours') => Promise<string | undefined>
+  onImport: (file: File, type: ImportType) => Promise<string | undefined>
 ) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [fileType, setFileType] = useState<'staff' | 'hours'>('hours');
+  const [fileType, setFileType] = useState<ImportType>('hours');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -42,12 +46,17 @@ export function useCsvFileImport(
         return;
       }
       const headers = firstLine.split(',').map((h) => h.trim());
+      // Pick the import type from the columns; the radio stays as a manual override.
+      const detectedType = detectCSVType(headers);
+      const type = detectedType === 'unknown' ? fileType : detectedType;
+      setFileType(type);
 
       setPreview({
         filename: file.name,
-        type: fileType,
+        type,
         rowCount: lines.length - 1,
         headers,
+        detected: detectedType !== 'unknown',
       });
       setError(null);
     };

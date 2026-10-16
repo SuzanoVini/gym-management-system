@@ -117,7 +117,7 @@ export default function ImportTab({
         </div>
 
         {/* Preview */}
-        {preview && <ImportPreviewCard preview={preview} />}
+        {preview && <ImportPreviewCard preview={preview} type={fileType} />}
 
         {/* Error Message */}
         {error && (

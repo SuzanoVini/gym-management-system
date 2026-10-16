@@ -1,7 +1,13 @@
 import { FileText } from 'lucide-react';
 import type { ImportPreview } from './useCsvFileImport';
 
-export function ImportPreviewCard({ preview }: { preview: ImportPreview }) {
+export function ImportPreviewCard({
+  preview,
+  type,
+}: {
+  preview: ImportPreview;
+  type: ImportPreview['type'];
+}) {
   return (
     <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
       <div className="flex items-start space-x-3">
@@ -10,9 +16,15 @@ export function ImportPreviewCard({ preview }: { preview: ImportPreview }) {
           <h4 className="font-medium text-gray-900">{preview.filename}</h4>
           <p className="text-sm text-gray-600 mt-1">
             Type:{' '}
-            <span className="font-medium">
-              {preview.type === 'staff' ? 'Staff CSV' : 'Hours CSV'}
-            </span>
+            <span className="font-medium">{type === 'staff' ? 'Staff CSV' : 'Hours CSV'}</span>
+            {preview.detected && type === preview.type && (
+              <span className="ml-2 text-xs text-green-700">(detected from the columns)</span>
+            )}
+            {!preview.detected && (
+              <span className="ml-2 text-xs text-amber-700">
+                (couldn&apos;t tell from the columns, check the type above)
+              </span>
+            )}
           </p>
           <p className="text-sm text-gray-600">
             Rows: <span className="font-medium">{preview.rowCount}</span>
