@@ -24,7 +24,7 @@ function SignupConversionBadge({ days }: { days: number | null }) {
     return null;
   }
   return (
-    <span className="inline-block bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full mt-1">
+    <span className="inline-block bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full mt-1">
       Intro to signup in {days} day{days === 1 ? '' : 's'}
     </span>
   );
@@ -85,14 +85,8 @@ export function createSignupColumns({ intros, onViewNote, onEdit, onDelete }: Si
       label: 'Membership',
       render: (value: unknown, _item: Signup) => {
         const membership = value as string;
-        const color =
-          membership === 'Integrity'
-            ? 'bg-green-100 text-green-800'
-            : membership === 'Legacy'
-              ? 'bg-purple-100 text-purple-800'
-              : membership === 'Special'
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-red-100 text-red-800';
+        // Plans are categories, not status: one neutral pill for all of them.
+        const color = 'bg-[var(--raised)] text-[var(--gb-dark-gray)]';
         return (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>
             {membership}
@@ -115,7 +109,7 @@ export function createSignupColumns({ intros, onViewNote, onEdit, onDelete }: Si
       label: 'Package',
       render: (value: unknown, _item: Signup) =>
         (value as boolean) ? (
-          <span className="text-green-600 font-medium">✓ Yes</span>
+          <span className="text-green-700 font-medium">Yes</span>
         ) : (
           <span className="text-gray-400">No</span>
         ),

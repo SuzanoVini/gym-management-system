@@ -50,7 +50,7 @@ function DefaultErrorFallback({
 }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+      <div className="max-w-md w-full bg-white rounded-[var(--radius-card)] border border-[var(--border)] p-6">
         <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
           <svg
             className="w-6 h-6 text-red-600"

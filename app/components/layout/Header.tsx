@@ -23,15 +23,15 @@ export default function Header({ onLogoClick }: HeaderProps) {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="p-2.5 text-slate-700 bg-white/50 hover:bg-white/70 backdrop-blur-md rounded-xl transition-all duration-300 flex-shrink-0 active:scale-95 shadow-soft hover:shadow-soft-lg cursor-pointer group"
+            className="btn-icon rounded-md flex-shrink-0"
             aria-label="Toggle sidebar"
           >
-            <Menu className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+            <Menu className="w-5 h-5" />
           </button>
           <button
             type="button"
             onClick={onLogoClick}
-            className="app-logo-wrap flex items-center min-w-0 bg-transparent transition-opacity duration-200 hover:opacity-80 cursor-pointer"
+            className="app-logo-wrap flex items-center min-w-0 bg-transparent hover:opacity-80 cursor-pointer"
             aria-label="Go to overview"
           >
             <BrandLogo className="app-logo" width={220} height={48} />
@@ -42,7 +42,7 @@ export default function Header({ onLogoClick }: HeaderProps) {
           onClick={() => {
             void handleLogout();
           }}
-          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/40 text-slate-700 border border-slate-300/70 hover:border-red-400 hover:bg-red-50/80 hover:text-red-600 backdrop-blur-sm rounded-lg transition-all duration-200 flex-shrink-0 shadow-soft hover:shadow-soft-lg active:scale-95 cursor-pointer"
+          className="btn btn-tertiary flex-shrink-0"
         >
           <LogOut className="w-4 h-4" />
           <span className="hidden sm:inline text-sm font-medium">Logout</span>

@@ -26,10 +26,10 @@ export default function HoldsHeader({
   onAddHold,
 }: HoldsHeaderProps) {
   return (
-    <div className="section-container">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{year === 'all' ? 'All Holds' : `${year} Holds`}</h2>
-        <div className="flex space-x-3">
+    <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title">{year === 'all' ? 'All Holds' : `${year} Holds`}</h1>
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onOpenSettings} className="btn btn-secondary">
             <Settings className="w-4 h-4" />
             <span>Settings</span>

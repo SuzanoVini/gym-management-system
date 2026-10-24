@@ -42,7 +42,7 @@ function exportCancellations(cancellations: Cancellation[]) {
     Notes: cancellation.notes,
   }));
   exportToCSV(exportData, 'cancellations');
-  alert('✅ Cancellations exported successfully!');
+  alert('Cancellations exported successfully!');
 }
 
 export default function CancellationsTab() {

@@ -11,6 +11,10 @@ import {
 import InfoTip from '@/components/ui/InfoTip';
 import type { computeMonthlyTrends } from '@/lib/analytics/overviewMetrics';
 
+// Sign-ups are the series the screen is about, so they carry the one hue; intros are context in
+// a dark grey and cancellations a dashed light grey. Straight lines, no markers, faint gridlines.
+const AXIS = { fontSize: 12, fill: '#6b6363' };
+
 export default function OverviewTrendChart({
   monthlyData,
 }: {
@@ -18,51 +22,26 @@ export default function OverviewTrendChart({
 }) {
   return (
     <div className="section-container">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        Monthly Trends
+      <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        Monthly trends
         <InfoTip label="Counts intros, signups and cancellations per month over the selected range. Each person is counted in the month their record is dated, so a signup logged late lands in the month it happened, not the month it was entered." />
       </h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={monthlyData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="month" />
-          <YAxis />
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={monthlyData} margin={{ top: 8, right: 16, bottom: 0, left: -16 }}>
+          <CartesianGrid vertical={false} stroke="#efe9e9" />
+          <XAxis dataKey="month" tick={AXIS} tickLine={false} axisLine={{ stroke: '#ebe5e5' }} />
+          <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip />
-          <Legend />
+          <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: '#6b6363' }} />
+          <Line type="linear" dataKey="Sign-ups" stroke="#dc2626" strokeWidth={2} dot={false} />
+          <Line type="linear" dataKey="Intros" stroke="#6b6363" strokeWidth={2} dot={false} />
           <Line
-            type="monotone"
-            dataKey="Intros"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            isAnimationActive={true}
-            animationDuration={1000}
-            animationEasing="ease-in-out"
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="Sign-ups"
-            stroke="#10b981"
-            strokeWidth={2}
-            isAnimationActive={true}
-            animationDuration={1000}
-            animationEasing="ease-in-out"
-            animationBegin={200}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
-          />
-          <Line
-            type="monotone"
+            type="linear"
             dataKey="Cancellations"
-            stroke="#ef4444"
+            stroke="#b8adad"
             strokeWidth={2}
-            isAnimationActive={true}
-            animationDuration={1000}
-            animationEasing="ease-in-out"
-            animationBegin={400}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
+            strokeDasharray="4 3"
+            dot={false}
           />
         </LineChart>
       </ResponsiveContainer>

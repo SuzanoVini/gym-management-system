@@ -91,12 +91,10 @@ function IntrosHeader({
   openModal: ReturnType<typeof useUIStore.getState>['openModal'];
 }) {
   return (
-    <div className="section-container">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">
-          {year === 'all' ? 'All Intros' : `${year} Intros`}
-        </h2>
-        <div className="flex space-x-3">
+    <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title">{year === 'all' ? 'All Intros' : `${year} Intros`}</h1>
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => openModal('settings')} className="btn btn-secondary">
             <Settings className="w-4 h-4" />
             <span>Settings</span>
@@ -157,7 +155,7 @@ function IntrosTableSection({
   return (
     <div className="section-container">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
-        <h3 className="text-lg font-semibold">All Intros ({view.filteredIntros.length})</h3>
+        <h2 className="text-lg font-semibold">All Intros ({view.filteredIntros.length})</h2>
         {selection.selectedIds.size > 0 && (
           <button
             type="button"

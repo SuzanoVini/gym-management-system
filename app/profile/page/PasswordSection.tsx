@@ -8,7 +8,7 @@ function PasswordStrengthIndicator({ strength }: { strength: PasswordStrength })
       <div className="flex items-center gap-2 mb-1">
         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className={`h-full transition-all duration-300 ${strength.color}`}
+            className={`h-full transition-[width] duration-300 ${strength.color}`}
             style={{ width: `${(strength.score / 5) * 100}%` }}
           />
         </div>

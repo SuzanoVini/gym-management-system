@@ -48,7 +48,7 @@ export default function HoldsTab() {
       Fee: hold.fee,
     }));
     exportToCSV(exportData, 'holds');
-    alert('✅ Holds exported successfully!');
+    alert('Holds exported successfully!');
   }, [holdsList.filteredHolds]);
 
   if (error) {

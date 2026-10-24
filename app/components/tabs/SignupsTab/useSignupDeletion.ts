@@ -14,7 +14,7 @@ function confirmSelectedSignupDeletion(selectedIds: Set<string>) {
     return false;
   }
   if (selectedIds.size > 1000) {
-    alert('⚠️ Maximum 1000 items at once. Please select fewer items.');
+    alert('Maximum 1000 items at once. Please select fewer items.');
     return false;
   }
   return confirm(`Delete ${selectedIds.size} selected sign-ups?`);
@@ -57,5 +57,5 @@ async function deleteSignupBatches(
   await refresh();
   clearSelection();
   setCurrentPage(1);
-  alert(`✅ Deleted ${idsToDelete.length} sign-ups`);
+  alert(`Deleted ${idsToDelete.length} sign-ups`);
 }

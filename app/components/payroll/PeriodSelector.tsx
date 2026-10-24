@@ -26,9 +26,9 @@ export default function PeriodSelector({
       {currentPeriod && (
         <div className="payroll-current-period flex items-center justify-between">
           <span className="text-base font-semibold">
-            Current Period: {currentPeriod.period_label}
+            Current period: {currentPeriod.period_label}
             {currentPeriod.is_closed && (
-              <span className="ml-3 px-3 py-1 bg-gray-800 text-white text-xs font-semibold rounded-full">
+              <span className="ml-3 px-2 py-0.5 bg-[var(--raised)] text-[var(--gb-dark-gray)] text-xs font-medium rounded-full">
                 Closed
               </span>
             )}
@@ -38,11 +38,11 @@ export default function PeriodSelector({
               type="button"
               onClick={() => onClosePeriod(currentPeriod.id)}
               disabled={loading}
-              className="btn btn-secondary-blue"
+              className="btn btn-secondary"
               title="Close this payroll period"
             >
               <Lock className="w-4 h-4" />
-              <span className="hidden sm:inline">Close Period</span>
+              <span className="hidden sm:inline">Close period</span>
             </button>
           )}
         </div>
@@ -51,14 +51,14 @@ export default function PeriodSelector({
       {/* Period Selector Dropdown */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
-            <Calendar className="h-4 w-4 text-slate-500" aria-hidden="true" />
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+            <Calendar className="h-4 w-4 text-[var(--muted)]" aria-hidden="true" />
           </div>
           <select
             value={currentPeriod?.id || ''}
             onChange={(e) => onSelectPeriod(e.target.value)}
             disabled={loading}
-            className="form-select pl-12 w-full"
+            className="form-select has-icon w-full"
             aria-label="Select payroll period"
           >
             {periods.length === 0 ? (
@@ -83,12 +83,12 @@ export default function PeriodSelector({
             type="button"
             onClick={onCreatePeriod}
             disabled={loading}
-            className="btn btn-secondary-blue"
+            className="btn btn-secondary"
             title="Create new period"
             aria-label="Create new payroll period"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Period</span>
+            <span className="hidden sm:inline">New period</span>
           </button>
         )}
       </div>

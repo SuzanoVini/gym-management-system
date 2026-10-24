@@ -86,7 +86,7 @@ export function useHoldsImport({
       setPreviewData([]);
       setImportFile(null);
       alert(
-        `✅ Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
+        `Successfully imported ${newRecords.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
       );
     },
     [closeImportPreview, refresh, saveImportBatch]

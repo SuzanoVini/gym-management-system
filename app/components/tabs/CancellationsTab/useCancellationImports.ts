@@ -69,7 +69,7 @@ async function finishImport(
   await syncCancellationHolds(records);
   resetImport(actions);
   alert(
-    `✅ Successfully imported ${records.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
+    `Successfully imported ${records.length} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
   );
 }
 

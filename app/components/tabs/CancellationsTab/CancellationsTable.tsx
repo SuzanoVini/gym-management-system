@@ -64,12 +64,12 @@ function CancellationBadges({
   return (
     <div className="flex gap-1 mt-1 flex-wrap">
       {durationMonths > 0 && (
-        <span className="inline-block bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full">
+        <span className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">
           Member {durationMonths} month{durationMonths === 1 ? '' : 's'}
         </span>
       )}
       {introLabel && (
-        <span className="inline-block bg-purple-50 text-purple-700 text-[10px] px-2 py-0.5 rounded-full">
+        <span className="inline-block bg-[var(--raised)] text-[var(--gb-dark-gray)] text-xs px-2 py-0.5 rounded-full">
           From intro {introLabel}
         </span>
       )}
@@ -211,9 +211,9 @@ export default function CancellationsTable(props: Props) {
         selectedCount={props.selectedIds.size}
         onClearSelection={() => props.clearSelection('cancellations')}
       />
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[var(--radius-card)] border border-[var(--border)] overflow-hidden">
         <div className="px-6 py-4 border-b flex justify-between items-center">
-          <h3 className="text-lg font-semibold">All Cancellations ({props.totalItems})</h3>
+          <h2 className="text-lg font-semibold">All Cancellations ({props.totalItems})</h2>
           {props.selectedIds.size > 0 && (
             <button
               type="button"

@@ -89,7 +89,7 @@ export default function NoteItem({
       <p className="text-xs text-gray-400">
         {formatAttribution(note)}
         {isOtherBooking && (
-          <span className="ml-2 text-[10px] text-purple-400 bg-purple-50 rounded px-1.5 py-0.5">
+          <span className="ml-2 text-xs text-[var(--gb-dark-gray)] bg-[var(--raised)] rounded px-1.5 py-0.5">
             Other booking
           </span>
         )}

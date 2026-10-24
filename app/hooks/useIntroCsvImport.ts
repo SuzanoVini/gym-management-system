@@ -120,7 +120,7 @@ async function finishImport(
   closeModal('importPreview');
   setImportPreviewData([]);
   alert(
-    `✅ Successfully imported ${importedCount} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
+    `Successfully imported ${importedCount} records!\n${duplicateCount > 0 ? `Skipped ${duplicateCount} duplicates.` : ''}`
   );
 }
 

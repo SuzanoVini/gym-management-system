@@ -29,20 +29,22 @@ export default function DateRangeFilter({
   onTempStartDateChange,
   onTempEndDateChange,
   onApplyCustomDates,
-  customRangeBoxClassName = 'mt-4 section-nested border border-gray-200',
+  customRangeBoxClassName = 'mt-4 section-nested',
 }: DateRangeFilterProps) {
   return (
     <>
-      <div className="flex flex-wrap gap-2 items-center">
+      {/* One segmented track; on a phone it scrolls sideways in its own row instead of wrapping. */}
+      <div className="flex max-w-full gap-1 overflow-x-auto rounded-md bg-[var(--raised)] p-1 sm:inline-flex sm:flex-wrap">
         {options.map((option) => (
           <button
             key={option.value}
             type="button"
+            aria-pressed={dateRange === option.value}
             onClick={() => onSelectRange(option.value)}
-            className={`btn ${
+            className={`whitespace-nowrap rounded px-3 py-1.5 text-sm font-medium transition-colors ${
               dateRange === option.value
-                ? 'btn-primary'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-[var(--surface)] text-[var(--accent-ink)] ring-1 ring-[var(--accent-100)]'
+                : 'text-[var(--muted)] hover:text-[var(--text)]'
             }`}
           >
             {option.label}
@@ -52,7 +54,7 @@ export default function DateRangeFilter({
 
       {dateRange === 'custom' && (
         <div className={customRangeBoxClassName}>
-          <p className="text-sm font-medium text-gray-700 mb-3">Select Custom Date Range:</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">Custom date range</p>
           <div className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
               <label className="form-label" htmlFor={`${idPrefix}-start-date`}>

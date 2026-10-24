@@ -1,9 +1,9 @@
 'use client';
 
-import { Calendar, Download, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { useInsights } from '@/hooks/useInsights';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import { exportOverviewData } from '@/lib/analytics/exportOverviewData';
@@ -21,22 +21,22 @@ import { useFilterStore } from '@/store/useFilterStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import SettingsModal from './modals/SettingsModal';
 import OverviewAcquisitionCharts from './overview/OverviewAcquisitionCharts';
-import OverviewBreakdownCharts, {
-  useOverviewPieSelection,
-} from './overview/OverviewBreakdownCharts';
+import OverviewBreakdownCharts from './overview/OverviewBreakdownCharts';
 import OverviewInsights from './overview/OverviewInsights';
 import OverviewStaffPerformance from './overview/OverviewStaffPerformance';
 import OverviewSummaryCards from './overview/OverviewSummaryCards';
+import OverviewTitle from './overview/OverviewTitle';
 import OverviewTrendChart from './overview/OverviewTrendChart';
+import TodayOnTheMats from './overview/TodayOnTheMats';
 
 const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
-  { value: 'all', label: 'All Time' },
-  { value: '1month', label: 'Last Month' },
-  { value: '3months', label: 'Last 3 Months' },
-  { value: '6months', label: 'Last 6 Months' },
-  { value: 'year', label: 'Last Year' },
-  { value: 'ytd', label: 'Year to Date' },
-  { value: 'custom', label: 'Custom Range' },
+  { value: 'all', label: 'All time' },
+  { value: '1month', label: 'Last month' },
+  { value: '3months', label: 'Last 3 months' },
+  { value: '6months', label: 'Last 6 months' },
+  { value: 'year', label: 'Last year' },
+  { value: 'ytd', label: 'Year to date' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 function useOverviewDateRange() {
@@ -90,7 +90,13 @@ function computeOverviewCharts(
   };
 }
 
-export default function OverviewTab() {
+export default function OverviewTab({
+  followUpRows,
+  onOpenFollowUps,
+}: {
+  followUpRows?: FollowUpRow[];
+  onOpenFollowUps?: () => void;
+} = {}) {
   const {
     dateRange,
     setDateRange,
@@ -106,7 +112,7 @@ export default function OverviewTab() {
     setTempEndDate,
   } = useOverviewDateRange();
 
-  const { filteredData, previousPeriodData, loading, error, refresh } = useAnalyticsData({
+  const { filteredData, previousPeriodData, allData, loading, error, refresh } = useAnalyticsData({
     dateRange,
     customStartDate,
     customEndDate,
@@ -119,7 +125,6 @@ export default function OverviewTab() {
     setCustomEndDate(tempEndDate);
   };
 
-  const selection = useOverviewPieSelection();
   const { intros, signups, cancellations, holds } = filteredData;
   const current = computeCoreMetrics(filteredData);
   const previous = previousPeriodData ? computeCoreMetrics(previousPeriodData) : null;
@@ -176,63 +181,37 @@ export default function OverviewTab() {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Filter Section */}
-      <div className="section-container">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
-            Date Range Filter
-          </h2>
-          {/* Grouped so justify-between keeps the heading left and both actions together right. */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleExportAllData}
-              className="btn btn-primary bg-green-600 hover:bg-green-700"
-            >
-              <Download className="w-4 h-4" />
-              Export All Data
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="btn btn-secondary"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
-            </button>
-          </div>
-        </div>
-
-        <SettingsModal
-          isOpen={settingsOpen}
-          onClose={() => setSettingsOpen(false)}
-          scope="overview"
-        />
-
-        <DateRangeFilter
-          idPrefix="overview"
-          options={OVERVIEW_DATE_RANGE_OPTIONS}
-          dateRange={dateRange}
-          onSelectRange={setDateRange}
-          tempStartDate={tempStartDate}
-          tempEndDate={tempEndDate}
-          onTempStartDateChange={setTempStartDate}
-          onTempEndDateChange={setTempEndDate}
-          onApplyCustomDates={handleApplyCustomDates}
-        />
-      </div>
+      <OverviewTitle
+        followUpRows={followUpRows}
+        onOpenFollowUps={onOpenFollowUps}
+        onExport={handleExportAllData}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        scope="overview"
+      />
+      <DateRangeFilter
+        idPrefix="overview"
+        options={OVERVIEW_DATE_RANGE_OPTIONS}
+        dateRange={dateRange}
+        onSelectRange={setDateRange}
+        tempStartDate={tempStartDate}
+        tempEndDate={tempEndDate}
+        onTempStartDateChange={setTempStartDate}
+        onTempEndDateChange={setTempEndDate}
+        onApplyCustomDates={handleApplyCustomDates}
+      />
 
       <OverviewSummaryCards current={current} previous={previous} activeHolds={activeHolds} />
+      {/* Today's bookings come from all data, whatever range is selected above. */}
+      <TodayOnTheMats intros={allData.intros} />
       <OverviewInsights insights={insights} />
       <OverviewTrendChart monthlyData={monthlyData} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <OverviewAcquisitionCharts funnelData={funnelData} topClasses={topClasses} />
-        <OverviewBreakdownCharts
-          membershipChart={membershipChart}
-          reasonsChart={reasonsChart}
-          selection={selection}
-        />
+        <OverviewBreakdownCharts membershipChart={membershipChart} reasonsChart={reasonsChart} />
       </div>
       <OverviewStaffPerformance staffPerformance={staffPerformance} />
     </div>

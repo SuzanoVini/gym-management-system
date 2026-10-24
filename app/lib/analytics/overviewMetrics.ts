@@ -83,7 +83,7 @@ export function computeFunnelData({
       countLabel: `${attendedIntros} (${totalIntros > 0 ? ((attendedIntros / totalIntros) * 100).toFixed(0) : 0}%)`,
     },
     {
-      stage: 'Signed Up',
+      stage: 'Signed up after intro',
       count: signupsFromIntros,
       percentage: attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(0) : 0,
       countLabel: `${signupsFromIntros} (${attendedIntros > 0 ? ((signupsFromIntros / attendedIntros) * 100).toFixed(0) : 0}%)`,

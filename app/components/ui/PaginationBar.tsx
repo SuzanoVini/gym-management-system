@@ -38,10 +38,7 @@ export default function PaginationBar({
         {/* Left: per-page select + selection badge */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <label
-              htmlFor={id}
-              className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest select-none"
-            >
+            <label htmlFor={id} className="text-xs text-[var(--muted)] select-none">
               Show
             </label>
             <div className="relative">
@@ -72,7 +69,7 @@ export default function PaginationBar({
               <button
                 type="button"
                 onClick={onClearSelection}
-                className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors duration-150 cursor-pointer font-medium"
+                className="text-xs text-[var(--muted)] hover:text-[var(--text)] transition-colors duration-150 cursor-pointer font-medium"
               >
                 Clear
               </button>
@@ -81,7 +78,7 @@ export default function PaginationBar({
         </div>
 
         {/* Center: count */}
-        <span className="text-xs text-gray-400 tabular-nums font-medium">
+        <span className="text-xs text-[var(--muted)] tabular-nums font-medium">
           {totalItems === 0 ? '0' : `${startIndex + 1}–${Math.min(endIndex, totalItems)}`} of{' '}
           {totalItems}
         </span>

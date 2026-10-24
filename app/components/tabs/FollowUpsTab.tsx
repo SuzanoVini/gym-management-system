@@ -76,7 +76,7 @@ export default function FollowUpsTab({ followUps }: FollowUpsTabProps) {
     <div className="space-y-6">
       <div className="section-container">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">Follow Ups</h2>
+          <h1 className="page-title">Follow Ups</h1>
         </div>
 
         {/* Search + Export bar */}

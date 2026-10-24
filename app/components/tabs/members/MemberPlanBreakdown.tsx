@@ -10,7 +10,7 @@ function PlanBar({ label, count, total }: { label: string; count: number; total:
       <div className="flex-1 bg-gray-100 rounded h-2.5 overflow-hidden">
         <div className="h-full bg-red-600 rounded" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-gray-500 w-16 text-right">
+      <span className="text-gray-500 w-16 text-right tabular-nums">
         {count} ({pct}%)
       </span>
     </div>
@@ -26,7 +26,7 @@ function PlanSummarySection({ title, rows }: { title: string; rows: [string, num
 
   return (
     <div className="space-y-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{title}</h4>
+      <h4 className="text-xs font-medium text-[var(--muted)]">{title}</h4>
       {rows.map(([label, count]) => (
         <PlanBar key={label} label={label} count={count} total={sectionTotal} />
       ))}
@@ -51,12 +51,12 @@ export default function MemberPlanBreakdown({
     <>
       {planCounts.length > 0 && (
         <div className="section-container">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Membership Plan Breakdown</h3>
+          <h2 className="text-lg font-semibold mb-4">Membership plan breakdown</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <PlanSummarySection title="Program" rows={planSummary.program} />
             <PlanSummarySection title="Age" rows={planSummary.age} />
             <PlanSummarySection title="Duration" rows={planSummary.duration} />
-            <PlanSummarySection title="Class Packs" rows={planSummary.classPacks} />
+            <PlanSummarySection title="Class packs" rows={planSummary.classPacks} />
           </div>
 
           <div className="mt-5 border-t pt-4">

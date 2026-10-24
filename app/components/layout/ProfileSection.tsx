@@ -58,14 +58,14 @@ export default function ProfileSection() {
       <button
         type="button"
         onClick={handleClick}
-        className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-200 group ${
+        className={`sidebar-item w-full flex items-center gap-3 rounded-md text-sm ${
           isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
         }`}
         title={isOpen ? undefined : fullName}
         aria-label="View Profile"
       >
         {/* Avatar */}
-        <div className="w-8 h-8 flex-shrink-0 rounded-full bg-white/10 border-2 border-white/20 shadow-md overflow-hidden flex items-center justify-center group-hover:scale-110 transition-transform">
+        <div className="w-8 h-8 flex-shrink-0 rounded-full bg-[var(--accent-100)] overflow-hidden flex items-center justify-center">
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -75,15 +75,15 @@ export default function ProfileSection() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <User className="w-4 h-4 text-white/90" />
+            <User className="w-4 h-4 text-[var(--accent-ink)]" />
           )}
         </div>
 
         {/* User Info - Only shown when sidebar is expanded */}
         {isOpen && (
           <div className="flex-1 min-w-0 text-left">
-            <div className="text-white font-medium text-sm truncate">{fullName}</div>
-            <div className="text-white/60 text-xs truncate">{email}</div>
+            <div className="text-[var(--text)] font-medium text-sm truncate">{fullName}</div>
+            <div className="text-[var(--muted)] text-xs truncate">{email}</div>
           </div>
         )}
       </button>

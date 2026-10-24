@@ -14,7 +14,7 @@ function getSelectedCancellationIds(selectedIds: Set<string>): string[] | null {
     return null;
   }
   if (selectedIds.size > 1000) {
-    alert('⚠️ Maximum 1000 items at once. Please select fewer items.');
+    alert('Maximum 1000 items at once. Please select fewer items.');
     return null;
   }
   if (!confirm(`Delete ${selectedIds.size} selected cancellations?`)) {
@@ -46,7 +46,7 @@ async function deleteSelectedCancellations({
     await refresh();
     clearSelection('cancellations');
     setCurrentPage(1);
-    alert(`✅ Deleted ${idsToDelete.length} cancellations`);
+    alert(`Deleted ${idsToDelete.length} cancellations`);
   } catch (error) {
     logger.error('Error deleting cancellations', 'CancellationsTab', { error });
     alert('Error deleting cancellations');

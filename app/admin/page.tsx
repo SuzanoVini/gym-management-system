@@ -35,7 +35,7 @@ function AdminPageContent() {
           <ShieldCheck className="w-6 h-6 text-red-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <h1 className="page-title">User Management</h1>
           <p className="text-sm text-slate-500">
             {users.length} {users.length === 1 ? 'account' : 'accounts'} · roles control who can
             open Payroll and this page

@@ -51,9 +51,9 @@ export default function HoldsGrid(props: HoldsGridProps) {
         selectedCount={selectedIds.size}
         onClearSelection={props.onClearSelection}
       />
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[var(--radius-card)] border border-[var(--border)] overflow-hidden">
         <div className="px-6 py-4 border-b flex justify-between items-center">
-          <h3 className="text-lg font-semibold">All Holds ({totalItems})</h3>
+          <h2 className="text-lg font-semibold">All Holds ({totalItems})</h2>
           {selectedIds.size > 0 && (
             <button
               type="button"

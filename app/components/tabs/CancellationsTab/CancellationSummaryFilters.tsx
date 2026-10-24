@@ -1,4 +1,5 @@
 import FilterBar from '@/components/ui/FilterBar';
+import KpiStrip from '@/components/ui/KpiStrip';
 import { config } from '@/lib/config';
 import { isDefaultFilters, type TabFilters } from '@/store/useFilterStore';
 
@@ -29,21 +30,15 @@ export default function CancellationSummaryFilters({
 }: Props) {
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="section-container border-l-4 border-red-600">
-          <div className="text-sm text-gray-600">Total Cancellations</div>
-          <div className="text-3xl font-bold mt-1">{count}</div>
-        </div>
-        {topReasons.map(([reason, reasonCount], idx) => (
-          <div
-            key={reason}
-            className={`section-container border-l-4 ${idx === 0 ? 'border-orange-600' : idx === 1 ? 'border-yellow-600' : idx === 2 ? 'border-blue-600' : 'border-gray-600'}`}
-          >
-            <div className="text-sm text-gray-600">{reason || 'No Reason'}</div>
-            <div className="text-3xl font-bold mt-1">{reasonCount}</div>
-          </div>
-        ))}
-      </div>
+      <KpiStrip
+        items={[
+          { label: 'Total cancellations', value: count },
+          ...topReasons.map(([reason, reasonCount]) => ({
+            label: reason || 'No reason given',
+            value: reasonCount,
+          })),
+        ]}
+      />
       <FilterBar
         availableYears={availableYears}
         selectedYear={filters.year}

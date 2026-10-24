@@ -33,7 +33,7 @@ export default function ProfileInfoSection({ form, email }: ProfileInfoSectionPr
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                className="absolute bottom-0 right-0 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
                 aria-label="Upload avatar"
               >
                 <Upload className="w-4 h-4" />

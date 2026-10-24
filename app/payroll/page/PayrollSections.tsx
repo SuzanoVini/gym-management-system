@@ -10,30 +10,21 @@ import type { PayrollPeriod, StaffHours, StaffMember } from '@/types';
 export function PayrollHeader() {
   return (
     <div className="payroll-header">
-      {brand.badgeUrl && (
-        <Image
-          src={brand.badgeUrl}
-          alt={`${brand.name} logo`}
-          width={80}
-          height={80}
-          className="drop-shadow-[2px_2px_4px_rgba(0,0,0,0.3)]"
-          unoptimized
-          priority
-        />
-      )}
-      <div>
-        <h1
-          className="text-4xl font-bold m-0"
-          style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
-        >
-          {brand.name}
-        </h1>
-        <p
-          className="text-xl mt-1 mb-0"
-          style={{ color: 'white', textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)' }}
-        >
-          Staff Payroll Management System
-        </p>
+      <div className="flex items-center gap-3">
+        {brand.badgeUrl && (
+          <Image
+            src={brand.badgeUrl}
+            alt={`${brand.name} logo`}
+            width={40}
+            height={40}
+            unoptimized
+            priority
+          />
+        )}
+        <div>
+          <h1 className="page-title">Payroll</h1>
+          <p className="page-subtitle">{brand.name} staff hours by pay period</p>
+        </div>
       </div>
     </div>
   );
@@ -47,7 +38,7 @@ export function PayrollTabsNav({
   onTabChange: (tab: string) => void;
 }) {
   return (
-    <div className="payroll-card mb-6">
+    <div className="mb-6">
       <div className="payroll-tabs">
         <button
           type="button"
@@ -108,7 +99,7 @@ export function StaffManagementPanel({
   return (
     <div className="payroll-card">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Staff Management</h2>
+        <h2 className="text-lg font-semibold text-gray-900">Staff Management</h2>
         <button type="button" onClick={onAddStaff} className="btn btn-primary">
           <Plus className="w-4 h-4" />
           Add Staff
@@ -175,28 +166,28 @@ export function HoursSummaryPanel({
       {/* Summary Cards */}
       <div className="payroll-summary-cards">
         <div className="payroll-summary-card">
-          <h3 className="text-3xl font-bold mb-1">{summaryStats.staffCount}</h3>
+          <h3>{summaryStats.staffCount}</h3>
           <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
             Staff Members
             <InfoTip label="Every staff member currently marked active, whether or not they logged hours this period. Deactivated staff are excluded but keep their past payroll records." />
           </p>
         </div>
         <div className="payroll-summary-card">
-          <h3 className="text-3xl font-bold mb-1">{summaryStats.regularHours.toFixed(1)}</h3>
+          <h3>{summaryStats.regularHours.toFixed(1)}</h3>
           <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
             Regular Hours
             <InfoTip label="Hours logged as regular across all staff for the selected pay period. Overtime, vacation, sick and mat cleaning are tracked separately and are not included here." />
           </p>
         </div>
         <div className="payroll-summary-card">
-          <h3 className="text-3xl font-bold mb-1">{summaryStats.overtimeHours.toFixed(1)}</h3>
+          <h3>{summaryStats.overtimeHours.toFixed(1)}</h3>
           <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
             Overtime Hours
             <InfoTip label="Hours logged specifically as overtime. Overtime is entered by hand rather than derived from a weekly threshold, so it reflects what was actually approved." />
           </p>
         </div>
         <div className="payroll-summary-card">
-          <h3 className="text-3xl font-bold mb-1">{summaryStats.totalHours.toFixed(1)}</h3>
+          <h3>{summaryStats.totalHours.toFixed(1)}</h3>
           <p className="text-sm opacity-90 flex items-center justify-center gap-1.5">
             Total Hours
             <InfoTip label="Every hour entry for the period added together — regular, overtime, vacation, sick and mat cleaning. It is deliberately more than Regular plus Overtime, because paid leave and mat cleaning count toward pay." />
@@ -207,7 +198,7 @@ export function HoursSummaryPanel({
       {/* Payroll Table */}
       <div className="payroll-card">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Hours Summary</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Hours Summary</h2>
           {currentPeriod && !periodClosed && (
             <button type="button" onClick={onAddHours} className="btn btn-primary">
               <Plus className="w-4 h-4" />
