@@ -32,7 +32,7 @@ export function useHoldsActions({
       return;
     }
     if (selectedIds.size > 1000) {
-      alert('⚠️ Maximum 1000 items at once. Please select fewer items.');
+      alert('Maximum 1000 items at once. Please select fewer items.');
       return;
     }
     if (!confirm(`Delete ${selectedIds.size} selected holds?`)) {
@@ -45,7 +45,7 @@ export function useHoldsActions({
       await refresh();
       clearSelection('holds');
       setCurrentPage(1);
-      alert(`✅ Deleted ${idsToDelete.length} holds`);
+      alert(`Deleted ${idsToDelete.length} holds`);
     } catch (error) {
       logger.error('Error deleting holds', 'HoldsTab', { error });
       alert('Error deleting holds');

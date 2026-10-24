@@ -56,15 +56,15 @@ export const errorHandler = {
   notify: (message: string, type: NotificationType = 'info') => {
     // TODO: Replace with proper toast notification library (react-hot-toast, sonner, etc)
     // For now, using structured alerts
-    const icons = {
-      success: '✅',
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️',
+    const prefixes = {
+      success: '',
+      error: 'Error: ',
+      warning: 'Warning: ',
+      info: '',
     };
 
     if (typeof window !== 'undefined') {
-      alert(`${icons[type]} ${message}`);
+      alert(`${prefixes[type]}${message}`);
     }
   },
 

@@ -10,6 +10,8 @@ interface TableProps<T extends { id: string }> {
     label: string;
     render?: (value: unknown, item: T) => React.ReactNode;
     sortable?: boolean;
+    /** Numbers and amounts are right-aligned so their digits line up. */
+    align?: 'left' | 'right';
   }[];
   loading?: boolean;
   onSort?: (key: keyof T, direction: 'asc' | 'desc') => void;
@@ -63,8 +65,8 @@ export default function Table<T extends { id: string }>({
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+      <table className="min-w-full">
+        <thead>
           <tr>
             {onSelectId && (
               <th className="px-4 py-3 text-left w-8">
@@ -86,7 +88,7 @@ export default function Table<T extends { id: string }>({
             {columns.map((column) => (
               <th
                 key={String(column.key)}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                className={`px-4 py-2.5 text-xs font-medium text-[var(--muted)] ${column.align === 'right' ? 'text-right' : 'text-left'}`}
               >
                 {column.sortable && onSort ? (
                   <button
@@ -104,15 +106,15 @@ export default function Table<T extends { id: string }>({
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-white">
           {data.map((item, index) => (
             <tr
               key={item.id || index}
-              className={`${getRowClassName ? getRowClassName(item) : 'hover:bg-gray-50'} ${onRowClick ? 'cursor-pointer' : ''}`}
+              className={`${getRowClassName ? getRowClassName(item) : 'hover:bg-[var(--raised)]'} ${onRowClick ? 'cursor-pointer' : ''}`}
               onClick={() => onRowClick?.(item)}
             >
               {onSelectId && (
-                <td className="px-4 py-4 whitespace-nowrap">
+                <td className="px-4 py-3 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selectedIds?.has(item.id)}
@@ -124,7 +126,7 @@ export default function Table<T extends { id: string }>({
               {columns.map((column) => (
                 <td
                   key={String(column.key)}
-                  className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                  className={`px-4 py-3 whitespace-nowrap text-sm text-[var(--text)] ${column.align === 'right' ? 'text-right tabular-nums' : ''}`}
                 >
                   {column.render
                     ? column.render(item[column.key], item)

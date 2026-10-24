@@ -190,7 +190,7 @@ function StatusSection({ s }: { s: FollowUpState }) {
         </div>
       ) : (
         <button type="button" onClick={mark1st} className={MARK_1ST_ITEM}>
-          <span className="text-slate-500 text-base leading-none">☐</span>
+          <span className="text-slate-500 text-base leading-none">○</span>
           <span className="font-medium">Mark 1st Follow-up</span>
         </button>
       )}
@@ -214,7 +214,7 @@ function StatusSection({ s }: { s: FollowUpState }) {
               : 'text-slate-600 cursor-not-allowed'
           }`}
         >
-          <span className="text-base leading-none">☐</span>
+          <span className="text-base leading-none">○</span>
           <span className="font-medium">Mark 2nd Follow-up</span>
           {!has1st && <span className="ml-auto text-xs text-slate-600">needs 1st</span>}
         </button>
@@ -251,7 +251,6 @@ function ReminderSection({ s }: { s: FollowUpState }) {
         }}
         className={UNDO_ITEM}
       >
-        <span className="text-xs">🗓</span>
         <span>{reminderAt ? `Reminder: ${formatReminderDate(reminderAt)}` : 'Set reminder'}</span>
       </button>
     );
@@ -301,7 +300,7 @@ export default function FollowUpCheckButton(props: Props) {
       </span>
     );
   }
-  const icon = s.has2nd ? '✓' : s.has1st ? '①' : '☐';
+  const icon = s.has2nd ? '✓' : s.has1st ? '①' : '○';
   const iconStyle = s.has2nd
     ? 'bg-emerald-50 border-emerald-300 text-emerald-600 hover:bg-emerald-100'
     : s.has1st

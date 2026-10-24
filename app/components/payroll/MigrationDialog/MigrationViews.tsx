@@ -115,7 +115,7 @@ export function MigrationInProgress({
 
         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            className="bg-[var(--accent)] h-2 rounded-full transition-[width] duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>

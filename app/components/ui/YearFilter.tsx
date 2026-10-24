@@ -10,11 +10,9 @@ interface YearFilterProps {
 }
 
 const pillBase =
-  'whitespace-nowrap rounded-full px-5 py-1.5 text-sm font-semibold cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400';
-const pillActive =
-  'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-sm shadow-red-200/70';
-const pillInactive =
-  'bg-white text-gray-400 border border-gray-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50/50';
+  'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium tabular-nums cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400';
+const pillActive = 'bg-[var(--accent-50)] text-[var(--accent-ink)]';
+const pillInactive = 'text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)]';
 
 const ARROW_THRESHOLD = 8;
 const SCROLL_AMOUNT = 180;

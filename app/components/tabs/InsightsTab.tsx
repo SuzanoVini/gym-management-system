@@ -19,11 +19,11 @@ import { useInsightToasts } from './InsightsTab/useInsightToasts';
 export { buildFollowUpInsight } from './InsightsTab/buildFollowUpInsight';
 
 const INSIGHTS_DATE_RANGE_OPTIONS: DateRangeOption[] = [
-  { value: '1month', label: 'Last Month' },
-  { value: '3months', label: 'Last 3 Months' },
-  { value: '6months', label: 'Last 6 Months' },
-  { value: 'all', label: 'All Time' },
-  { value: 'custom', label: 'Custom Range' },
+  { value: '1month', label: 'Last month' },
+  { value: '3months', label: 'Last 3 months' },
+  { value: '6months', label: 'Last 6 months' },
+  { value: 'all', label: 'All time' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 // Compute a stable hash from serialized insight data — defined at module level
@@ -54,7 +54,7 @@ function InsightsLoading() {
 
 function InsightsEmptyState() {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+    <div className="bg-white rounded-[var(--radius-card)] border border-[var(--border)] p-12 text-center">
       <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
       <h3 className="text-xl font-bold text-gray-900 mb-2">Everything Looks Good!</h3>
       <p className="text-gray-600">No critical issues detected. Your gym is running smoothly.</p>
@@ -144,7 +144,7 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
         <div className="px-1">
           <div className="flex items-center justify-between mb-4 gap-4">
             <div>
-              <h2 className="text-2xl font-bold">Smart Business Insights</h2>
+              <h1 className="page-title">Smart Business Insights</h1>
               <p className="text-sm text-gray-600 mt-1">
                 Actionable recommendations based on your actual data
               </p>

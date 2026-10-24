@@ -1,4 +1,4 @@
-import { Calendar } from 'lucide-react';
+import { Calendar, Lightbulb } from 'lucide-react';
 import { formatReminderDate } from '@/lib/utils/reminderUtils';
 
 export function ReminderStatus({
@@ -27,7 +27,7 @@ export function ReminderStatus({
       {reminderAt && !showReminderInput && (
         <div className="flex items-center justify-between text-xs bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
           <span className="text-blue-700">
-            🔔 Reminder set for <strong>{formatReminderDate(reminderAt)}</strong>
+            Reminder set for <strong>{formatReminderDate(reminderAt)}</strong>
           </span>
           <span className="flex items-center">
             <button
@@ -91,7 +91,7 @@ export function ReminderSuggestion({
   return (
     <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-sky-50 border border-sky-100 rounded-lg">
       <div className="flex items-center gap-2 text-xs min-w-0">
-        <span className="flex-shrink-0">💡</span>
+        <Lightbulb className="w-4 h-4 flex-shrink-0 text-sky-700" aria-hidden="true" />
         <span className="text-gray-700">
           <span className="text-sky-700 font-medium">Possible reminder detected</span>
           {' — follow up on '}

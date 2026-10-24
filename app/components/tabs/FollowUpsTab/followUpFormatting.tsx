@@ -1,21 +1,12 @@
 import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { normalizePersonKey, personKeyString } from '@/lib/utils/normalizePersonKey';
 
+// Rows stay white; the status cell carries the signal. Finished rows are dimmed.
 export function rowClass(row: FollowUpRow): string {
-  if (row.hasActiveReminder) {
-    return 'border-l-4 border-blue-400 bg-blue-50';
+  if (row.hasActiveReminder || row.tier <= 4) {
+    return '';
   }
-  const base = 'border-l-4 ';
-  if (row.tier === 1 || row.tier === 3) {
-    return `${base}border-red-400 bg-red-50`;
-  }
-  if (row.tier === 2) {
-    return `${base}border-amber-400 bg-amber-50`;
-  }
-  if (row.tier === 4) {
-    return `${base}border-blue-400 bg-blue-50`;
-  }
-  return 'border-l-4 border-transparent opacity-60';
+  return 'opacity-60';
 }
 
 export function formatDate(iso: string | null | undefined): string {
@@ -25,35 +16,45 @@ export function formatDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 }
 
+const PILL = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium';
+
+function overduePill() {
+  return <span className={`${PILL} bg-[var(--accent-50)] text-[var(--accent-ink)]`}>Overdue</span>;
+}
+
+function donePill(iso: string) {
+  return <span className="text-xs text-[var(--muted)]">Done {formatDate(iso)}</span>;
+}
+
 export function dueBadge(row: FollowUpRow): React.ReactNode {
   if (!row.followup_1_at) {
     if (row.tier === 1) {
-      return <span className="text-xs font-semibold text-red-600">⚠ Overdue</span>;
+      return overduePill();
     }
     if (row.tier === 2) {
-      return <span className="text-xs font-semibold text-amber-600">Due today</span>;
+      return <span className={`${PILL} bg-amber-50 text-amber-800`}>Due today</span>;
     }
     return (
-      <span className="text-xs text-gray-400">
+      <span className="text-xs text-[var(--muted)]">
         Due {formatDate(row.firstDueDate.toISOString())}
       </span>
     );
   }
-  return <span className="text-xs text-green-700">✓ {formatDate(row.followup_1_at)}</span>;
+  return donePill(row.followup_1_at);
 }
 
 export function due2Badge(row: FollowUpRow): React.ReactNode {
   if (!row.followup_1_at) {
-    return <span className="text-gray-300 text-sm">—</span>;
+    return <span className="text-sm text-[var(--muted)]">—</span>;
   }
   if (row.followup_2_at) {
-    return <span className="text-xs text-green-700">✓ {formatDate(row.followup_2_at)}</span>;
+    return donePill(row.followup_2_at);
   }
   if (row.isSecondOverdue) {
-    return <span className="text-xs font-semibold text-red-600">⚠ Overdue</span>;
+    return overduePill();
   }
   return (
-    <span className="text-xs text-blue-600">
+    <span className="text-xs text-[var(--muted)]">
       Due {row.secondDueDate ? formatDate(row.secondDueDate.toISOString()) : '—'}
     </span>
   );

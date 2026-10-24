@@ -74,7 +74,7 @@ export default function MemberJourneyPanel({
                   <div
                     className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ${event.color} border-2 border-white`}
                   />
-                  <p className="text-[10px] text-gray-400">{event.date}</p>
+                  <p className="text-xs text-gray-400">{event.date}</p>
                   <p className="text-sm font-medium text-gray-800">{event.label}</p>
                   {event.sublabel && <p className="text-xs text-gray-500">{event.sublabel}</p>}
                 </div>

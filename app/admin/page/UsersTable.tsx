@@ -144,24 +144,16 @@ export function UsersTable({
           <table className="w-full text-sm">
             <thead>
               <tr>
-                <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium">
-                  Name
-                </th>
-                <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium">
-                  Email
-                </th>
-                <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium">
-                  Role
-                </th>
-                <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium hidden sm:table-cell">
+                <th className="text-left px-6 py-3 text-xs text-gray-500 font-medium">Name</th>
+                <th className="text-left px-6 py-3 text-xs text-gray-500 font-medium">Email</th>
+                <th className="text-left px-6 py-3 text-xs text-gray-500 font-medium">Role</th>
+                <th className="text-left px-6 py-3 text-xs text-gray-500 font-medium hidden sm:table-cell">
                   Created
                 </th>
-                <th className="text-left px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium hidden md:table-cell">
+                <th className="text-left px-6 py-3 text-xs text-gray-500 font-medium hidden md:table-cell">
                   Last Sign-in
                 </th>
-                <th className="px-6 py-3 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-medium text-right">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-xs text-gray-500 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>

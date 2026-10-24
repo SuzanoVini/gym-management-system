@@ -1,6 +1,7 @@
 import { Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
 import type { RefObject } from 'react';
 import FilterBar from '@/components/ui/FilterBar';
+import KpiStrip from '@/components/ui/KpiStrip';
 import PaginationBar from '@/components/ui/PaginationBar';
 import Table from '@/components/ui/Table';
 import { config } from '@/lib/config';
@@ -69,12 +70,12 @@ function SignupHeader({
   | 'onOpenAddSignup'
 >) {
   return (
-    <div className="section-container">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
+    <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="page-title">
           {filters.year === 'all' ? 'All Sign-ups' : `${filters.year} Sign-ups`}
-        </h2>
-        <div className="flex space-x-3">
+        </h1>
+        <div className="flex flex-wrap gap-2">
           <button type="button" onClick={onOpenSettings} className="btn btn-secondary">
             <Settings className="w-4 h-4" />
             <span>Settings</span>
@@ -117,23 +118,17 @@ function SignupHeader({
 }
 
 function SignupMetricsCards({ metrics }: { metrics: SignupMetrics }) {
-  const cards = [
-    { label: 'Total Sign-ups', value: metrics.total, className: 'border-blue-600' },
-    { label: 'Integrity', value: metrics.integrity, className: 'border-green-600' },
-    { label: 'Legacy', value: metrics.legacy, className: 'border-purple-600' },
-    { label: 'Special', value: metrics.special, className: 'border-yellow-600' },
-    { label: 'ASP', value: metrics.asp, className: 'border-red-600' },
-    { label: 'With Package', value: metrics.withPackage, className: 'border-indigo-600' },
-  ];
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {cards.map(({ label, value, className }) => (
-        <div key={label} className={`section-container border-l-4 ${className}`}>
-          <div className="text-sm text-gray-600">{label}</div>
-          <div className="text-3xl font-bold mt-1">{value}</div>
-        </div>
-      ))}
-    </div>
+    <KpiStrip
+      items={[
+        { label: 'Total sign-ups', value: metrics.total },
+        { label: 'Integrity', value: metrics.integrity },
+        { label: 'Legacy', value: metrics.legacy },
+        { label: 'Special', value: metrics.special },
+        { label: 'ASP', value: metrics.asp },
+        { label: 'With package', value: metrics.withPackage },
+      ]}
+    />
   );
 }
 
@@ -220,9 +215,9 @@ function SignupTableSection({
   | 'onClearSelectedIds'
 >) {
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+    <div className="bg-white rounded-[var(--radius-card)] border border-[var(--border)] overflow-hidden">
       <div className="px-6 py-4 border-b flex justify-between items-center">
-        <h3 className="text-lg font-semibold">All Sign-ups ({sortedSignups.length})</h3>
+        <h2 className="text-lg font-semibold">All Sign-ups ({sortedSignups.length})</h2>
         {selectedIds.size > 0 && (
           <button
             type="button"

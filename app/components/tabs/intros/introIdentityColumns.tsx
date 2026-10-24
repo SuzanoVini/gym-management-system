@@ -78,7 +78,10 @@ export function introIdentityColumns({
               <Tooltip
                 content={`Former member cancelled on ${formatFormerMemberDate(cancellationDate)}`}
               >
-                <span className="text-amber-500 cursor-help text-sm leading-none">⚠</span>
+                <AlertTriangle
+                  className="w-3.5 h-3.5 text-amber-600 cursor-help"
+                  aria-label="Former member"
+                />
               </Tooltip>
             )}
             <SpamShield intro={intro} onReviewSpam={onReviewSpam} />

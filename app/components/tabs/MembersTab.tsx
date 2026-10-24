@@ -284,11 +284,11 @@ export default function MembersTab() {
 
   return (
     <div className="space-y-6">
-      <div className="section-container">
+      <div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Members</h2>
-            <p className="text-xs text-gray-500 mt-1">Last synced: {lastSyncLabel}</p>
+            <h1 className="page-title">Members</h1>
+            <p className="page-subtitle">Last synced: {lastSyncLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {uploadResult && <span className="text-xs text-gray-600">{uploadResult}</span>}

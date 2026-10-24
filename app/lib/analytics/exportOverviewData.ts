@@ -45,5 +45,5 @@ export function exportOverviewData({
   exportToCSV(exportData.cancellations, 'cancellations');
   exportToCSV(exportData.holds, 'holds');
 
-  alert('✅ All data exported successfully! Check your downloads folder.');
+  alert('All data exported successfully! Check your downloads folder.');
 }

@@ -117,7 +117,7 @@ export default function ResetPassword() {
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
-          <div className="rounded-md shadow-sm space-y-4">
+          <div className="rounded-md space-y-4">
             <div>
               <label htmlFor="password" className="sr-only">
                 New Password

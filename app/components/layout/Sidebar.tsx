@@ -57,7 +57,7 @@ function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
       href={tab.route}
       target="_blank"
       rel="noopener noreferrer"
-      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-250 group cursor-pointer ${
+      className={`sidebar-item w-full flex items-center gap-3 rounded-md text-sm cursor-pointer ${
         isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
       } ${isActive ? 'is-active' : ''}`}
       title={isOpen ? undefined : tab.label}
@@ -68,40 +68,39 @@ function PayrollLink({ tab, isActive, isOpen, onMobileClose }: TabItemProps) {
         }
       }}
     >
-      <Icon
-        className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 group-hover:rotate-3'} transition-all duration-250`}
-      />
-      {isOpen && (
-        <span className="whitespace-nowrap truncate font-medium tracking-wide">{tab.label}</span>
-      )}
+      <Icon className="w-4 h-4 flex-shrink-0" />
+      {isOpen && <span className="whitespace-nowrap truncate">{tab.label}</span>}
     </a>
   );
 }
 
 function TabButton({ tab, isActive, isOpen, onTabClick, badge }: TabItemProps) {
   const Icon = tab.icon;
+  const hasBadge = badge != null && badge > 0;
   return (
     <button
       type="button"
       onClick={() => onTabClick(tab.id, tab.route)}
-      className={`sidebar-item w-full flex items-center gap-3 rounded-lg font-medium text-sm transition-all duration-250 group cursor-pointer ${
+      className={`sidebar-item w-full flex items-center gap-3 rounded-md text-sm cursor-pointer ${
         isOpen ? 'px-3 justify-start' : 'px-2 justify-center'
       } ${isActive ? 'is-active' : ''}`}
       title={isOpen ? undefined : tab.label}
       aria-label={tab.label}
     >
       <span className="relative inline-flex">
-        <Icon
-          className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 group-hover:rotate-3'} transition-all duration-250`}
-        />
-        {badge != null && badge > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
-            {badge > 99 ? '99+' : badge}
-          </span>
+        <Icon className="w-4 h-4 flex-shrink-0" />
+        {!isOpen && hasBadge && (
+          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--accent)]" />
         )}
       </span>
-      {isOpen && (
-        <span className="whitespace-nowrap truncate font-medium tracking-wide">{tab.label}</span>
+      {isOpen && <span className="whitespace-nowrap truncate">{tab.label}</span>}
+      {isOpen && hasBadge && (
+        <span
+          className="ml-auto min-w-[1.5rem] rounded-full bg-[var(--accent-100)] px-1.5 text-center text-xs font-medium tabular-nums text-[var(--accent-ink)]"
+          title={`${badge} overdue`}
+        >
+          {badge > 99 ? '99+' : badge}
+        </span>
       )}
     </button>
   );
@@ -143,7 +142,7 @@ export default function Sidebar({ activeTab, setActiveTab, followUpBadgeCount = 
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed left-0 right-0 bottom-0 top-[var(--header-height)] bg-black/50 z-30 md:hidden backdrop-blur-sm"
+          className="fixed left-0 right-0 bottom-0 top-[var(--header-height)] bg-black/40 z-30 md:hidden"
           onClick={closeSidebar}
           aria-hidden="true"
         />
@@ -151,8 +150,8 @@ export default function Sidebar({ activeTab, setActiveTab, followUpBadgeCount = 
 
       {/* Sidebar */}
       <aside className="app-sidebar" data-state={isOpen ? 'expanded' : 'collapsed'}>
-        <nav className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent flex flex-col">
-          <div className="py-6 px-2 space-y-1.5 flex-1">
+        <nav className="h-full overflow-y-auto overflow-x-hidden flex flex-col">
+          <div className="py-4 px-2 space-y-0.5 flex-1">
             {visibleTabs.map((tab) => {
               // Check if this is a route-based tab or a state-based tab
               const isActive = tab.route ? pathname?.startsWith(tab.route) : activeTab === tab.id;

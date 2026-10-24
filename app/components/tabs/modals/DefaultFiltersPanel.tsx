@@ -19,12 +19,12 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // Must stay in step with OVERVIEW_DATE_RANGE_OPTIONS in OverviewTab: a value that is not
 // one of those would be saved happily and then silently never match.
 const OVERVIEW_RANGES: Option[] = [
-  { value: 'all', label: 'All Time' },
-  { value: '1month', label: 'Last Month' },
-  { value: '3months', label: 'Last 3 Months' },
-  { value: '6months', label: 'Last 6 Months' },
-  { value: 'year', label: 'Last Year' },
-  { value: 'ytd', label: 'Year to Date' },
+  { value: 'all', label: 'All time' },
+  { value: '1month', label: 'Last month' },
+  { value: '3months', label: 'Last 3 months' },
+  { value: '6months', label: 'Last 6 months' },
+  { value: 'year', label: 'Last year' },
+  { value: 'ytd', label: 'Year to date' },
 ];
 
 const HOLD_STATUSES: Option[] = [

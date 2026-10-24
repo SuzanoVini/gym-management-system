@@ -1,3 +1,4 @@
+import { Bell } from 'lucide-react';
 import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { clearFollowUpReminder } from '@/lib/supabase/intros';
 import { formatReminderDate } from '@/lib/utils/reminderUtils';
@@ -21,7 +22,7 @@ export default function ActiveRemindersBanner({
       {groups.length > 0 && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-            <span>🔔</span>
+            <Bell className="w-4 h-4" aria-hidden="true" />
             <span>Active reminders ({groups.length})</span>
           </div>
           {groups.map((row) => (

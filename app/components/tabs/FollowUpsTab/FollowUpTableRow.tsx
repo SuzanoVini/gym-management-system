@@ -3,18 +3,24 @@ import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { getReminderBadgeLabel } from '@/lib/utils/reminderUtils';
 import { due2Badge, dueBadge, formatDate, rowClass } from './followUpFormatting';
 
+// On a phone the queue reads as two-line items: name and the first follow-up on line one, the
+// intro date, class and staff in grey on line two. The wider columns return from 640px up.
+const WIDE = 'hidden sm:table-cell';
+
 export function FollowUpTableHead() {
   return (
-    <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+    <thead>
       <tr>
-        <th className="text-left px-4 py-3">Name</th>
-        <th className="text-left px-4 py-3">Intro Date</th>
-        <th className="text-left px-4 py-3">Class</th>
-        <th className="text-left px-4 py-3">Staff</th>
-        <th className="text-left px-4 py-3">1st Follow-up</th>
-        <th className="text-left px-4 py-3">2nd Follow-up</th>
-        <th className="text-left px-4 py-3">Notes</th>
-        <th className="px-4 py-3" />
+        <th>Name</th>
+        <th className={WIDE}>Intro date</th>
+        <th className={WIDE}>Class</th>
+        <th className={WIDE}>Staff</th>
+        <th>1st follow-up</th>
+        <th className={WIDE}>2nd follow-up</th>
+        <th className={WIDE}>Notes</th>
+        <th>
+          <span className="sr-only">Actions</span>
+        </th>
       </tr>
     </thead>
   );
@@ -34,32 +40,37 @@ export default function FollowUpTableRow({
   const latestNote = row.follow_up_notes?.[0]?.note ?? '';
   const preview = latestNote.length > 60 ? `${latestNote.slice(0, 60)}…` : latestNote;
   return (
-    <tr className={`${rowClass(row)} transition-colors`}>
-      <td className="px-4 py-3 font-medium text-gray-900">
+    <tr className={rowClass(row)}>
+      <td className="font-medium text-[var(--text)]">
         <div className="flex items-center gap-2 flex-wrap">
           <span>{row.name}</span>
           {row.hasActiveReminder && row.followup_reminder_at && (
-            <span className="text-[10px] font-semibold bg-blue-100 text-blue-600 rounded px-1.5 py-0.5">
-              🔔 {getReminderBadgeLabel(row.followup_reminder_at)}
+            <span className="rounded-full bg-[var(--raised)] px-2 py-0.5 text-xs font-medium text-[var(--gb-dark-gray)]">
+              Reminder {getReminderBadgeLabel(row.followup_reminder_at)}
             </span>
           )}
         </div>
+        <div className="mt-0.5 text-xs font-normal text-[var(--muted)] sm:hidden">
+          {[formatDate(row.date), row.class, row.staff].filter(Boolean).join(' · ')}
+        </div>
       </td>
-      <td className="px-4 py-3 text-gray-600">{formatDate(row.date)}</td>
-      <td className="px-4 py-3 text-gray-600">{row.class}</td>
-      <td className="px-4 py-3 text-gray-600">{row.staff}</td>
-      <td className="px-4 py-3">{dueBadge(row)}</td>
-      <td className="px-4 py-3">{due2Badge(row)}</td>
-      <td className="px-4 py-3 max-w-[200px]">
+      <td className={`${WIDE} text-[var(--gb-dark-gray)] whitespace-nowrap`}>
+        {formatDate(row.date)}
+      </td>
+      <td className={`${WIDE} text-[var(--gb-dark-gray)]`}>{row.class}</td>
+      <td className={`${WIDE} text-[var(--gb-dark-gray)]`}>{row.staff}</td>
+      <td>{dueBadge(row)}</td>
+      <td className={WIDE}>{due2Badge(row)}</td>
+      <td className={`${WIDE} max-w-[200px]`}>
         <button
           type="button"
           onClick={() => onOpenNotes(row)}
-          className="text-left text-gray-500 italic truncate w-full hover:text-blue-600 hover:underline transition-colors"
+          className="text-left truncate w-full text-[var(--gb-dark-gray)] hover:text-[var(--text)] hover:underline"
         >
-          {preview || <span className="text-gray-300">No notes</span>}
+          {preview || <span className="text-[var(--muted)]">Add note</span>}
         </button>
       </td>
-      <td className="px-4 py-3">
+      <td>
         <FollowUpCheckButton intro={row} onUpdate={onUpdate} onDismissed={onDismissed} />
       </td>
     </tr>
