@@ -90,13 +90,13 @@ function TabButton({ tab, isActive, isOpen, onTabClick, badge }: TabItemProps) {
       <span className="relative inline-flex">
         <Icon className="w-4 h-4 flex-shrink-0" />
         {!isOpen && hasBadge && (
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[var(--accent)]" />
+          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#fca5a5]" />
         )}
       </span>
       {isOpen && <span className="whitespace-nowrap truncate">{tab.label}</span>}
       {isOpen && hasBadge && (
         <span
-          className="ml-auto min-w-[1.5rem] rounded-full bg-[var(--accent-100)] px-1.5 text-center text-xs font-medium tabular-nums text-[var(--accent-ink)]"
+          className="ml-auto min-w-[1.5rem] rounded-full bg-[var(--accent)] px-1.5 text-center text-xs font-semibold tabular-nums text-white"
           title={`${badge} overdue`}
         >
           {badge > 99 ? '99+' : badge}

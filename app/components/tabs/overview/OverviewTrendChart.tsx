@@ -11,9 +11,9 @@ import {
 import InfoTip from '@/components/ui/InfoTip';
 import type { computeMonthlyTrends } from '@/lib/analytics/overviewMetrics';
 
-// Sign-ups are the series the screen is about, so they carry the one hue; intros are context in
-// a dark grey and cancellations a dashed light grey. Straight lines, no markers, faint gridlines.
-const AXIS = { fontSize: 12, fill: '#6b6363' };
+// Sign-ups are the series the screen is about, so they carry the red; intros are context in GB
+// navy and cancellations a dashed light grey. Straight lines, no markers, faint gridlines.
+const AXIS = { fontSize: 12, fill: '#5d6675' };
 
 export default function OverviewTrendChart({
   monthlyData,
@@ -28,17 +28,17 @@ export default function OverviewTrendChart({
       </h2>
       <ResponsiveContainer width="100%" height={280}>
         <LineChart data={monthlyData} margin={{ top: 8, right: 16, bottom: 0, left: -16 }}>
-          <CartesianGrid vertical={false} stroke="#efe9e9" />
-          <XAxis dataKey="month" tick={AXIS} tickLine={false} axisLine={{ stroke: '#ebe5e5' }} />
+          <CartesianGrid vertical={false} stroke="#edf0f5" />
+          <XAxis dataKey="month" tick={AXIS} tickLine={false} axisLine={{ stroke: '#e2e7ee' }} />
           <YAxis tick={AXIS} tickLine={false} axisLine={false} allowDecimals={false} />
           <Tooltip />
-          <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: '#6b6363' }} />
+          <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: '#5d6675' }} />
           <Line type="linear" dataKey="Sign-ups" stroke="#dc2626" strokeWidth={2} dot={false} />
-          <Line type="linear" dataKey="Intros" stroke="#6b6363" strokeWidth={2} dot={false} />
+          <Line type="linear" dataKey="Intros" stroke="#1e3a8a" strokeWidth={2} dot={false} />
           <Line
             type="linear"
             dataKey="Cancellations"
-            stroke="#b8adad"
+            stroke="#a3acba"
             strokeWidth={2}
             strokeDasharray="4 3"
             dot={false}

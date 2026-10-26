@@ -76,6 +76,7 @@ function HomeContent() {
                     <OverviewTab
                       followUpRows={followUps.rows}
                       onOpenFollowUps={() => handleTabChange('followups')}
+                      onIntrosChanged={followUps.silentRefresh}
                     />
                   )}
                   {activeTab === 'insights' && <InsightsTab followUps={followUps} />}

@@ -170,9 +170,13 @@ export const useAnalyticsData = (filterOptions: DateRangeFilterOptions) => {
 
   const { dateRange, customStartDate, customEndDate } = filterOptions;
 
-  const loadAllData = useCallback(async () => {
+  // `silent` reloads in place (no loading state), for small edits made from the screen itself,
+  // so the page doesn't swap to the spinner and lose what the user had open.
+  const loadAllData = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
       const [introsData, signupsData, cancellationsData, holdsData] = await Promise.all([
         fetchIntros(),
@@ -218,6 +222,7 @@ export const useAnalyticsData = (filterOptions: DateRangeFilterOptions) => {
     allData,
     loading,
     error,
-    refresh: loadAllData,
+    refresh: () => loadAllData(),
+    silentRefresh: () => loadAllData(true),
   };
 };

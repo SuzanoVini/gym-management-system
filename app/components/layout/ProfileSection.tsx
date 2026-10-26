@@ -65,7 +65,7 @@ export default function ProfileSection() {
         aria-label="View Profile"
       >
         {/* Avatar */}
-        <div className="w-8 h-8 flex-shrink-0 rounded-full bg-[var(--accent-100)] overflow-hidden flex items-center justify-center">
+        <div className="w-8 h-8 flex-shrink-0 rounded-full bg-white/15 overflow-hidden flex items-center justify-center">
           {avatarUrl ? (
             <Image
               src={avatarUrl}
@@ -75,15 +75,15 @@ export default function ProfileSection() {
               className="w-full h-full object-cover"
             />
           ) : (
-            <User className="w-4 h-4 text-[var(--accent-ink)]" />
+            <User className="w-4 h-4 text-white" />
           )}
         </div>
 
         {/* User Info - Only shown when sidebar is expanded */}
         {isOpen && (
           <div className="flex-1 min-w-0 text-left">
-            <div className="text-[var(--text)] font-medium text-sm truncate">{fullName}</div>
-            <div className="text-[var(--muted)] text-xs truncate">{email}</div>
+            <div className="text-white font-medium text-sm truncate">{fullName}</div>
+            <div className="text-white/65 text-xs truncate">{email}</div>
           </div>
         )}
       </button>

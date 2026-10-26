@@ -8,9 +8,9 @@ import { brand } from '@/lib/brand';
 
 function LoginHeader({ isResetMode }: { isResetMode: boolean }) {
   return (
-    <div className="mb-8">
+    <div className="mb-8 text-center">
       <BrandLogo
-        className="h-28 w-auto max-w-[160px] object-contain -ml-2"
+        className="mx-auto block h-28 w-auto max-w-[160px] object-contain"
         width={160}
         height={112}
       />
@@ -88,7 +88,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--ground)] py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--navy)] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="bg-[var(--surface)] rounded-[var(--radius-card)] p-8 border border-[var(--border)]">
           <LoginHeader isResetMode={isResetMode} />

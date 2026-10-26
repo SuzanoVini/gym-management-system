@@ -78,9 +78,8 @@ function computeOverviewCharts(
   current: ReturnType<typeof computeCoreMetrics>,
   staffMembers: string[]
 ) {
-  const { intros, signups, cancellations, holds } = filteredData;
+  const { intros, signups, cancellations } = filteredData;
   return {
-    activeHolds: holds.filter((h) => isActiveHold(h)).length,
     monthlyData: computeMonthlyTrends(filteredData),
     funnelData: computeFunnelData(current),
     topClasses: computeTopClasses(intros, signups),
@@ -93,9 +92,11 @@ function computeOverviewCharts(
 export default function OverviewTab({
   followUpRows,
   onOpenFollowUps,
+  onIntrosChanged,
 }: {
   followUpRows?: FollowUpRow[];
   onOpenFollowUps?: () => void;
+  onIntrosChanged?: () => Promise<void> | void;
 } = {}) {
   const {
     dateRange,
@@ -112,11 +113,12 @@ export default function OverviewTab({
     setTempEndDate,
   } = useOverviewDateRange();
 
-  const { filteredData, previousPeriodData, allData, loading, error, refresh } = useAnalyticsData({
-    dateRange,
-    customStartDate,
-    customEndDate,
-  });
+  const { filteredData, previousPeriodData, allData, loading, error, refresh, silentRefresh } =
+    useAnalyticsData({
+      dateRange,
+      customStartDate,
+      customEndDate,
+    });
   const staffMembers = useSettingsStore((s) => s.staffMembers);
   const revenuePerMember = useRevenueSetting();
 
@@ -128,15 +130,10 @@ export default function OverviewTab({
   const { intros, signups, cancellations, holds } = filteredData;
   const current = computeCoreMetrics(filteredData);
   const previous = previousPeriodData ? computeCoreMetrics(previousPeriodData) : null;
-  const {
-    activeHolds,
-    monthlyData,
-    funnelData,
-    topClasses,
-    membershipChart,
-    reasonsChart,
-    staffPerformance,
-  } = computeOverviewCharts(filteredData, current, staffMembers);
+  const { monthlyData, funnelData, topClasses, membershipChart, reasonsChart, staffPerformance } =
+    computeOverviewCharts(filteredData, current, staffMembers);
+  // Active holds describes today, regardless of the selected chart range.
+  const activeHolds = allData.holds.filter((hold) => isActiveHold(hold)).length;
   // Top insights from the shared engine (same rules as the Insights tab) —
   // this used to be a hand-rolled fork with its own thresholds that drifted
   // from the real rules over time (e.g. >3 vs ≥5 for top cancellation reason)
@@ -206,7 +203,13 @@ export default function OverviewTab({
 
       <OverviewSummaryCards current={current} previous={previous} activeHolds={activeHolds} />
       {/* Today's bookings come from all data, whatever range is selected above. */}
-      <TodayOnTheMats intros={allData.intros} />
+      <TodayOnTheMats
+        intros={allData.intros}
+        onAttendanceChanged={async () => {
+          await silentRefresh();
+          await onIntrosChanged?.();
+        }}
+      />
       <OverviewInsights insights={insights} />
       <OverviewTrendChart monthlyData={monthlyData} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
