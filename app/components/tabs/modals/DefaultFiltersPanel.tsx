@@ -20,6 +20,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // one of those would be saved happily and then silently never match.
 const OVERVIEW_RANGES: Option[] = [
   { value: 'all', label: 'All time' },
+  { value: 'thismonth', label: 'This month' },
   { value: '1month', label: 'Last month' },
   { value: '3months', label: 'Last 3 months' },
   { value: '6months', label: 'Last 6 months' },

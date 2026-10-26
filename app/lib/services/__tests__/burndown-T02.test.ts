@@ -247,8 +247,15 @@ describe('parsers', () => {
     expect(
       JSON.stringify(parseBookingEmail(email.replace('Phone: 555', 'Phone: ')))
     ).toMatchInlineSnapshot(
-      `"{"className":"Adult BJJ Intro","month":"Sep","date":4,"year":2026,"time":"6:30 pm","staff":"Coach A","name":"Jo Doe","phone":"Email: jo@x.com","email":"jo@x.com"}"`
+      `"{"className":"Adult BJJ Intro","month":"Sep","date":4,"year":2026,"time":"6:30 pm","staff":"Coach A","name":"Jo Doe","phone":null,"email":"jo@x.com"}"`
     );
+    // A blank field must not swallow the next line
+    expect(parseBookingEmail(email.replace('Staff: Coach A', 'Staff:'))).toMatchObject({
+      staff: '',
+      name: 'Jo Doe',
+    });
+    expect(parseBookingEmail(email.replace('Name: Jo Doe', 'Name:'))).toBeNull();
+    expect(parseBookingEmail(email.replace('Type: Adult BJJ Intro', 'Type:'))).toBeNull();
     for (const label of ['Type:', 'Date:', 'Time:', 'Staff:', 'Name:']) {
       expect(parseBookingEmail(email.replace(label, 'Nope:'))).toBeNull();
     }

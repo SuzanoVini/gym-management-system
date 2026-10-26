@@ -31,6 +31,7 @@ import TodayOnTheMats from './overview/TodayOnTheMats';
 
 const OVERVIEW_DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: 'all', label: 'All time' },
+  { value: 'thismonth', label: 'This month' },
   { value: '1month', label: 'Last month' },
   { value: '3months', label: 'Last 3 months' },
   { value: '6months', label: 'Last 6 months' },

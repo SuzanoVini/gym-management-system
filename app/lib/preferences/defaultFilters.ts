@@ -63,7 +63,7 @@ export function resolveTabDefaults(
 }
 
 /** Overview tracks a single date range rather than the full filter set. */
-export const SHIPPED_OVERVIEW_DATE_RANGE = 'all';
+export const SHIPPED_OVERVIEW_DATE_RANGE = 'thismonth';
 
 export function resolveOverviewDefault(prefs: DefaultFilterPreferences | null | undefined): string {
   return prefs?.defaultFilters?.overview?.dateRange || SHIPPED_OVERVIEW_DATE_RANGE;
