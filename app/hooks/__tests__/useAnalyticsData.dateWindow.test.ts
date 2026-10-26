@@ -15,6 +15,15 @@ describe('resolveDateWindow', () => {
     expect(window?.endDate.getDate()).toBe(30);
   });
 
+  it('covers full calendar months for the longer ranges', () => {
+    const quarter = resolveDateWindow('3months', '', '', NOW);
+    expect([quarter?.startDate.getMonth(), quarter?.startDate.getDate()]).toEqual([3, 1]);
+    expect([quarter?.endDate.getMonth(), quarter?.endDate.getDate()]).toEqual([5, 30]);
+    const year = resolveDateWindow('year', '', '', NOW);
+    expect([year?.startDate.getFullYear(), year?.startDate.getMonth()]).toEqual([2025, 6]);
+    expect([year?.endDate.getFullYear(), year?.endDate.getMonth()]).toEqual([2026, 5]);
+  });
+
   it('computes this month starting on the 1st', () => {
     const window = resolveDateWindow('thismonth', '', '', NOW);
     expect(window?.endDate).toEqual(NOW);

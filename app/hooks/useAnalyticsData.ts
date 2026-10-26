@@ -50,6 +50,8 @@ interface DateWindow {
   endDate: Date;
 }
 
+const FULL_MONTH_RANGES = { '1month': 1, '3months': 3, '6months': 6, year: 12 } as const;
+
 /** Null for 'all' — there's no bounded window to mirror for a delta comparison. */
 export function resolveDateWindow(
   dateRange: string,
@@ -69,19 +71,16 @@ export function resolveDateWindow(
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
     case '1month':
-      // The previous calendar month, not the last 30 days
-      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    case '3months':
+    case '6months':
+    case 'year': {
+      // The last N full calendar months, ending with last month. A rolling window
+      // would start mid-month and leave the first month's chart bar partial.
+      const months = FULL_MONTH_RANGES[dateRange];
+      startDate = new Date(now.getFullYear(), now.getMonth() - months, 1);
       endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       break;
-    case '3months':
-      startDate.setMonth(now.getMonth() - 3);
-      break;
-    case '6months':
-      startDate.setMonth(now.getMonth() - 6);
-      break;
-    case 'year':
-      startDate.setFullYear(now.getFullYear() - 1);
-      break;
+    }
     case 'ytd':
       startDate = new Date(now.getFullYear(), 0, 1);
       break;
