@@ -232,8 +232,8 @@
   /* Brand */
   --gb-red: #dc2626;
   --gb-dark-red: #b91c1c;
-  --gb-black: #1f1a1a;
-  --gb-dark-gray: #4a4343;
+  --gb-black: #172033;
+  --gb-dark-gray: #3f4859;
   --gb-light-gray: #f4f1f1;
   --gb-white: #ffffff;
   --gb-primary: #dc2626;
@@ -243,16 +243,22 @@
   --gb-dark-surface: #1f2937;
   --gb-dark-border: #374151;
 
-  /* Roles (accent ladder) */
-  --ground: #fbf8f8;
+  /* Roles: GB red + GB navy on cool whites. Red goes on the action, the main data and bad
+     news; navy carries the shell (sidebar), page titles and the context data series. */
+  --ground: #f4f6f9;
   --surface: #ffffff;
-  --raised: #f8f5f5;
-  --hover: #f4efef;
-  --border: #ebe5e5;
-  --rule: #f1ecec;
-  --control-border: #ddd5d5;
-  --text: #1f1a1a;
-  --muted: #6b6363;
+  --raised: #f6f8fb;
+  --hover: #eef2f7;
+  --border: #e2e7ee;
+  --rule: #edf0f5;
+  --control-border: #d3dae4;
+  --text: #172033;
+  --muted: #5d6675;
+  --navy: #1e3a8a;
+  --navy-ink: #172554;
+  --navy-50: #eef3fb;
+  --navy-100: #dbe5f6;
+  --navy-300: #93a9d8;
   --accent: #dc2626;
   --accent-ink: #991b1b;
   --accent-50: #fef4f4;
@@ -260,7 +266,7 @@
   --accent-200: #fbc9c9;
   --positive: #15803d;
   --negative: #b91c1c;
-  --chart-neutral: #c9c1c1;
+  --chart-neutral: #93a9d8;
   --radius-card: 10px;
   --radius-control: 6px;
 
@@ -307,15 +313,15 @@
   }
 }
 
-/* The sidebar sits on the page ground, split from the canvas by one hairline. */
+/* GB navy sidebar: the shell's identity. Flat, no gradient or glow (brand exception to the
+   app-screen rule of a sidebar on the page ground). */
 .app-sidebar {
   position: fixed;
   top: var(--header-height);
   left: 0;
   height: calc(100vh - var(--header-height));
   width: var(--sidebar-width-collapsed);
-  background: var(--ground);
-  border-right: 1px solid var(--border);
+  background: var(--navy);
   transition:
     width 0.2s ease,
     transform 0.2s ease;
@@ -346,13 +352,13 @@
   }
 }
 
-/* Nav rows: 14px grey labels on a 34px pitch; the active row is a pale red tint with the hue's
-   dark ink, and only its icon carries the full red. */
+/* Nav rows: 14px labels in white on navy; the active row is a lighter navy step with a white
+   label and a light-red icon, the one red mark in the shell. */
 .sidebar-item {
   min-height: 2.25rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  color: var(--gb-dark-gray);
+  color: rgba(255, 255, 255, 0.82);
   background: transparent;
   font-weight: 400;
   transition:
@@ -363,22 +369,22 @@
 .sidebar-item svg {
   width: 1rem;
   height: 1rem;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .sidebar-item:hover {
-  color: var(--text);
-  background: var(--hover);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-item.is-active {
-  color: var(--accent-ink);
-  background: var(--accent-50);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
   font-weight: 500;
 }
 
 .sidebar-item.is-active svg {
-  color: var(--accent);
+  color: #fca5a5;
 }
 
 @media (max-width: 767px) {
@@ -391,7 +397,6 @@
   .app-sidebar {
     width: var(--sidebar-width-expanded);
     transform: translateX(-100%);
-    background: var(--surface);
   }
 
   .app-sidebar[data-state="expanded"] {
@@ -535,7 +540,7 @@
   font-weight: 650;
   line-height: 1.25;
   letter-spacing: -0.01em;
-  color: var(--text);
+  color: var(--navy);
   margin: 0;
 }
 
@@ -653,7 +658,7 @@
 
 .form-input:hover,
 .form-select:hover {
-  border-color: #c8bebe;
+  border-color: #b9c2cf;
 }
 
 .form-input:focus,
@@ -666,14 +671,14 @@
 .form-input:disabled,
 .form-select:disabled {
   background-color: var(--raised);
-  color: #9a9191;
+  color: #8f98a6;
   cursor: not-allowed;
 }
 
 .form-select {
   cursor: pointer;
   padding-right: 2.5rem;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b6363' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235d6675' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.75' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
   background-size: 1.25em 1.25em;
@@ -734,12 +739,12 @@ body.modal-open {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d9d1d1;
+  background: #cfd6e0;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bdb3b3;
+  background: #aab4c2;
 }
 
 .animate-spin {
@@ -771,12 +776,27 @@ body.modal-open {
 }
 
 .payroll-header {
-  color: var(--text);
-  margin-bottom: 1.5rem;
+  color: white;
+  background: var(--navy);
+}
+
+.payroll-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
+}
+
+.payroll-header h1 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.payroll-header p {
+  color: rgb(255 255 255 / 70%);
+  font-size: 0.875rem;
 }
 
 .payroll-card {
@@ -868,9 +888,8 @@ body.modal-open {
     padding: 1rem;
   }
 
-  .payroll-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .payroll-header-inner {
+    padding: 1rem;
   }
 
   .payroll-summary-cards {

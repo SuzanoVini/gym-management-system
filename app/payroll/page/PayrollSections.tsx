@@ -9,8 +9,8 @@ import type { PayrollPeriod, StaffHours, StaffMember } from '@/types';
 
 export function PayrollHeader() {
   return (
-    <div className="payroll-header">
-      <div className="flex items-center gap-3">
+    <header className="payroll-header">
+      <div className="payroll-header-inner flex items-center gap-3">
         {brand.badgeUrl && (
           <Image
             src={brand.badgeUrl}
@@ -22,11 +22,11 @@ export function PayrollHeader() {
           />
         )}
         <div>
-          <h1 className="page-title">Payroll</h1>
-          <p className="page-subtitle">{brand.name} staff hours by pay period</p>
+          <h1>Payroll</h1>
+          <p>{brand.name} staff hours by pay period</p>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 

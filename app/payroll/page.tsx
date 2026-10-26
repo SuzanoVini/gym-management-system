@@ -22,10 +22,8 @@ export default function PayrollPage() {
   return (
     <ProtectedRoute ownerOnly>
       <div className="payroll-page">
+        <PayrollHeader />
         <div className="payroll-container">
-          {/* Header */}
-          <PayrollHeader />
-
           {/* Period Selector */}
           <div className="payroll-card">
             <PeriodSelector
