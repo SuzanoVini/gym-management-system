@@ -40,21 +40,16 @@ export const MONTH_TO_NUM: Record<string, number> = {
   Dec: 12,
 };
 
-// Extract a field value from the email body, stopping at line boundaries and stripping \r
-function extractField(text: string, label: string): string | null {
-  const match = text.match(new RegExp(`${label}:\\s*([^\r\n]+)`));
-  const value = match?.[1]?.trim().replace(/\r$/, '') ?? null;
-  return value || null;
+// Value on the `Label:` line, '' when the label is there but blank, undefined when the label
+// is missing. The value never runs past the end of its own line: `\s*` would swallow the line
+// break after a blank field and capture the next line ("Staff:" picking up "Name: ...").
+function fieldValue(text: string, label: string): string | undefined {
+  return text.match(new RegExp(`\\b${label}:[ \\t]*(.*)$`, 'm'))?.[1]?.trim();
 }
 
-// First capture group of `pattern` in the email body, if any.
-function captureGroup(text: string, pattern: RegExp): string | undefined {
-  return text.match(pattern)?.[1];
-}
-
-// "Date: September 4, 2026" -> [month name, day, year]
-function matchBookingDate(text: string): [string, string, string] | null {
-  const dateMatch = text.match(/Date:\s*(\w+)\s+(\d{1,2}),\s*(\d{4})/);
+// "September 4, 2026" -> [month name, day, year]
+function matchBookingDate(value: string): [string, string, string] | null {
+  const dateMatch = value.match(/^(\w+)\s+(\d{1,2}),\s*(\d{4})$/);
   if (!dateMatch?.[1] || !dateMatch?.[2] || !dateMatch?.[3]) {
     return null;
   }
@@ -62,30 +57,28 @@ function matchBookingDate(text: string): [string, string, string] | null {
 }
 
 export function parseBookingEmail(text: string): ParsedBooking | null {
-  const type = captureGroup(text, /Type:\s*([^\r\n]+)/);
-  const bookingDate = matchBookingDate(text);
-  const time = captureGroup(text, /Time:\s*([\d:]+\s*[APMapm]+)/);
-  const staff = captureGroup(text, /Staff:\s*([^\r\n]+)/);
-  const name = captureGroup(text, /Name:\s*([^\r\n]+)/);
-  const phone = extractField(text, 'Phone');
-  const email = extractField(text, 'Email');
+  const type = fieldValue(text, 'Type');
+  const bookingDate = matchBookingDate(fieldValue(text, 'Date') ?? '');
+  const time = fieldValue(text, 'Time')?.match(/^[\d:]+\s*[APMapm]+$/)?.[0];
+  // Staff may be blank (booked without a coach), but the line itself must be there
+  const staff = fieldValue(text, 'Staff');
+  const name = fieldValue(text, 'Name');
 
-  if (!type || !bookingDate || !time || !staff || !name) {
+  if (!type || !bookingDate || !time || staff === undefined || !name) {
     return null;
   }
 
-  const typeLine = type.trim();
   const [fullMonth, day, year] = bookingDate;
 
   return {
-    className: typeLine,
+    className: type,
     month: MONTH_SHORT[fullMonth] ?? fullMonth.slice(0, 3),
     date: parseInt(day, 10),
     year: parseInt(year, 10),
-    time: time.trim(),
-    staff: staff.trim(),
-    name: name.trim(),
-    phone,
-    email,
+    time,
+    staff,
+    name,
+    phone: fieldValue(text, 'Phone') || null,
+    email: fieldValue(text, 'Email') || null,
   };
 }
