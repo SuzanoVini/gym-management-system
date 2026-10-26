@@ -34,9 +34,9 @@ describe('resolveTabDefaults', () => {
 });
 
 describe('resolveOverviewDefault', () => {
-  it('defaults to all time', () => {
-    expect(resolveOverviewDefault(null)).toBe('all');
-    expect(resolveOverviewDefault({})).toBe('all');
+  it('defaults to this month', () => {
+    expect(resolveOverviewDefault(null)).toBe('thismonth');
+    expect(resolveOverviewDefault({})).toBe('thismonth');
   });
 
   it('returns the saved range', () => {

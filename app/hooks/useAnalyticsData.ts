@@ -65,8 +65,13 @@ export function resolveDateWindow(
   let endDate = now;
 
   switch (dateRange) {
+    case 'thismonth':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
     case '1month':
-      startDate.setMonth(now.getMonth() - 1);
+      // The previous calendar month, not the last 30 days
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
       break;
     case '3months':
       startDate.setMonth(now.getMonth() - 3);

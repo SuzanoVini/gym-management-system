@@ -7,10 +7,19 @@ describe('resolveDateWindow', () => {
     expect(resolveDateWindow('all', '', '', NOW)).toBeNull();
   });
 
-  it('computes a 1-month window ending now', () => {
+  it('computes last month as the previous calendar month', () => {
     const window = resolveDateWindow('1month', '', '', NOW);
+    expect(window?.startDate.getMonth()).toBe(NOW.getMonth() - 1);
+    expect(window?.startDate.getDate()).toBe(1);
+    expect(window?.endDate.getMonth()).toBe(NOW.getMonth() - 1);
+    expect(window?.endDate.getDate()).toBe(30);
+  });
+
+  it('computes this month starting on the 1st', () => {
+    const window = resolveDateWindow('thismonth', '', '', NOW);
     expect(window?.endDate).toEqual(NOW);
-    expect(window?.startDate.getUTCMonth()).toBe(NOW.getUTCMonth() - 1);
+    expect(window?.startDate.getMonth()).toBe(NOW.getMonth());
+    expect(window?.startDate.getDate()).toBe(1);
   });
 
   it('computes year-to-date starting Jan 1', () => {

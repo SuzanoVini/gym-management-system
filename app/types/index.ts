@@ -170,7 +170,15 @@ export type ApiResult<T> = Promise<ApiResponse<T>>;
 // Filter & Query Types
 // ============================================================================
 
-export type DateRangeFilter = 'all' | '1month' | '3months' | '6months' | 'year' | 'ytd' | 'custom';
+export type DateRangeFilter =
+  | 'all'
+  | 'thismonth'
+  | '1month'
+  | '3months'
+  | '6months'
+  | 'year'
+  | 'ytd'
+  | 'custom';
 
 export type SortOrder = 'newest' | 'oldest';
 
