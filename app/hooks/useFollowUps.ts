@@ -67,6 +67,9 @@ function collectPersonGroupState(recentIntros: Intro[]): PersonGroupState {
 }
 
 function needsFollowUp(intro: Intro, dismissedKeys: Set<string>): boolean {
+  if (intro.status === 'Cancelled') {
+    return false;
+  }
   if (intro.attended !== 'Yes' && intro.attended !== 'No') {
     return false;
   }

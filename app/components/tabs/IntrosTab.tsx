@@ -9,14 +9,16 @@ import { useFormerMembers } from '@/hooks/useFormerMembers';
 import { useIntroCsvImport } from '@/hooks/useIntroCsvImport';
 import { useIntroListView } from '@/hooks/useIntroListView';
 import { useIntros } from '@/hooks/useIntros';
+import { errorHandler } from '@/lib/errorHandler';
 import { reportConsoleError } from '@/lib/logger';
-import { undoDismissFollowUp } from '@/lib/supabase/intros';
+import { undoDismissFollowUp, updateIntroStatus } from '@/lib/supabase/intros';
 import { deleteIntroIds } from '@/lib/supabase/introTableActions';
 import { useFilterStore } from '@/store/useFilterStore';
 import { type SelectionTabKey, useSelectionStore } from '@/store/useSelectionStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { useUIStore } from '@/store/useUIStore';
 import type { Intro } from '@/types';
+import CancelBookingDialog from './intros/CancelBookingDialog';
 import IntroDialogs from './intros/IntroDialogs';
 import IntroFilters from './intros/IntroFilters';
 import IntroImportPreview from './intros/IntroImportPreview';
@@ -177,9 +179,11 @@ function IntrosTableSection({
         onClearSelection={(ids) => selection.clearSelection(selectionTab, ids)}
         emptyMessage="No intros found matching your criteria"
         getRowClassName={(intro) =>
-          intro.followup_1_at && !intro.followup_2_at
-            ? 'bg-blue-50 hover:bg-blue-100'
-            : 'hover:bg-gray-50'
+          intro.status === 'Cancelled'
+            ? 'bg-gray-100 text-gray-400 hover:bg-gray-200/70'
+            : intro.followup_1_at && !intro.followup_2_at
+              ? 'bg-blue-50 hover:bg-blue-100'
+              : 'hover:bg-gray-50'
         }
       />
     </div>
@@ -200,6 +204,7 @@ export default function IntrosTab({ onIntrosChanged }: IntrosTabProps = {}) {
   const classTypes = useSettingsStore((s) => s.classTypes);
   const staffMembers = useSettingsStore((s) => s.staffMembers);
   const dialogState = useIntroDialogState();
+  const [cancellingIntro, setCancellingIntro] = useState<Intro | null>(null);
 
   const csvImport = useIntroCsvImport({ intros, refresh, openModal, closeModal });
   const view = useIntroListView(intros, filters, staffMembers);
@@ -260,6 +265,20 @@ export default function IntrosTab({ onIntrosChanged }: IntrosTabProps = {}) {
     },
     onReviewSpam: introSpam.spam.setReviewIntro,
     onMarkSpam: (intro: Intro) => introSpam.spam.openConfirm(intro, 'mark'),
+    onCancelBooking: setCancellingIntro,
+    // Restoring is non-destructive, so no confirmation step
+    onRestoreBooking: (intro: Intro) => {
+      void (async () => {
+        try {
+          await updateIntroStatus(intro.id, 'Active');
+          await silentRefresh();
+          await onIntrosChanged?.();
+          errorHandler.notify(`Booking for ${intro.name} restored`, 'success');
+        } catch (err) {
+          errorHandler.handle(err, 'restoreBooking');
+        }
+      })();
+    },
   };
 
   if (error) {
@@ -322,6 +341,17 @@ export default function IntrosTab({ onIntrosChanged }: IntrosTabProps = {}) {
       />
 
       <IntroSpamLayer {...introSpam} searchTerm={filters.searchTerm} />
+
+      {cancellingIntro && (
+        <CancelBookingDialog
+          intro={cancellingIntro}
+          onClose={() => setCancellingIntro(null)}
+          onCancelled={async () => {
+            await silentRefresh();
+            await onIntrosChanged?.();
+          }}
+        />
+      )}
 
       <IntroDialogs
         data={data}
