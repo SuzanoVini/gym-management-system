@@ -20,6 +20,7 @@ export function computeCoreMetrics(data: OverviewRecords) {
   ).size;
   return {
     totalIntros: data.intros.length,
+    cancelledIntros: data.intros.filter((i) => i.status === 'Cancelled').length,
     attendedIntros: attended,
     totalSignups: data.signups.length,
     totalCancellations: data.cancellations.length,
@@ -65,13 +66,17 @@ export function computeMonthlyTrends({ intros, signups, cancellations }: Overvie
 }
 
 export function computeFunnelData({
-  totalIntros,
+  totalIntros: booked,
+  cancelledIntros,
   attendedIntros,
   signupsFromIntros,
 }: ReturnType<typeof computeCoreMetrics>) {
+  // Cancelled bookings never had a chance to attend, so they leave the
+  // attendance denominator instead of counting as no-shows
+  const totalIntros = booked - cancelledIntros;
   return [
     {
-      stage: 'Intros',
+      stage: cancelledIntros > 0 ? 'Intros not cancelled' : 'Intros',
       count: totalIntros,
       percentage: 100,
       countLabel: `${totalIntros} (100%)`,

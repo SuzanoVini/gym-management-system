@@ -44,15 +44,23 @@ export default function OverviewSummaryCards({
   previous: ReturnType<typeof computeCoreMetrics> | null;
   activeHolds: number;
 }) {
-  const { totalIntros, totalSignups, totalCancellations, netGrowth } = current;
+  const { totalIntros, cancelledIntros, totalSignups, totalCancellations, netGrowth } = current;
   return (
     <KpiStrip
       items={[
         {
           label: 'Intros',
           value: totalIntros,
-          caption: <Delta current={totalIntros} previous={previous?.totalIntros ?? null} />,
-          info: 'Intro classes booked in the selected range, whether or not the person showed up. Attendance is tracked separately in the funnel.',
+          caption: (
+            <>
+              <span className="block">
+                {cancelledIntros} cancelled
+                {totalIntros > 0 && ` (${((cancelledIntros / totalIntros) * 100).toFixed(0)}%)`}
+              </span>
+              <Delta current={totalIntros} previous={previous?.totalIntros ?? null} />
+            </>
+          ),
+          info: 'Intro classes booked in the selected range, whether or not the person showed up. Cancelled bookings are counted here and listed under the total; the funnel leaves them out of the attendance rate.',
         },
         {
           label: 'Sign-ups',
