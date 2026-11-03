@@ -14,4 +14,6 @@ export interface IntroTableContext {
   removeIntro: (id: string, name: string) => Promise<void>;
   onReviewSpam: (intro: Intro) => void;
   onMarkSpam: (intro: Intro) => void;
+  onCancelBooking: (intro: Intro) => void;
+  onRestoreBooking: (intro: Intro) => void;
 }

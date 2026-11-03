@@ -63,13 +63,19 @@ export function introIdentityColumns({
           parts.length > 1 && full.length > 14 ? `${parts[0]} ${parts.at(-1)?.[0] ?? ''}.` : full;
         const cancellationDate = formerMemberMap.get(intro.name.toLowerCase().trim());
         const isFormer = !!cancellationDate && intro.signed_up !== 'Yes';
+        // Struck through on cancelled bookings so the state reads even when the
+        // status columns are scrolled off-screen on a phone
+        const nameClass =
+          intro.status === 'Cancelled'
+            ? 'font-medium text-gray-500 line-through decoration-gray-400'
+            : 'font-medium text-gray-900';
         const nameNode =
           display !== full ? (
             <Tooltip content={full}>
-              <div className="font-medium text-gray-900 cursor-default">{display}</div>
+              <div className={`${nameClass} cursor-default`}>{display}</div>
             </Tooltip>
           ) : (
-            <div className="font-medium text-gray-900">{full}</div>
+            <div className={nameClass}>{full}</div>
           );
         return (
           <div className="flex items-center gap-1.5">

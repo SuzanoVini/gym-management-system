@@ -33,6 +33,8 @@ const fixtures: Intro[] = [
   // tier 1: first follow-up overdue, older date sorts first within tier
   intro({ id: 'overdue-new', name: 'Overdue New', date: daysAgo(20) }),
   intro({ id: 'overdue-old', name: 'Overdue Old', date: daysAgo(40) }),
+  // excluded: booking cancelled
+  intro({ id: 'cancelled', name: 'Cancelled Person', date: daysAgo(20), status: 'Cancelled' }),
   // tier 3: second follow-up overdue
   intro({
     id: 'second-overdue',
