@@ -33,8 +33,7 @@ export default function CancelBookingDialog({ intro, onClose, onCancelled }: Pro
       <div className="space-y-4">
         <p className="text-sm text-gray-700">
           Mark the booking for <span className="font-semibold">{intro.name}</span> as cancelled?
-          Attended and Signed Up will be locked and it leaves Follow Ups. You can restore it from
-          the same menu.
+          Attended and Signed Up will be locked and it leaves Follow Ups. You can restore it later.
         </p>
         <div className="flex gap-2 justify-end">
           <button type="button" onClick={onClose} className="btn btn-secondary text-sm">
