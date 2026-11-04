@@ -81,7 +81,7 @@ export default function OverflowMenu({ items }: OverflowMenuProps) {
                   setOpen(false);
                   item.onClick();
                 }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-150 cursor-pointer ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left whitespace-nowrap transition-colors duration-150 cursor-pointer ${
                   item.variant === 'danger'
                     ? 'text-red-600 hover:bg-red-50'
                     : item.variant === 'success'
