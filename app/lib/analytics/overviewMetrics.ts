@@ -62,7 +62,10 @@ export function computeMonthlyTrends({ intros, signups, cancellations }: Overvie
 
   return [...trendBuckets.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([, bucket]) => ({ ...bucket, 'Net Growth': bucket['Sign-ups'] - bucket.Cancellations }));
+    .map(([, bucket]) => ({
+      ...bucket,
+      'Net Growth': bucket['Sign-ups'] - bucket.Cancellations,
+    }));
 }
 
 export function computeFunnelData({
@@ -76,7 +79,11 @@ export function computeFunnelData({
   const totalIntros = booked - cancelledIntros;
   return [
     {
-      stage: cancelledIntros > 0 ? 'Intros not cancelled' : 'Intros',
+      stage: 'Intros',
+      info:
+        cancelledIntros > 0
+          ? `Leaves out ${cancelledIntros} cancelled booking${cancelledIntros === 1 ? '' : 's'}, so Attended is measured only against intros that went ahead.`
+          : undefined,
       count: totalIntros,
       percentage: 100,
       countLabel: `${totalIntros} (100%)`,
@@ -123,7 +130,10 @@ export function computeMembershipChart(signups: Signup[]) {
     return acc;
   }, {});
 
-  return Object.entries(membershipData).map(([name, value]) => ({ name, value }));
+  return Object.entries(membershipData).map(([name, value]) => ({
+    name,
+    value,
+  }));
 }
 
 export function computeReasonsChart(cancellations: Cancellation[]) {

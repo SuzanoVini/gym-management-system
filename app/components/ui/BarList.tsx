@@ -1,3 +1,5 @@
+import InfoTip from './InfoTip';
+
 export interface BarListRow {
   label: string;
   value: number;
@@ -5,6 +7,8 @@ export interface BarListRow {
   display?: string;
   /** When any row is emphasised, only those rows take the red; the rest go grey. */
   emphasis?: boolean;
+  /** Explanation shown in an info tooltip beside the label. */
+  info?: string | undefined;
 }
 
 // A ranked list where each row's fill is its share of the largest value (or of `max`). Used in
@@ -32,10 +36,12 @@ export default function BarList({
         return (
           <li key={row.label} className="flex items-center gap-3 text-sm">
             <span
-              className={`${labelWidth} shrink-0 truncate text-[var(--gb-dark-gray)]`}
-              title={row.label}
+              className={`${labelWidth} flex shrink-0 items-center gap-1 text-[var(--gb-dark-gray)]`}
             >
-              {row.label}
+              <span className="truncate" title={row.label}>
+                {row.label}
+              </span>
+              {row.info && <InfoTip label={row.info} />}
             </span>
             <div className="h-2 flex-1 overflow-hidden rounded-sm bg-[var(--rule)]">
               <div className={`h-full rounded-sm ${fill}`} style={{ width: `${pct}%` }} />

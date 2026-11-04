@@ -24,6 +24,7 @@ export default function OverviewAcquisitionCharts({
             value: stage.count,
             display: String(stage.countLabel ?? stage.count),
             emphasis: idx === lastStage,
+            info: stage.info,
           }))}
           labelWidth="w-40"
         />
