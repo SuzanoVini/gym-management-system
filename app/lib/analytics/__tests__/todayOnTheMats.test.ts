@@ -42,6 +42,14 @@ describe('today on the mats', () => {
     expect(attendanceCounts(evening)).toEqual({ came: 1, noShow: 0, notMarked: 1 });
   });
 
+  it('leaves cancelled bookings out of attendance counts', () => {
+    const slot = firstSlot([
+      intro({ date: '2026-10-24', time: '6:00 PM', attended: 'Yes' }),
+      intro({ date: '2026-10-24', time: '6:00 PM', status: 'Cancelled' }),
+    ]);
+    expect(attendanceCounts(slot)).toEqual({ came: 1, noShow: 0, notMarked: 0 });
+  });
+
   it('returns no slots on a day with no bookings', () => {
     expect(todaysSlots([intro({ date: '2026-10-01', time: '6:00 PM' })], now)).toEqual([]);
   });

@@ -90,6 +90,10 @@ export function attendanceCounts(
 ): { came: number; noShow: number; notMarked: number } {
   return slot.intros.reduce(
     (counts, intro) => {
+      // Cancelled bookings were never going to attend, so they aren't left to mark
+      if (intro.status === 'Cancelled') {
+        return counts;
+      }
       const attended = Object.hasOwn(overrides, intro.id) ? overrides[intro.id] : intro.attended;
       if (attended === 'Yes') {
         counts.came += 1;

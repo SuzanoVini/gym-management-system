@@ -19,7 +19,8 @@ describe('cancelled intros in overview metrics', () => {
     expect(metrics.cancelledIntros).toBe(2);
 
     const [booked, attended] = computeFunnelData(metrics);
-    expect(booked).toMatchObject({ stage: 'Intros not cancelled', count: 2 });
+    expect(booked).toMatchObject({ stage: 'Intros', count: 2 });
+    expect(booked?.info).toContain('2 cancelled bookings');
     expect(attended?.countLabel).toBe('1 (50%)');
   });
 });

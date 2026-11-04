@@ -8,8 +8,14 @@ import {
   slotStatus,
   todaysSlots,
 } from '@/lib/analytics/todayOnTheMats';
+import { errorHandler } from '@/lib/errorHandler';
+import { updateIntroStatus } from '@/lib/supabase/intros';
 import { updateIntroAttendance } from '@/lib/supabase/introTableActions';
 import type { Intro } from '@/types';
+import CancelBookingDialog from '../intros/CancelBookingDialog';
+
+const secondaryButton =
+  'min-h-11 rounded-[var(--radius-control)] border border-[var(--control-border)] bg-[var(--surface)] px-3 text-xs font-medium hover:bg-[var(--hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--navy)] disabled:cursor-not-allowed disabled:opacity-60';
 
 type Attendance = 'Yes' | 'No' | '';
 
@@ -31,7 +37,10 @@ function statusLine(
   if (timing.status === 'upcoming') {
     const hours = Math.floor(timing.minutesUntil / 60);
     const minutes = timing.minutesUntil % 60;
-    return { text: `Starts in ${hours ? `${hours} h ` : ''}${minutes} m`, needsAction: false };
+    return {
+      text: `Starts in ${hours ? `${hours} h ` : ''}${minutes} m`,
+      needsAction: false,
+    };
   }
   if (timing.status === 'in-progress' || timing.status === 'unknown') {
     return {
@@ -48,14 +57,60 @@ function statusLine(
   };
 }
 
+function AttendanceToggle({
+  name,
+  current,
+  pending,
+  canMark,
+  opensAt,
+  onChange,
+}: {
+  name: string;
+  current: Attendance | undefined;
+  pending: boolean;
+  canMark: boolean;
+  opensAt: string | undefined;
+  onChange: (value: Attendance) => void;
+}) {
+  return (
+    <fieldset
+      className={`inline-flex rounded-[var(--radius-control)] ${pending ? 'opacity-60' : ''}`}
+    >
+      <legend className="sr-only">Attendance for {name}</legend>
+      {(['Yes', 'No'] as const).map((value) => {
+        const selected = current === value;
+        return (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={selected}
+            disabled={!canMark || pending}
+            title={
+              canMark
+                ? undefined
+                : `Available from ${opensAt}, ${MARKING_OPENS_MINUTES_BEFORE} min before class`
+            }
+            onClick={() => onChange(selected ? '' : value)}
+            className={`min-h-11 min-w-20 border px-3 text-xs font-medium focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--navy)] disabled:cursor-not-allowed ${attendanceButtonStyle(selected, value)} first:rounded-l-[var(--radius-control)] last:rounded-r-[var(--radius-control)]`}
+          >
+            {value === 'Yes' ? 'Came' : 'No-show'}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 function MatSlotCard({
   slot,
   now,
   onAttendanceChanged,
+  onCancel,
 }: {
   slot: MatSlot;
   now: Date;
   onAttendanceChanged: () => Promise<void> | void;
+  onCancel: (intro: Intro) => void;
 }) {
   const [overrides, setOverrides] = useState<Record<string, Attendance>>({});
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -101,6 +156,20 @@ function MatSlotCard({
     }
   };
 
+  // Restoring is non-destructive, so no confirmation step (same as the Intros tab)
+  const restore = async (intro: Intro) => {
+    setPending((current) => ({ ...current, [intro.id]: true }));
+    try {
+      await updateIntroStatus(intro.id, 'Active');
+      await onAttendanceChanged();
+      errorHandler.notify(`Booking for ${intro.name} restored`, 'success');
+    } catch (err) {
+      errorHandler.handle(err, 'restoreBooking');
+    } finally {
+      setPending((current) => ({ ...current, [intro.id]: false }));
+    }
+  };
+
   return (
     <li className="min-w-0 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="text-sm font-semibold tabular-nums text-[var(--text)]">{slot.time}</div>
@@ -125,38 +194,51 @@ function MatSlotCard({
               className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <div className="break-words text-sm text-[var(--text)]">{intro.name}</div>
-                <div className="text-xs text-[var(--muted)]">{intro.staff || 'Staff not set'}</div>
+                <div
+                  className={`break-words text-sm ${intro.status === 'Cancelled' ? 'text-[var(--muted)] line-through' : 'text-[var(--text)]'}`}
+                >
+                  {intro.name}
+                </div>
+                <div className="text-xs text-[var(--muted)]">
+                  {intro.status === 'Cancelled' ? 'Cancelled' : intro.staff || 'Staff not set'}
+                </div>
               </div>
               <div className="shrink-0">
-                <fieldset
-                  className={`inline-flex rounded-[var(--radius-control)] ${pending[intro.id] ? 'opacity-60' : ''}`}
-                >
-                  <legend className="sr-only">Attendance for {intro.name}</legend>
-                  {(['Yes', 'No'] as const).map((value) => {
-                    const selected =
-                      (Object.hasOwn(overrides, intro.id)
-                        ? overrides[intro.id]
-                        : intro.attended) === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        aria-pressed={selected}
-                        disabled={!timing.canMark || !!pending[intro.id]}
-                        title={
-                          timing.canMark
-                            ? undefined
-                            : `Available from ${opensAt}, ${MARKING_OPENS_MINUTES_BEFORE} min before class`
-                        }
-                        onClick={() => void changeAttendance(intro, selected ? '' : value)}
-                        className={`min-h-11 min-w-20 border px-3 text-xs font-medium focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--navy)] disabled:cursor-not-allowed ${attendanceButtonStyle(selected, value)} first:rounded-l-[var(--radius-control)] last:rounded-r-[var(--radius-control)]`}
-                      >
-                        {value === 'Yes' ? 'Came' : 'No-show'}
-                      </button>
-                    );
-                  })}
-                </fieldset>
+                {intro.status === 'Cancelled' ? (
+                  <button
+                    type="button"
+                    disabled={!!pending[intro.id]}
+                    onClick={() => void restore(intro)}
+                    aria-label={`Restore booking for ${intro.name}`}
+                    className={`${secondaryButton} text-[var(--text)]`}
+                  >
+                    Restore
+                  </button>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AttendanceToggle
+                      name={intro.name}
+                      current={
+                        Object.hasOwn(overrides, intro.id)
+                          ? overrides[intro.id]
+                          : (intro.attended as Attendance | undefined)
+                      }
+                      pending={!!pending[intro.id]}
+                      canMark={timing.canMark}
+                      opensAt={opensAt}
+                      onChange={(value) => void changeAttendance(intro, value)}
+                    />
+                    <button
+                      type="button"
+                      disabled={!!pending[intro.id]}
+                      onClick={() => onCancel(intro)}
+                      aria-label={`Cancel booking for ${intro.name}`}
+                      className={`${secondaryButton} text-[var(--negative)]`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
                 {errors[intro.id] && (
                   <p role="alert" className="mt-1 text-xs text-[var(--negative)]">
                     Couldn&apos;t save, try again
@@ -184,10 +266,12 @@ export default function TodayOnTheMats({
     return () => clearInterval(interval);
   }, []);
 
+  const [cancellingIntro, setCancellingIntro] = useState<Intro | null>(null);
   const slots = todaysSlots(intros, now);
-  const total = slots.reduce((count, slot) => count + slot.intros.length, 0);
+  const active = (slot: MatSlot) => slot.intros.filter((i) => i.status !== 'Cancelled').length;
+  const total = slots.reduce((count, slot) => count + active(slot), 0);
   const upcoming = slots.reduce(
-    (count, slot) => count + (slotStatus(slot, now).status === 'upcoming' ? slot.intros.length : 0),
+    (count, slot) => count + (slotStatus(slot, now).status === 'upcoming' ? active(slot) : 0),
     0
   );
   const toMark = slots.reduce(
@@ -213,6 +297,7 @@ export default function TodayOnTheMats({
               slot={slot}
               now={now}
               onAttendanceChanged={onAttendanceChanged}
+              onCancel={setCancellingIntro}
             />
           ))}
         </ul>
@@ -220,6 +305,13 @@ export default function TodayOnTheMats({
         <p className="rounded-[var(--radius-control)] border border-dashed border-[var(--border)] p-3 text-sm text-[var(--muted)]">
           No intros booked today
         </p>
+      )}
+      {cancellingIntro && (
+        <CancelBookingDialog
+          intro={cancellingIntro}
+          onClose={() => setCancellingIntro(null)}
+          onCancelled={onAttendanceChanged}
+        />
       )}
     </section>
   );
