@@ -1,22 +1,21 @@
+import { cancellationDate, parseRecordDate, signupDate } from '@/lib/utils/recordDate';
 import type { InsightRule } from '../rules';
 
 function monthKey(date: Date): number {
   return date.getFullYear() * 12 + date.getMonth();
 }
 
-function countRecordsByMonth(
-  records: { created_at?: string | null }[],
+function countRecordsByMonth<T>(
+  records: T[],
+  dateOf: (record: T) => Date | null,
   currentKey: number,
   monthsBack: number
 ): Map<number, number> {
   const countsByMonth = new Map<number, number>();
 
   for (const record of records) {
-    if (!record.created_at) {
-      continue;
-    }
-    const date = new Date(record.created_at);
-    if (Number.isNaN(date.getTime())) {
+    const date = dateOf(record);
+    if (!date) {
       continue;
     }
     const key = monthKey(date);
@@ -32,11 +31,8 @@ function countRecordsByMonth(
 export const holdExpiryWatchlist: InsightRule = ({ holds, now }) => {
   const sevenDaysOut = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const expiringSoon = holds.filter((hold) => {
-    if (!hold.end) {
-      return false;
-    }
-    const end = new Date(hold.end);
-    return !Number.isNaN(end.getTime()) && end >= now && end <= sevenDaysOut;
+    const end = parseRecordDate(hold.end);
+    return end !== null && end >= now && end <= sevenDaysOut;
   });
 
   if (expiringSoon.length === 0) {
@@ -55,11 +51,12 @@ export const holdExpiryWatchlist: InsightRule = ({ holds, now }) => {
     icon: 'Clock',
     color: 'yellow',
     priority: 'high',
-    impact: 'Win-back outreach before lapse is far cheaper than re-acquiring the member',
+    impact: 'Our system sends no alert when a hold ends, so this is the only reminder',
+    standard: 'Gym hold policy',
     actions: [
       'Reach out to each person before their hold ends',
-      'Confirm they know their membership is resuming',
-      'Offer to extend the hold if they need more time',
+      'Confirm they know their membership resumes on that date',
+      'Offer to extend, with the request in at least 2 business days before the hold ends',
     ],
     category: 'retention',
   };
@@ -67,7 +64,7 @@ export const holdExpiryWatchlist: InsightRule = ({ holds, now }) => {
 
 export const cancellationSpikeVsBaseline: InsightRule = ({ cancellations, now }) => {
   const currentKey = monthKey(now);
-  const countsByMonth = countRecordsByMonth(cancellations, currentKey, 6);
+  const countsByMonth = countRecordsByMonth(cancellations, cancellationDate, currentKey, 6);
   const currentCount = countsByMonth.get(currentKey) ?? 0;
   const priorKeys = Array.from({ length: 5 }, (_, i) => currentKey - 1 - i);
   const priorCounts = priorKeys.map((key) => countsByMonth.get(key) ?? 0);
@@ -88,7 +85,7 @@ export const cancellationSpikeVsBaseline: InsightRule = ({ cancellations, now })
     icon: 'AlertTriangle',
     color: 'red',
     priority: 'high',
-    impact: 'Catching a spike early keeps it from compounding next month',
+    standard: 'Sales: cancellation call',
     actions: [
       "Review this month's cancellation reasons for a common thread",
       'Check for a recent pricing, schedule, or staffing change',
@@ -100,7 +97,7 @@ export const cancellationSpikeVsBaseline: InsightRule = ({ cancellations, now })
 
 export const positiveMilestone: InsightRule = ({ signups, now }) => {
   const currentKey = monthKey(now);
-  const countsByMonth = countRecordsByMonth(signups, currentKey, 12);
+  const countsByMonth = countRecordsByMonth(signups, signupDate, currentKey, 12);
   const currentCount = countsByMonth.get(currentKey) ?? 0;
   const priorKeys = Array.from({ length: 11 }, (_, i) => currentKey - 1 - i);
   const priorCounts = priorKeys

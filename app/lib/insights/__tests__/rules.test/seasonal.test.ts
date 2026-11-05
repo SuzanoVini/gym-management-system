@@ -21,7 +21,6 @@ function cancellation(overrides: Partial<Cancellation> = {}): Cancellation {
 function baseInput(overrides: Partial<InsightRuleInput> = {}): InsightRuleInput {
   return {
     intros: [],
-    activeIntros: [],
     signups: [],
     cancellations: [],
     holds: [],
@@ -37,12 +36,13 @@ describe('seasonalTravelCancellations', () => {
     expect(seasonalTravelCancellations(baseInput({ cancellations }))).toBeNull();
   });
 
-  it('fires above the threshold and derives revenue from revenuePerMember', () => {
+  it('fires above the threshold and quotes the real hold policy and revenue setting', () => {
     const cancellations = Array.from({ length: 9 }, () => cancellation({ reason: 'Travel' }));
     const insight = seasonalTravelCancellations(
       baseInput({ cancellations, revenuePerMember: 100 })
     );
     expect(insight?.id).toBe('seasonal-travel-cancellations');
-    expect(insight?.message).toContain('Lost revenue: $900/month');
+    expect(insight?.impact).toContain('$100/month');
+    expect(insight?.actions.join(' ')).toContain('$20 a month');
   });
 });

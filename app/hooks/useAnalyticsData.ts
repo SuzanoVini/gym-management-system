@@ -7,30 +7,8 @@ import { fetchHolds } from '@/lib/supabase/holds';
 import { fetchIntros } from '@/lib/supabase/intros';
 import { fetchSignups } from '@/lib/supabase/signups';
 import { parseDate } from '@/lib/utils/date.utils';
+import { cancellationDate, holdDate, introDate, signupDate } from '@/lib/utils/recordDate';
 import type { Cancellation, Hold, Intro, Signup } from '@/types';
-
-const MONTH_MAP: Record<string, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-};
-
-const dateFromMonthYear = (month: string, year?: number): Date | null => {
-  const idx = MONTH_MAP[month];
-  if (idx === undefined || !year) {
-    return null;
-  }
-  return new Date(year, idx, 1);
-};
 
 interface AnalyticsData {
   intros: Intro[];
@@ -124,40 +102,13 @@ function filterByWindow(data: AnalyticsData, window: DateWindow | null): Analyti
   }
   const { startDate, endDate } = window;
 
-  const inRange = (d: Date | null): boolean => {
-    if (!d || Number.isNaN(d.getTime())) {
-      return false;
-    }
-    return d >= startDate && d <= endDate;
-  };
-
-  const resolve = (
-    specific: string | undefined,
-    month: string,
-    year?: number,
-    fallback?: string
-  ): Date | null => {
-    if (specific) {
-      return new Date(specific);
-    }
-    const fromMY = dateFromMonthYear(month, year);
-    if (fromMY) {
-      return fromMY;
-    }
-    return fallback ? new Date(fallback) : null;
-  };
+  const inRange = (d: Date | null): boolean => d !== null && d >= startDate && d <= endDate;
 
   return {
-    intros: data.intros.filter((i: Intro) =>
-      inRange(resolve(i.date, i.month, i.year, i.created_at))
-    ),
-    signups: data.signups.filter((s: Signup) =>
-      inRange(resolve(s.membership_date, s.month, s.year, s.created_at))
-    ),
-    cancellations: data.cancellations.filter((c: Cancellation) =>
-      inRange(resolve(c.date, c.month, c.year, c.created_at))
-    ),
-    holds: data.holds.filter((h: Hold) => inRange(resolve(h.start, h.month, h.year, h.created_at))),
+    intros: data.intros.filter((i) => inRange(introDate(i))),
+    signups: data.signups.filter((s) => inRange(signupDate(s))),
+    cancellations: data.cancellations.filter((c) => inRange(cancellationDate(c))),
+    holds: data.holds.filter((h) => inRange(holdDate(h))),
   };
 }
 

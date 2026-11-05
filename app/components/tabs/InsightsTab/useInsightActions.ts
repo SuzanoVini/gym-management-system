@@ -13,24 +13,24 @@ export function useInsightActions(
   { addToast, removeToastsFor }: ToastActions
 ) {
   const handleMarkDone = useCallback(
-    (insightId: string, dataHash: string) => {
-      markDone(insightId, dataHash);
+    (insightId: string) => {
+      markDone(insightId);
       addToast(insightId, 'Marked as done');
     },
     [markDone, addToast]
   );
 
   const handleSnooze = useCallback(
-    (insightId: string, dataHash: string, days = 7) => {
-      snooze(insightId, dataHash, days);
+    (insightId: string, days = 7) => {
+      snooze(insightId, days);
       addToast(insightId, `Snoozed for ${days} days`);
     },
     [snooze, addToast]
   );
 
   const handleDismiss = useCallback(
-    (insightId: string, dataHash: string) => {
-      dismiss(insightId, dataHash);
+    (insightId: string) => {
+      dismiss(insightId);
       addToast(insightId, 'Insight dismissed');
     },
     [dismiss, addToast]

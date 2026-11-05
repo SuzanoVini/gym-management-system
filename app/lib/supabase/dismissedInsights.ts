@@ -19,7 +19,6 @@ export interface DismissedInsight {
 export interface UpsertDismissedInsightData {
   insight_id: string;
   action: InsightAction;
-  data_hash: string;
   snoozed_until?: string | null;
 }
 
@@ -54,7 +53,8 @@ export const upsertDismissedInsight = async (
         user_id: user.id,
         insight_id: record.insight_id,
         action: record.action,
-        data_hash: record.data_hash,
+        // ponytail: column is NOT NULL but no longer read, drop it in a later migration
+        data_hash: '',
         snoozed_until: record.snoozed_until ?? null,
         dismissed_at: new Date().toISOString(),
       },

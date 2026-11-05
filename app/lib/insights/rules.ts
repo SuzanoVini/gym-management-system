@@ -1,3 +1,4 @@
+import { computeCoreMetrics } from '@/lib/analytics/overviewMetrics';
 import { topCancellationReason } from './rules/cancellation';
 import {
   cancellationSpikeVsBaseline,
@@ -10,6 +11,7 @@ import {
   retentionMomentumNegative,
   speedToFirstContact,
 } from './rules/retention';
+import { earlyCancellations, lowShowRate } from './rules/standards';
 export {
   topCancellationReason,
   holdExpiryWatchlist,
@@ -19,6 +21,8 @@ export {
   ageGroupCancellationConcentration,
   reEngagementWindow,
   speedToFirstContact,
+  earlyCancellations,
+  lowShowRate,
 };
 
 import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
@@ -27,7 +31,6 @@ export const DEFAULT_MONTHLY_MEMBERSHIP_REVENUE = 180;
 
 export interface InsightRuleInput {
   intros: Intro[];
-  activeIntros: Intro[];
   signups: Signup[];
   cancellations: Cancellation[];
   holds: Hold[];
@@ -50,109 +53,116 @@ export const seasonalTravelCancellations: InsightRule = ({ cancellations, revenu
     return null;
   }
 
-  const lostRevenue = travelCancels.length * revenuePerMember;
-  const holdRecovery = Math.round(travelCancels.length * 0.6);
-  const holdRevenue = holdRecovery * 29;
-
   return {
     id: 'seasonal-travel-cancellations',
-    title: 'Summer Travel Cancellations - Preventable Loss',
-    message: `${travelCancels.length} travel-related cancellations detected.
-Lost revenue: $${lostRevenue.toLocaleString()}/month
+    title: 'Travel Cancellations: A Hold Could Have Kept These Members',
+    message: `${travelCancels.length} members cancelled because of travel in this period.
 
-These aren't lost causes - they're seasonal! Most travel cancellations will return if you give them an option to hold their membership.`,
+A hold keeps the membership and adds the paused time onto the end, so they don't lose what they paid for.`,
     icon: 'Calendar',
     color: 'red',
-    priority: 'critical',
-    impact: `$${holdRevenue}/month from holds + member retention`,
+    priority: 'high',
+    impact: `Each member kept is about $${revenuePerMember.toLocaleString()}/month`,
+    standard: 'Gym hold policy',
     actions: [
-      'Launch "Summer Hold" program immediately',
-      'Offer $29/month hold fee vs. full cancellation',
-      'Guarantee their spot when they return',
-      `Contact ${travelCancels.length} recent travel cancellations TODAY`,
+      'Offer a hold before processing any travel cancellation',
+      'Two hold months a year are free, then $20 a month',
+      'Set an end date, with the request in at least 2 business days before the next payment',
+      'Contact members who cancelled for travel when they are due back',
     ],
     category: 'retention',
   };
 };
 
-export const negativeGrowth: InsightRule = ({ signups, cancellations }) => {
-  const totalSignups = signups.length;
-  const netGrowth = totalSignups - cancellations.length;
+export const negativeGrowth: InsightRule = ({ intros, signups, cancellations }) => {
+  const { totalSignups, totalCancellations, netGrowth } = computeCoreMetrics({
+    intros,
+    signups,
+    cancellations,
+  });
   if (netGrowth >= 0) {
     return null;
   }
 
-  const churnRate =
-    totalSignups > 0 ? ((cancellations.length / totalSignups) * 100).toFixed(1) : '0';
-
   return {
     id: 'negative-growth',
-    title: 'Negative Member Growth - Priority: Retention',
-    message: `Net loss of ${Math.abs(netGrowth)} members this period.
-Signups: ${totalSignups}
-Cancellations: ${cancellations.length}
-Churn rate: ${churnRate}%
+    title: 'More Cancellations Than Sign-ups',
+    message: `Net loss of ${Math.abs(netGrowth)} members in this period.
+Sign-ups: ${totalSignups}
+Cancellations: ${totalCancellations}
 
-You're working hard to get new members, but losing them faster. Focus on retention FIRST.`,
+Students stay when they feel they belong, feel safe and can see themselves growing, so look at the student experience first.`,
     icon: 'TrendingDown',
     color: 'red',
     priority: 'high',
-    impact: `Reducing this by 30% would save ${Math.round(cancellations.length * 0.3)} members`,
+    standard: 'Student experience: belonging, safety and growth',
     actions: [
-      'Implement new member 30-day check-in program',
-      'Create re-engagement campaign for inactive members',
-      'Address top cancellation reasons immediately',
-      'Launch member appreciation events',
+      'Greet every student personally and help anyone without a partner find one',
+      'Check in with each new member during their first 30 days',
+      'Check that classes start and finish on time, with the same quality on any day',
+      'Call members who stop coming, before they ask to cancel',
     ],
     category: 'retention',
   };
 };
 
-export const lowConversionRate: InsightRule = ({ activeIntros, revenuePerMember }) => {
-  const attendedIntros = activeIntros.filter((i) => i.attended === 'Yes').length;
-  const signedUpFromIntros = activeIntros.filter(
-    (i) => i.attended === 'Yes' && i.signed_up === 'Yes'
-  ).length;
-  const conversionRate = attendedIntros > 0 ? (signedUpFromIntros / attendedIntros) * 100 : 0;
+export const lowConversionRate: InsightRule = ({
+  intros,
+  signups,
+  cancellations,
+  revenuePerMember,
+}) => {
+  // The same calculation as the Overview funnel, so the two tabs always agree
+  const { attendedIntros, signupsFromIntros, conversionRate } = computeCoreMetrics({
+    intros,
+    signups,
+    cancellations,
+  });
 
   if (conversionRate >= 30 || attendedIntros <= 10) {
     return null;
   }
 
-  const gapTo40 = Math.round((0.4 - conversionRate / 100) * attendedIntros);
+  const gapTo40 = Math.ceil(0.4 * attendedIntros) - signupsFromIntros;
 
   return {
     id: 'low-conversion-rate',
-    title: `Low Conversion Rate - ${conversionRate.toFixed(1)}%`,
-    message: `Your conversion rate is below industry standard.
-Current: ${conversionRate.toFixed(1)}% (${signedUpFromIntros}/${attendedIntros})
-Industry benchmark: 40-60%
+    title: `Low Conversion Rate: ${conversionRate.toFixed(1)}%`,
+    message: `${signupsFromIntros} of ${attendedIntros} people who attended an intro signed up.
 
-Gap to 40%: ${gapTo40} additional signups needed`,
+${gapTo40} more sign-ups would reach the gym's 40% target.`,
     icon: 'AlertTriangle',
     color: 'red',
     priority: 'high',
-    impact: `Reaching 40% = $${(gapTo40 * revenuePerMember).toLocaleString()} monthly revenue`,
+    impact: `Each sign-up is about $${revenuePerMember.toLocaleString()}/month`,
+    standard: 'Sales: intro lesson and enrollment conference',
     actions: [
-      'Review intro class structure and sales process',
-      'Check pricing against local competitors',
-      'Improve instructor engagement during intros',
-      'Reduce friction in signup process (make it easier)',
+      'Go over the plans after class when they are open to it, with no pressure',
+      'Ask why they came in and why now, then tie the plan to that reason',
+      'On price, go back to their reason first, then break the cost down per class',
+      'Point to the entry-level plan or a class pack, and any discount they qualify for',
     ],
     category: 'conversion',
   };
 };
 
-export const INSIGHT_RULES: InsightRule[] = [
+/** Answer "what happened in the selected period", so they follow the date filter. */
+export const RANGE_INSIGHT_RULES: InsightRule[] = [
   seasonalTravelCancellations,
   topCancellationReason,
   negativeGrowth,
   lowConversionRate,
+  lowShowRate,
   speedToFirstContact,
+  ageGroupCancellationConcentration,
+];
+
+/** Answer "what needs attention now", so they always see every record. */
+export const CURRENT_INSIGHT_RULES: InsightRule[] = [
   holdExpiryWatchlist,
   cancellationSpikeVsBaseline,
   positiveMilestone,
   retentionMomentumNegative,
-  ageGroupCancellationConcentration,
   reEngagementWindow,
+  earlyCancellations,
 ];
