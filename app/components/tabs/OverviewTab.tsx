@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
+import { useDismissedInsights } from '@/hooks/useDismissedInsights';
 import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { useInsights } from '@/hooks/useInsights';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
@@ -143,9 +144,11 @@ export default function OverviewTab({
     signups,
     cancellations,
     holds,
+    allData,
     revenuePerMember,
   });
-  const insights = sharedInsights.slice(0, 4);
+  const { isDismissed } = useDismissedInsights();
+  const insights = sharedInsights.filter((i) => !isDismissed(i.id)).slice(0, 4);
 
   const handleExportAllData = () => exportOverviewData(filteredData);
 

@@ -1,7 +1,6 @@
 'use client';
 
 import { CheckCircle } from 'lucide-react';
-import { useCallback, useState } from 'react';
 
 import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRangeFilter';
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
@@ -25,17 +24,6 @@ const INSIGHTS_DATE_RANGE_OPTIONS: DateRangeOption[] = [
   { value: 'all', label: 'All time' },
   { value: 'custom', label: 'Custom' },
 ];
-
-// Compute a stable hash from serialized insight data — defined at module level
-// to avoid Biome's no-unstable-dependencies lint error inside components.
-const insightDataHash = (data: unknown): string => {
-  const str = JSON.stringify(data);
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  }
-  return h.toString(36);
-};
 
 interface InsightsTabProps {
   followUps: FollowUpsSummary;
@@ -65,10 +53,9 @@ function InsightsEmptyState() {
 export default function InsightsTab({ followUps }: InsightsTabProps) {
   const range = useInsightsDateRange();
   const { dateRange, customStartDate, customEndDate } = range;
-  const [showDismissed, setShowDismissed] = useState(false);
   const revenuePerMember = useRevenueSetting();
 
-  const { filteredData, loading, error, refresh } = useAnalyticsData({
+  const { filteredData, allData, loading, error, refresh } = useAnalyticsData({
     dateRange,
     customStartDate,
     customEndDate,
@@ -76,19 +63,20 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
 
   const { insights: baseInsights } = useInsights({
     ...filteredData,
+    allData,
     revenuePerMember,
   });
 
   const insights = withFollowUpInsight(followUps, baseInsights);
 
-  const { isDismissed, markDone, snooze, dismiss, restore, dismissed } = useDismissedInsights();
-
-  // Per-insight data hash — keyed by insight id, computed from the insight content
-  const getInsightHash = useCallback(
-    (insight: Insight) =>
-      insightDataHash({ id: insight.id, title: insight.title, message: insight.message }),
-    []
-  );
+  const {
+    isDismissed,
+    markDone,
+    snooze,
+    dismiss,
+    restore,
+    loading: dismissalsLoading,
+  } = useDismissedInsights();
 
   const { toasts, addToast, dismissToast, removeToastsFor } = useInsightToasts();
 
@@ -97,16 +85,9 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
     { addToast, removeToastsFor }
   );
 
-  const visibleInsights = insights.filter((i) => {
-    const hash = getInsightHash(i);
-    return !isDismissed(i.id, hash);
-  });
+  const visibleInsights = insights.filter((i) => !isDismissed(i.id));
 
-  const dismissedInsightCount = dismissed.filter(
-    (d) => d.action === 'dismissed' || d.action === 'done'
-  ).length;
-
-  if (loading) {
+  if (loading || dismissalsLoading) {
     return <InsightsLoading />;
   }
 
@@ -178,46 +159,19 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
         </div>
 
         {/* Insights */}
-        {visibleInsights.length === 0 && !showDismissed ? (
+        {visibleInsights.length === 0 ? (
           <InsightsEmptyState />
         ) : (
           <div className="space-y-4">
-            {insights.map((insight: Insight) => {
-              const hash = getInsightHash(insight);
-              const record = dismissed.find((d) => d.insight_id === insight.id);
-              const hidden = isDismissed(insight.id, hash);
-              if (hidden && !showDismissed) {
-                return null;
-              }
-              return (
-                <InsightCard
-                  key={insight.id}
-                  insight={insight}
-                  dataHash={hash}
-                  {...(record ? { dismissedRecord: record } : {})}
-                  onMarkDone={handleMarkDone}
-                  onSnooze={handleSnooze}
-                  onDismiss={handleDismiss}
-                  onRestore={handleRestore}
-                  showDismissed={showDismissed}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* Show dismissed toggle */}
-        {dismissedInsightCount > 0 && (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={() => setShowDismissed((v) => !v)}
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
-            >
-              {showDismissed
-                ? 'Hide dismissed insights'
-                : `Show dismissed (${dismissedInsightCount})`}
-            </button>
+            {visibleInsights.map((insight: Insight) => (
+              <InsightCard
+                key={insight.id}
+                insight={insight}
+                onMarkDone={handleMarkDone}
+                onSnooze={handleSnooze}
+                onDismiss={handleDismiss}
+              />
+            ))}
           </div>
         )}
       </div>

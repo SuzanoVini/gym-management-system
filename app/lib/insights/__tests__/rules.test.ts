@@ -67,7 +67,6 @@ function hold(overrides: Partial<Hold> = {}): Hold {
 function baseInput(overrides: Partial<InsightRuleInput> = {}): InsightRuleInput {
   return {
     intros: [],
-    activeIntros: [],
     signups: [],
     cancellations: [],
     holds: [],
@@ -109,37 +108,41 @@ describe('negativeGrowth', () => {
     expect(negativeGrowth(baseInput({ signups, cancellations }))).toBeNull();
   });
 
-  it('fires and reports churn rate when cancellations exceed signups', () => {
+  it('fires and reports both counts when cancellations exceed signups', () => {
     const signups = [signup()];
     const cancellations = [cancellation(), cancellation(), cancellation()];
     const insight = negativeGrowth(baseInput({ signups, cancellations }));
     expect(insight?.message).toContain('Net loss of 2 members');
-    expect(insight?.message).toContain('Churn rate: 300.0%');
+    expect(insight?.message).toContain('Cancellations: 3');
   });
 });
 
 describe('lowConversionRate', () => {
+  const attended = (count: number, prefix = 'Person') =>
+    Array.from({ length: count }, (_, i) => intro({ attended: 'Yes', name: `${prefix} ${i}` }));
+  const joined = (count: number, prefix = 'Person') =>
+    Array.from({ length: count }, (_, i) => signup({ name: `${prefix} ${i}` }));
+
   it('returns null when attended volume is at or below 10', () => {
-    const activeIntros = Array.from({ length: 10 }, () => intro({ attended: 'Yes' }));
-    expect(lowConversionRate(baseInput({ activeIntros }))).toBeNull();
+    expect(lowConversionRate(baseInput({ intros: attended(10) }))).toBeNull();
   });
 
   it('returns null when conversion rate is at or above 30%', () => {
-    const activeIntros = [
-      ...Array.from({ length: 4 }, () => intro({ attended: 'Yes', signed_up: 'Yes' })),
-      ...Array.from({ length: 8 }, () => intro({ attended: 'Yes', signed_up: 'No' })),
-    ];
-    expect(lowConversionRate(baseInput({ activeIntros }))).toBeNull(); // 4/12 = 33%
+    const input = baseInput({ intros: attended(12), signups: joined(4) });
+    expect(lowConversionRate(input)).toBeNull(); // 4/12 = 33%
   });
 
-  it('fires below 30% conversion with attended volume above 10', () => {
-    const activeIntros = [
-      ...Array.from({ length: 2 }, () => intro({ attended: 'Yes', signed_up: 'Yes' })),
-      ...Array.from({ length: 10 }, () => intro({ attended: 'Yes', signed_up: 'No' })),
-    ];
-    const insight = lowConversionRate(baseInput({ activeIntros }));
+  it('fires below 30% conversion, matching the Overview funnel figure', () => {
+    const input = baseInput({ intros: attended(12), signups: joined(2) });
+    const insight = lowConversionRate(input);
     expect(insight?.id).toBe('low-conversion-rate');
     expect(insight?.title).toContain('16.7%');
+    expect(insight?.message).toContain('2 of 12');
+  });
+
+  it('counts intros marked Completed, which used to drop out of the rate', () => {
+    const intros = attended(12).map((i) => ({ ...i, status: 'Completed' as const }));
+    expect(lowConversionRate(baseInput({ intros, signups: joined(4) }))).toBeNull();
   });
 });
 

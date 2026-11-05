@@ -377,6 +377,8 @@ export interface Insight {
   priority: InsightPriority;
   actions: string[];
   impact?: string;
+  /** The operating standard the recommended actions come from. */
+  standard?: string;
   category: InsightCategory;
 }
 

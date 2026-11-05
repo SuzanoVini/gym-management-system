@@ -2,21 +2,34 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { reportConsoleError } from '@/lib/logger';
-import type { DismissedInsight } from '@/lib/supabase/dismissedInsights';
+import type { DismissedInsight, InsightAction } from '@/lib/supabase/dismissedInsights';
 import {
   fetchDismissedInsights,
   restoreInsight,
   upsertDismissedInsight,
 } from '@/lib/supabase/dismissedInsights';
 
-export type { DismissedInsight };
+// ponytail: fixed window, make it per-rule if some insights need to return sooner
+const DONE_HIDDEN_DAYS = 30;
 
-function replaceInsight(
-  dismissed: DismissedInsight[],
-  insightId: string,
-  replacement: DismissedInsight
-): DismissedInsight[] {
-  return [...dismissed.filter((d) => d.insight_id !== insightId), replacement];
+/**
+ * Dismissed means irrelevant, so it stays gone. Done stays gone for 30 days, then returns only
+ * if the rule still fires. Snoozed returns when the snooze ends. None depend on the numbers in
+ * the insight, which change with the date filter and with every new record.
+ */
+export function isInsightHidden(record: DismissedInsight | undefined, now: Date): boolean {
+  if (!record) {
+    return false;
+  }
+  if (record.action === 'dismissed') {
+    return true;
+  }
+  if (record.action === 'snoozed') {
+    return record.snoozed_until !== null && new Date(record.snoozed_until) > now;
+  }
+  const doneUntil = new Date(record.dismissed_at);
+  doneUntil.setDate(doneUntil.getDate() + DONE_HIDDEN_DAYS);
+  return doneUntil > now;
 }
 
 export const useDismissedInsights = () => {
@@ -30,100 +43,51 @@ export const useDismissedInsights = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  /**
-   * Returns true if an insight should be hidden:
-   * - action === 'dismissed': always hidden
-   * - action === 'done': always hidden
-   * - action === 'snoozed': hidden until snoozed_until date; resurfaces if data_hash changed
-   * Dismissed/done insights resurface when data_hash changes (underlying data shifted).
-   */
   const isDismissed = useCallback(
-    (insightId: string, dataHash: string): boolean => {
-      const record = dismissed.find((d) => d.insight_id === insightId);
-      if (!record) {
-        return false;
-      }
-
-      // Resurface if the data that produced this insight has changed
-      if (record.data_hash !== dataHash) {
-        return false;
-      }
-
-      if (record.action === 'snoozed') {
-        if (!record.snoozed_until) {
-          return false;
-        }
-        return new Date(record.snoozed_until) > new Date();
-      }
-
-      return true; // 'done' or 'dismissed'
-    },
+    (insightId: string): boolean =>
+      isInsightHidden(
+        dismissed.find((d) => d.insight_id === insightId),
+        new Date()
+      ),
     [dismissed]
   );
 
-  const markDone = useCallback((insightId: string, dataHash: string) => {
-    const optimistic: DismissedInsight = {
-      id: `optimistic-${insightId}`,
-      user_id: '',
-      insight_id: insightId,
-      action: 'done',
-      snoozed_until: null,
-      dismissed_at: new Date().toISOString(),
-      data_hash: dataHash,
-      created_at: new Date().toISOString(),
-    };
-    setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), optimistic]);
-    upsertDismissedInsight({ insight_id: insightId, action: 'done', data_hash: dataHash })
-      .then((saved) => setDismissed((prev) => replaceInsight(prev, insightId, saved)))
-      .catch(reportConsoleError);
-  }, []);
+  const save = useCallback(
+    (insightId: string, action: InsightAction, snoozedUntil: string | null = null) => {
+      const now = new Date().toISOString();
+      const withRecord = (record: DismissedInsight) => (prev: DismissedInsight[]) => [
+        ...prev.filter((d) => d.insight_id !== insightId),
+        record,
+      ];
+      setDismissed(
+        withRecord({
+          id: `optimistic-${insightId}`,
+          user_id: '',
+          insight_id: insightId,
+          action,
+          snoozed_until: snoozedUntil,
+          dismissed_at: now,
+          data_hash: '',
+          created_at: now,
+        })
+      );
+      upsertDismissedInsight({ insight_id: insightId, action, snoozed_until: snoozedUntil })
+        .then((saved) => setDismissed(withRecord(saved)))
+        .catch(reportConsoleError);
+    },
+    []
+  );
 
-  const snooze = useCallback((insightId: string, dataHash: string, days = 7) => {
-    const snoozedUntil = new Date();
-    snoozedUntil.setDate(snoozedUntil.getDate() + days);
-    const snoozedUntilIso = snoozedUntil.toISOString();
-
-    const optimistic: DismissedInsight = {
-      id: `optimistic-${insightId}`,
-      user_id: '',
-      insight_id: insightId,
-      action: 'snoozed',
-      snoozed_until: snoozedUntilIso,
-      dismissed_at: new Date().toISOString(),
-      data_hash: dataHash,
-      created_at: new Date().toISOString(),
-    };
-    setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), optimistic]);
-    upsertDismissedInsight({
-      insight_id: insightId,
-      action: 'snoozed',
-      data_hash: dataHash,
-      snoozed_until: snoozedUntilIso,
-    })
-      .then((saved) => setDismissed((prev) => replaceInsight(prev, insightId, saved)))
-      .catch(reportConsoleError);
-  }, []);
-
-  const dismiss = useCallback((insightId: string, dataHash: string) => {
-    const optimistic: DismissedInsight = {
-      id: `optimistic-${insightId}`,
-      user_id: '',
-      insight_id: insightId,
-      action: 'dismissed',
-      snoozed_until: null,
-      dismissed_at: new Date().toISOString(),
-      data_hash: dataHash,
-      created_at: new Date().toISOString(),
-    };
-    setDismissed((prev) => [...prev.filter((d) => d.insight_id !== insightId), optimistic]);
-    upsertDismissedInsight({
-      insight_id: insightId,
-      action: 'dismissed',
-      data_hash: dataHash,
-    })
-      .then((saved) => setDismissed((prev) => replaceInsight(prev, insightId, saved)))
-      .catch(reportConsoleError);
-  }, []);
+  const markDone = useCallback((insightId: string) => save(insightId, 'done'), [save]);
+  const dismiss = useCallback((insightId: string) => save(insightId, 'dismissed'), [save]);
+  const snooze = useCallback(
+    (insightId: string, days = 7) => {
+      const until = new Date();
+      until.setDate(until.getDate() + days);
+      save(insightId, 'snoozed', until.toISOString());
+    },
+    [save]
+  );
 
   const restore = useCallback((insightId: string) => {
     setDismissed((prev) => prev.filter((d) => d.insight_id !== insightId));
@@ -134,9 +98,5 @@ export const useDismissedInsights = () => {
     });
   }, []);
 
-  const dismissedCount = dismissed.filter(
-    (d) => d.action === 'dismissed' || d.action === 'done'
-  ).length;
-
-  return { dismissed, loading, isDismissed, markDone, snooze, dismiss, restore, dismissedCount };
+  return { loading, isDismissed, markDone, snooze, dismiss, restore };
 };

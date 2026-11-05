@@ -3,12 +3,12 @@ import type { InsightRule } from '../rules';
 function cancellationReasonAdvice(reasonLower: string): { advice: string; actions: string[] } {
   if (reasonLower.includes('time') || reasonLower.includes('schedule')) {
     return {
-      advice: 'Schedule conflicts are fixable - offer more class times or online options.',
+      advice:
+        'Plans are a monthly class limit with no fixed days, so busy weeks can often be worked around.',
       actions: [
-        'Survey cancelled members about preferred class times',
-        'Consider adding early morning (6AM) or late evening (8PM) classes',
-        'Test virtual/online class options',
-        'Offer flexible scheduling for busy members',
+        'Remind them there is nothing to book and no fixed days',
+        'Talk priorities, then show the class times that could work',
+        'Offer a smaller plan, a class pack or a hold before they cancel',
       ],
     };
   }
@@ -18,74 +18,75 @@ function cancellationReasonAdvice(reasonLower: string): { advice: string; action
     reasonLower.includes('expensive')
   ) {
     return {
-      advice: 'Price sensitivity - create more accessible options.',
+      advice: 'Price sensitivity. Go back to why they started before talking numbers.',
       actions: [
-        'Introduce budget-friendly membership tier',
-        'Offer payment plans (bi-weekly instead of monthly)',
-        'Create student/family discounts',
-        'Emphasize value in member communications',
+        'Ask about their original reason for training, then break the cost down per class',
+        'Check whether a family, student or military discount applies',
+        'Offer the entry-level plan or a class pack',
       ],
     };
   }
   if (reasonLower.includes('injury') || reasonLower.includes('medical')) {
     return {
-      advice: 'Medical holds should be offered, not cancellations.',
+      advice:
+        "A medical hold should come before a cancellation. With a doctor's note, hold fees are waived.",
       actions: [
-        'Create injury hold program (reduced rate during recovery)',
-        'Offer modified training during recovery',
-        'Partner with physical therapist for rehab programs',
-        'Emphasize injury prevention in classes',
+        "Offer a medical hold, and ask for a doctor's note",
+        'Keep in touch during recovery and invite them back when cleared',
+        'Review warm-ups, pairing and sparring intensity for injury risk',
       ],
     };
   }
   if (reasonLower.includes('moving') || reasonLower.includes('relocation')) {
     return {
-      advice: 'Moving members may return — keep the relationship warm.',
+      advice: 'Moving is rarely something the gym can change. Leave a good last impression.',
       actions: [
-        'Offer a farewell freeze instead of cancellation',
-        'Ask for a referral to friends/family staying in the area',
-        'Send a "welcome back" offer if they return to the city',
-        'Connect them with a partner gym in their new location',
+        'Thank them and tell them they are welcome back any time',
+        'Ask whether anyone they know nearby would like to try a class',
       ],
     };
   }
-  return { advice: 'Pattern detected - needs investigation.', actions: [] };
+  return { advice: 'Pattern detected, needs investigation.', actions: [] };
 }
 
 export const topCancellationReason: InsightRule = ({ cancellations, revenuePerMember }) => {
-  const reasonCounts = cancellations.reduce<Record<string, number>>((acc, cancel) => {
-    if (cancel.reason) {
-      acc[cancel.reason] = (acc[cancel.reason] || 0) + 1;
+  // Grouped case-insensitively, the same as the Overview reasons chart
+  const reasons = new Map<string, { label: string; count: number }>();
+  for (const { reason } of cancellations) {
+    const label = reason?.trim();
+    if (label) {
+      const key = label.toLowerCase();
+      const existing = reasons.get(key);
+      reasons.set(key, { label: existing?.label ?? label, count: (existing?.count ?? 0) + 1 });
     }
-    return acc;
-  }, {});
+  }
 
-  const top = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
-  if (!top || top[1] < 5) {
+  const top = [...reasons.values()].sort((a, b) => b.count - a.count)[0];
+  if (!top || top.count < 5) {
     return null;
   }
 
-  const [reason, count] = top;
+  const { label: reason, count } = top;
   const reasonLower = reason.toLowerCase();
   const { advice, actions } = cancellationReasonAdvice(reasonLower);
   const specificActions =
     actions.length > 0
       ? actions
       : [
-          `Schedule exit interviews to understand "${reason}" better`,
+          `Call members who left for "${reason}" and ask what would have changed it`,
           'Track this reason monthly to spot trends',
-          'Create retention offer for this specific reason',
-          'Review what competitors offer for similar situations',
         ];
 
   return {
-    id: 'top-cancellation-reason',
+    // One id per reason: dismissing one reason must not hide a different one later
+    id: `top-cancellation-reason-${reasonLower.replace(/[^a-z0-9]+/g, '-')}`,
     title: `Top Cancellation Reason: "${reason}" (${count} cancellations)`,
-    message: `${count} members cancelled due to "${reason}".\n\n${advice}\n\nThis is a fixable pattern that's costing you members.`,
+    message: `${count} members cancelled due to "${reason}".\n\n${advice}`,
     icon: 'UserMinus',
     color: 'orange',
     priority: 'high',
-    impact: `Reducing this by 50% = ${Math.round(count / 2)} retained members = $${(Math.round(count / 2) * revenuePerMember).toLocaleString()}/month`,
+    impact: `Each member kept is about $${revenuePerMember.toLocaleString()}/month`,
+    standard: 'Sales: objections and cancellation call',
     actions: specificActions,
     category: 'retention',
   };

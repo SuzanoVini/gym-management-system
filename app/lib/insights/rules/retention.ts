@@ -1,28 +1,26 @@
 import { businessDaysBetween } from '@/lib/utils/businessDays';
+import { cancellationDate, signupDate } from '@/lib/utils/recordDate';
 import type { Intro } from '@/types';
 import type { InsightRule } from '../rules';
 
-function daysAgo(now: Date, dateStr: string | undefined | null): number | null {
-  if (!dateStr) {
-    return null;
-  }
-  return (now.getTime() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24);
+function daysAgo(now: Date, date: Date | null): number | null {
+  return date ? (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24) : null;
 }
 
 export const retentionMomentumNegative: InsightRule = ({ signups, cancellations, now }) => {
-  const withinLast = (dateStr: string | undefined, maxDays: number) => {
-    const d = daysAgo(now, dateStr);
-    return d !== null && d <= maxDays;
-  };
-  const withinRange = (dateStr: string | undefined, minDays: number, maxDays: number) => {
-    const d = daysAgo(now, dateStr);
+  const withinRange = (date: Date | null, minDays: number, maxDays: number) => {
+    const d = daysAgo(now, date);
     return d !== null && d > minDays && d <= maxDays;
   };
+  const withinLast30 = (date: Date | null) => {
+    const d = daysAgo(now, date);
+    return d !== null && d >= 0 && d <= 30;
+  };
 
-  const recentSignups = signups.filter((s) => withinLast(s.created_at, 30)).length;
-  const priorSignups = signups.filter((s) => withinRange(s.created_at, 30, 60)).length;
-  const recentCancels = cancellations.filter((c) => withinLast(c.created_at, 30)).length;
-  const priorCancels = cancellations.filter((c) => withinRange(c.created_at, 30, 60)).length;
+  const recentSignups = signups.filter((s) => withinLast30(signupDate(s))).length;
+  const priorSignups = signups.filter((s) => withinRange(signupDate(s), 30, 60)).length;
+  const recentCancels = cancellations.filter((c) => withinLast30(cancellationDate(c))).length;
+  const priorCancels = cancellations.filter((c) => withinRange(cancellationDate(c), 30, 60)).length;
 
   if (priorSignups <= 0 || priorCancels <= 0) {
     return null;
@@ -46,21 +44,18 @@ This trend will compound — address it before it accelerates.`,
     icon: 'TrendingDown',
     color: 'orange',
     priority: 'high',
-    impact: `Trend reversal could recover ${Math.abs(Math.round(signupGrowth / 10))} members/month`,
+    standard: 'Student experience: consistency and belonging',
     actions: [
-      'Hold team meeting to identify what changed',
+      'Hold a team meeting to identify what changed',
       'Review any recent pricing or program changes',
+      'Check that classes are starting on time and new students are being greeted',
       'Increase member check-ins this week',
-      'Launch emergency retention outreach',
     ],
     category: 'retention',
   };
 };
 
-export const ageGroupCancellationConcentration: InsightRule = ({
-  cancellations,
-  revenuePerMember,
-}) => {
+export const ageGroupCancellationConcentration: InsightRule = ({ cancellations }) => {
   const ageGroupMap = cancellations.reduce<Record<string, number>>((acc, c) => {
     if (c.age_group) {
       acc[c.age_group] = (acc[c.age_group] || 0) + 1;
@@ -81,7 +76,7 @@ export const ageGroupCancellationConcentration: InsightRule = ({
   }
 
   return {
-    id: 'age-group-cancellation-concentration',
+    id: `age-group-cancellation-concentration-${ageGroup.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     title: `${ageGroup} Age Group = ${agePct.toFixed(0)}% of Cancellations`,
     message: `${ageCount} of ${totalWithAge} cancellations are from the ${ageGroup} group.
 
@@ -89,12 +84,11 @@ This concentration points to a retention issue specific to this demographic.`,
     icon: 'Users',
     color: 'orange',
     priority: 'high',
-    impact: `Retaining 50% of this group = $${(Math.round(ageCount * 0.5) * revenuePerMember).toLocaleString()}/month`,
+    standard: 'Student experience: individuality',
     actions: [
-      `Survey recent ${ageGroup} cancellations to identify the pattern`,
-      `Review class schedule for ${ageGroup}-friendly time slots`,
-      `Create a ${ageGroup}-focused retention offer`,
-      'Adjust programming to better serve this demographic',
+      `Call recent ${ageGroup} cancellations to identify the pattern`,
+      `Review class times for the ${ageGroup} group`,
+      'Check that these students are in the right program for their age and rank',
     ],
     category: 'retention',
   };
@@ -102,8 +96,8 @@ This concentration points to a retention issue specific to this demographic.`,
 
 export const reEngagementWindow: InsightRule = ({ cancellations, now, revenuePerMember }) => {
   const reEngageable = cancellations.filter((c) => {
-    const d = daysAgo(now, c.created_at);
-    if (d === null || d > 60) {
+    const d = daysAgo(now, cancellationDate(c));
+    if (d === null || d < 0 || d > 60) {
       return false;
     }
     const r = (c.reason ?? '').toLowerCase();
@@ -120,23 +114,22 @@ export const reEngagementWindow: InsightRule = ({ cancellations, now, revenuePer
     return null;
   }
 
-  const recoverable = Math.max(1, Math.round(reEngageable.length * 0.3));
-
   return {
     id: 're-engagement-window',
     title: `${reEngageable.length} Recently Cancelled Members Are Re-Engageable`,
     message: `${reEngageable.length} members cancelled in the last 60 days for reasons that may have changed (financial, scheduling, personal).
 
-The 60-day window is critical — after that, habits change and re-engagement becomes much harder.`,
+Reach out while the relationship is still fresh.`,
     icon: 'Users',
     color: 'blue',
     priority: 'high',
-    impact: `Re-engaging 30% = ${recoverable} members = $${(recoverable * revenuePerMember).toLocaleString()}/month`,
+    impact: `Each member back is about $${revenuePerMember.toLocaleString()}/month`,
+    standard: 'Sales: cancellation call',
     actions: [
       'Make a personal call or text (not email) to each person',
       'Ask: "Has anything changed since you left?"',
-      'Offer a flexible re-join option (shorter commitment or lower rate)',
-      'Invite them to a free community event or open house',
+      'Offer the entry-level plan or a class pack',
+      'Invite them to the next gym event',
     ],
     category: 'retention',
   };
@@ -195,11 +188,11 @@ export const speedToFirstContact: InsightRule = ({ intros }) => {
   return {
     id: 'speed-to-first-contact',
     title: `Slow First Contact — ${overallMedian.toFixed(1)} Business Days Median`,
-    message: `Median time from intro to first follow-up is ${overallMedian.toFixed(1)} business days, above the 2-day target.\n\n${staffBreakdown}\n\nContact speed is the #1 lever for intro-to-signup conversion.`,
+    message: `Median time from intro to first follow-up is ${overallMedian.toFixed(1)} business days, above the 2-day target.\n\n${staffBreakdown}`,
     icon: 'Clock',
     color: 'orange',
     priority: 'medium',
-    impact: 'Faster first contact directly improves conversion rate',
+    standard: 'Sales: lead-to-member funnel',
     actions: [
       'Set a same-day or next-day follow-up habit for every attended intro',
       'Use the Follow Ups tab tiers to catch anyone slipping past 2 days',
