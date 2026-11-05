@@ -40,6 +40,31 @@ export function minutesOf(time: string): number | null {
   return (match[3] ? (hour % 12) + (match[3].toUpperCase() === 'PM' ? 12 : 0) : hour) * 60 + minute;
 }
 
+// ponytail: BC is on permanent UTC-7, which older tz data and Windows' "British Columbia Standard
+// Time" id get wrong in the browser. Whitehorse has had the same rule since 2020, so every browser
+// knows it. Switch to America/Vancouver once browsers ship BC's change.
+const GYM_TIME_ZONE = 'America/Whitehorse';
+
+// The gym's wall clock as a Date whose local fields read Kitsilano time, whatever the device thinks
+export function gymNow(at = new Date()): Date {
+  const parts: Record<string, number> = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: GYM_TIME_ZONE,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    })
+      .formatToParts(at)
+      .map((p) => [p.type, Number(p.value)])
+  );
+  const { year = 0, month = 1, day = 1, hour = 0, minute = 0, second = 0 } = parts;
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
 export function todaysSlots(intros: Intro[], now: Date): MatSlot[] {
   const today = formatDateISO(now);
   const slots = new Map<string, MatSlot>();

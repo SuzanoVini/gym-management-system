@@ -1,5 +1,11 @@
 import type { Intro } from '@/types';
-import { attendanceCounts, classLengthMinutes, slotStatus, todaysSlots } from '../todayOnTheMats';
+import {
+  attendanceCounts,
+  classLengthMinutes,
+  gymNow,
+  slotStatus,
+  todaysSlots,
+} from '../todayOnTheMats';
 
 const now = new Date(2026, 9, 24, 16, 0);
 const intro = (over: Partial<Intro>): Intro =>
@@ -91,5 +97,12 @@ describe('today on the mats', () => {
     ]);
     expect(slotStatus(slot, now).status).toBe('finished');
     expect(attendanceCounts(slot)).toEqual({ came: 1, noShow: 1, notMarked: 1 });
+  });
+});
+
+describe('gymNow', () => {
+  it('reads Kitsilano wall time at UTC-7 regardless of the device time zone', () => {
+    const local = gymNow(new Date(Date.UTC(2026, 10, 5, 0, 18)));
+    expect([local.getDate(), local.getHours(), local.getMinutes()]).toEqual([4, 17, 18]);
   });
 });
