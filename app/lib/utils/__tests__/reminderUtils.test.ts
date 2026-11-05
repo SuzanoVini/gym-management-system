@@ -34,9 +34,9 @@ describe('dateInputToUTCTimestamp', () => {
     expect(result).toBe('2026-06-08T07:00:00.000Z');
   });
 
-  it('converts a PST date with UTC-8 offset', () => {
-    const result = dateInputToUTCTimestamp('2026-01-15');
-    expect(result).toBe('2026-01-15T08:00:00.000Z');
+  it('keeps UTC-7 in winter, since BC no longer falls back', () => {
+    const result = dateInputToUTCTimestamp('2027-01-15');
+    expect(result).toBe('2027-01-15T07:00:00.000Z');
   });
 });
 

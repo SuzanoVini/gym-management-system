@@ -1,3 +1,5 @@
+import { GYM_TIME_ZONE } from '@/lib/utils/date.utils';
+
 const MONTH_NAMES = [
   'january',
   'february',
@@ -18,7 +20,7 @@ const MONTH_PATTERN = MONTH_NAMES.join('|');
 // Returns Vancouver date components for a given UTC date
 export function getVancouverDate(d = new Date()): { year: number; month: number; day: number } {
   const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Vancouver',
+    timeZone: GYM_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -32,7 +34,7 @@ export function getVancouverDate(d = new Date()): { year: number; month: number;
   };
 }
 
-// Convert a YYYY-MM-DD date-input value to a UTC ISO string (midnight America/Vancouver)
+// Convert a YYYY-MM-DD date-input value to a UTC ISO string (midnight gym time)
 export function dateInputToUTCTimestamp(dateString: string): string {
   const [y, m, d] = dateString.split('-');
   const year = Number(y);
@@ -41,7 +43,7 @@ export function dateInputToUTCTimestamp(dateString: string): string {
   // Probe noon UTC on that day to find the Vancouver UTC offset (DST-safe)
   const probe = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
   const fmt = new Intl.DateTimeFormat('en', {
-    timeZone: 'America/Vancouver',
+    timeZone: GYM_TIME_ZONE,
     timeZoneName: 'shortOffset',
   });
   const tzPart = fmt.formatToParts(probe).find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-7';
@@ -92,7 +94,7 @@ export function getReminderBadgeLabel(
 // Format a stored reminder timestamp for display (e.g., "Jun 22")
 export function formatReminderDate(isoString: string): string {
   return new Date(isoString).toLocaleDateString('en-CA', {
-    timeZone: 'America/Vancouver',
+    timeZone: GYM_TIME_ZONE,
     month: 'short',
     day: 'numeric',
   });
