@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, RotateCcw, Settings, Trash2, Upload } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { FollowUpIntro } from '@/components/ui/FollowUpCheckButton';
 import PaginationBar from '@/components/ui/PaginationBar';
@@ -24,6 +24,7 @@ import IntroFilters from './intros/IntroFilters';
 import IntroImportPreview from './intros/IntroImportPreview';
 import IntroMetrics from './intros/IntroMetrics';
 import { IntroSpamLayer, useIntroSpam } from './intros/IntroSpam';
+import IntrosHeader from './intros/IntrosHeader';
 import type { IntroTableContext } from './intros/IntroTableContext';
 import { introIdentityColumns } from './intros/introIdentityColumns';
 import { introStatusColumns } from './intros/introStatusColumns';
@@ -83,63 +84,6 @@ async function deleteIntrosInBatches(idsToDelete: string[]) {
   }
 }
 
-function IntrosHeader({
-  year,
-  csvImport,
-  openModal,
-}: {
-  year: string | number;
-  csvImport: ReturnType<typeof useIntroCsvImport>;
-  openModal: ReturnType<typeof useUIStore.getState>['openModal'];
-}) {
-  return (
-    <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="page-title">{year === 'all' ? 'All Intros' : `${year} Intros`}</h1>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => openModal('settings')} className="btn btn-secondary">
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </button>
-          <input
-            type="file"
-            accept=".csv"
-            className="hidden"
-            ref={csvImport.fileInputRef}
-            onChange={(e) => {
-              void csvImport.handleCSVImport(e);
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => csvImport.fileInputRef.current?.click()}
-            className="btn btn-secondary-blue"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Import CSV</span>
-          </button>
-          {csvImport.undoBatch && (
-            <button
-              type="button"
-              onClick={() => {
-                void csvImport.handleUndoImport();
-              }}
-              className="btn btn-secondary"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span>Undo Import ({csvImport.undoBatch.count})</span>
-            </button>
-          )}
-          <button type="button" onClick={() => openModal('addIntro')} className="btn btn-primary">
-            <Plus className="w-4 h-4" />
-            <span>Add Intro</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function IntrosTableSection({
   view,
   tableContext,
@@ -186,6 +130,33 @@ function IntrosTableSection({
               : 'hover:bg-gray-50'
         }
       />
+    </div>
+  );
+}
+
+// Restoring is non-destructive, so no confirmation step
+async function restoreBooking(
+  intro: Intro,
+  silentRefresh: () => Promise<void>,
+  onIntrosChanged?: () => Promise<void> | void
+) {
+  try {
+    await updateIntroStatus(intro.id, 'Active');
+    await silentRefresh();
+    await onIntrosChanged?.();
+    errorHandler.notify(`Booking for ${intro.name} restored`, 'success');
+  } catch (err) {
+    errorHandler.handle(err, 'restoreBooking');
+  }
+}
+
+function IntrosError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="text-center py-12">
+      <div className="text-red-600 mb-4">Error: {message}</div>
+      <button type="button" onClick={onRetry} className="btn btn-primary">
+        Retry
+      </button>
     </div>
   );
 }
@@ -266,35 +237,19 @@ export default function IntrosTab({ onIntrosChanged }: IntrosTabProps = {}) {
     onReviewSpam: introSpam.spam.setReviewIntro,
     onMarkSpam: (intro: Intro) => introSpam.spam.openConfirm(intro, 'mark'),
     onCancelBooking: setCancellingIntro,
-    // Restoring is non-destructive, so no confirmation step
     onRestoreBooking: (intro: Intro) => {
-      void (async () => {
-        try {
-          await updateIntroStatus(intro.id, 'Active');
-          await silentRefresh();
-          await onIntrosChanged?.();
-          errorHandler.notify(`Booking for ${intro.name} restored`, 'success');
-        } catch (err) {
-          errorHandler.handle(err, 'restoreBooking');
-        }
-      })();
+      void restoreBooking(intro, silentRefresh, onIntrosChanged);
     },
   };
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">Error: {error.message}</div>
-        <button
-          type="button"
-          onClick={() => {
-            void refresh();
-          }}
-          className="btn btn-primary"
-        >
-          Retry
-        </button>
-      </div>
+      <IntrosError
+        message={error.message}
+        onRetry={() => {
+          void refresh();
+        }}
+      />
     );
   }
 

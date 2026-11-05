@@ -52,6 +52,21 @@ interface DateWindow {
 
 const FULL_MONTH_RANGES = { '1month': 1, '3months': 3, '6months': 6, year: 12 } as const;
 
+// parseDate reads YYYY-MM-DD in local time; new Date(str) would parse
+// it as UTC midnight and shift the range back a day in timezones behind UTC
+function customWindow(
+  customStartDate: string,
+  customEndDate: string,
+  startDate: Date,
+  endDate: Date
+): DateWindow {
+  const start = customStartDate ? parseDate(customStartDate) : null;
+  const end = customEndDate ? parseDate(customEndDate) : null;
+  start?.setHours(0, 0, 0, 0);
+  end?.setHours(23, 59, 59, 999);
+  return { startDate: start ?? startDate, endDate: end ?? endDate };
+}
+
 /** Null for 'all' — there's no bounded window to mirror for a delta comparison. */
 export function resolveDateWindow(
   dateRange: string,
@@ -85,23 +100,7 @@ export function resolveDateWindow(
       startDate = new Date(now.getFullYear(), 0, 1);
       break;
     case 'custom':
-      // parseDate reads YYYY-MM-DD in local time; new Date(str) would parse
-      // it as UTC midnight and shift the range back a day in timezones
-      // behind UTC
-      if (customStartDate) {
-        const parsed = parseDate(customStartDate);
-        if (parsed) {
-          parsed.setHours(0, 0, 0, 0);
-          startDate = parsed;
-        }
-      }
-      if (customEndDate) {
-        const parsed = parseDate(customEndDate);
-        if (parsed) {
-          parsed.setHours(23, 59, 59, 999);
-          endDate = parsed;
-        }
-      }
+      ({ startDate, endDate } = customWindow(customStartDate, customEndDate, startDate, endDate));
       break;
     default:
       break;
