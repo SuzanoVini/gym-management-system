@@ -1,4 +1,5 @@
 import type { FollowUpRow } from '@/hooks/useFollowUps';
+import { parseDate } from '@/lib/utils/date.utils';
 import { normalizePersonKey, personKeyString } from '@/lib/utils/normalizePersonKey';
 
 // Rows stay white; the status cell carries the signal. Finished rows are dimmed.
@@ -13,7 +14,11 @@ export function formatDate(iso: string | null | undefined): string {
   if (!iso) {
     return '—';
   }
-  return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+  // A bare YYYY-MM-DD intro date parses as UTC midnight, which shows the day before in Vancouver
+  return (parseDate(iso) ?? new Date(iso)).toLocaleDateString('en-CA', {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 const PILL = 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium';
