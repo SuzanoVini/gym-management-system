@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
   attendanceCounts,
+  gymNow,
   MARKING_OPENS_MINUTES_BEFORE,
   type MatSlot,
   slotStatus,
@@ -260,9 +261,9 @@ export default function TodayOnTheMats({
   intros: Intro[];
   onAttendanceChanged: () => Promise<void> | void;
 }) {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState(() => gymNow());
   useEffect(() => {
-    const tick = () => setNow(new Date());
+    const tick = () => setNow(gymNow());
     const interval = setInterval(tick, 60_000);
     // Timers stall while the tab is frozen or the computer sleeps, so catch up on return
     const onVisible = () => document.visibilityState === 'visible' && tick();
