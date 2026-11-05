@@ -14,6 +14,11 @@ import {
 } from '@/constants/payroll.constants';
 import { config } from '@/lib/config';
 
+// ponytail: BC is on permanent UTC-7, which older tz data and Windows' "British Columbia Standard
+// Time" id get wrong (Vancouver still reads UTC-8 there). Whitehorse has had the same rule since
+// 2020, so every runtime knows it. Switch to America/Vancouver once browsers ship BC's change.
+export const GYM_TIME_ZONE = 'America/Whitehorse';
+
 // ============================================================================
 // Date Formatting Functions
 // ============================================================================

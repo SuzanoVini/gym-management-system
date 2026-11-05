@@ -1,4 +1,4 @@
-import { formatDateISO } from '@/lib/utils/date.utils';
+import { formatDateISO, GYM_TIME_ZONE } from '@/lib/utils/date.utils';
 import type { Intro } from '@/types';
 
 export interface MatSlot {
@@ -39,11 +39,6 @@ export function minutesOf(time: string): number | null {
   }
   return (match[3] ? (hour % 12) + (match[3].toUpperCase() === 'PM' ? 12 : 0) : hour) * 60 + minute;
 }
-
-// ponytail: BC is on permanent UTC-7, which older tz data and Windows' "British Columbia Standard
-// Time" id get wrong in the browser. Whitehorse has had the same rule since 2020, so every browser
-// knows it. Switch to America/Vancouver once browsers ship BC's change.
-const GYM_TIME_ZONE = 'America/Whitehorse';
 
 // The gym's wall clock as a Date whose local fields read Kitsilano time, whatever the device thinks
 export function gymNow(at = new Date()): Date {
