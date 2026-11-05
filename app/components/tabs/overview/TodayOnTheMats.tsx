@@ -262,8 +262,17 @@ export default function TodayOnTheMats({
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(interval);
+    const tick = () => setNow(new Date());
+    const interval = setInterval(tick, 60_000);
+    // Timers stall while the tab is frozen or the computer sleeps, so catch up on return
+    const onVisible = () => document.visibilityState === 'visible' && tick();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', tick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', tick);
+    };
   }, []);
 
   const [cancellingIntro, setCancellingIntro] = useState<Intro | null>(null);
