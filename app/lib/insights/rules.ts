@@ -1,4 +1,5 @@
 import { computeCoreMetrics } from '@/lib/analytics/overviewMetrics';
+import { attendanceDropOff } from './rules/attendance';
 import { topCancellationReason } from './rules/cancellation';
 import {
   cancellationSpikeVsBaseline,
@@ -13,6 +14,7 @@ import {
 } from './rules/retention';
 import { earlyCancellations, lowShowRate } from './rules/standards';
 export {
+  attendanceDropOff,
   topCancellationReason,
   holdExpiryWatchlist,
   cancellationSpikeVsBaseline,
@@ -25,7 +27,7 @@ export {
   lowShowRate,
 };
 
-import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
+import type { Cancellation, Hold, Insight, Intro, Member, Signup } from '@/types';
 
 export const DEFAULT_MONTHLY_MEMBERSHIP_REVENUE = 180;
 
@@ -37,6 +39,9 @@ export interface InsightRuleInput {
   now: Date;
   /** Configurable via the settings modal — replaces the old hardcoded $180/mo. */
   revenuePerMember: number;
+  /** Roster + attendance coverage; rules that need them return null when absent. */
+  members?: Member[] | undefined;
+  attendanceCoveredSince?: string | null | undefined;
 }
 
 export type InsightRule = (input: InsightRuleInput) => Insight | null;
@@ -165,4 +170,5 @@ export const CURRENT_INSIGHT_RULES: InsightRule[] = [
   retentionMomentumNegative,
   reEngagementWindow,
   earlyCancellations,
+  attendanceDropOff,
 ];

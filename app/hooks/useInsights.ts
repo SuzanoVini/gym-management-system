@@ -8,7 +8,7 @@ import {
   type InsightRuleInput,
   RANGE_INSIGHT_RULES,
 } from '@/lib/insights/rules';
-import type { Cancellation, Hold, Insight, Intro, Signup } from '@/types';
+import type { Cancellation, Hold, Insight, Intro, Member, Signup } from '@/types';
 
 interface InsightRecords {
   intros: Intro[];
@@ -22,6 +22,9 @@ interface UseInsightsProps extends InsightRecords {
   allData: InsightRecords;
   /** From the settings modal; falls back to the historical $180/mo default. */
   revenuePerMember?: number;
+  /** Optional: enables the attendance rule. */
+  members?: Member[] | undefined;
+  attendanceCoveredSince?: string | null | undefined;
 }
 
 export const useInsights = ({
@@ -31,11 +34,19 @@ export const useInsights = ({
   holds,
   allData,
   revenuePerMember = DEFAULT_MONTHLY_MEMBERSHIP_REVENUE,
+  members,
+  attendanceCoveredSince,
 }: UseInsightsProps) => {
   const insights = useMemo(() => {
     const now = new Date();
     const run = (rules: InsightRule[], records: InsightRecords) => {
-      const input: InsightRuleInput = { ...records, now, revenuePerMember };
+      const input: InsightRuleInput = {
+        ...records,
+        now,
+        revenuePerMember,
+        members,
+        attendanceCoveredSince,
+      };
       return rules.map((rule) => rule(input));
     };
 
@@ -46,7 +57,16 @@ export const useInsights = ({
 
     const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
     return generatedInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-  }, [intros, signups, cancellations, holds, allData, revenuePerMember]);
+  }, [
+    intros,
+    signups,
+    cancellations,
+    holds,
+    allData,
+    revenuePerMember,
+    members,
+    attendanceCoveredSince,
+  ]);
 
   return { insights };
 };

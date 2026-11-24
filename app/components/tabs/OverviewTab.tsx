@@ -6,6 +6,7 @@ import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useDismissedInsights } from '@/hooks/useDismissedInsights';
 import type { FollowUpRow } from '@/hooks/useFollowUps';
 import { useInsights } from '@/hooks/useInsights';
+import { useMembers } from '@/hooks/useMembers';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import { exportOverviewData } from '@/lib/analytics/exportOverviewData';
 import {
@@ -123,6 +124,7 @@ export default function OverviewTab({
     });
   const staffMembers = useSettingsStore((s) => s.staffMembers);
   const revenuePerMember = useRevenueSetting();
+  const { members, attendanceCoveredSince } = useMembers();
 
   const handleApplyCustomDates = () => {
     setCustomStartDate(tempStartDate);
@@ -146,6 +148,8 @@ export default function OverviewTab({
     holds,
     allData,
     revenuePerMember,
+    members,
+    attendanceCoveredSince,
   });
   const { isDismissed } = useDismissedInsights();
   const insights = sharedInsights.filter((i) => !isDismissed(i.id)).slice(0, 4);
