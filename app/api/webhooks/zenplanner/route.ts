@@ -22,6 +22,13 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.text();
+  // Second factor: Zen Planner's own SECRET in the body, so a leaked URL alone can't
+  // forge deliveries. Enforced only once ZENPLANNER_BODY_SECRET is set.
+  const bodySecret = process.env.ZENPLANNER_BODY_SECRET;
+  if (bodySecret && !isValidWebhookKey(new URLSearchParams(body).get('SECRET'), bodySecret)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { error } = await storeZenPlannerWebhook(feed, Object.fromEntries(req.headers), body);
 
   // A non-2xx lets Zen Planner retry, if it does retries, instead of losing the event.
