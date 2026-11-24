@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { verifyCronRequest } from '@/lib/cron';
 import { createIntroImport } from '@/lib/jobs/importIntros';
+import { replayRecentCheckins } from '@/lib/jobs/zenplannerWebhook';
 
 export async function GET(req: NextRequest) {
   const unauthorizedResponse = verifyCronRequest(req);
@@ -36,10 +37,19 @@ export async function GET(req: NextRequest) {
 
   const deduped = await introImport.dedupe();
 
+  // Bookings imported just now may already have a check-in on record. Never fails the import.
+  let checkins: Awaited<ReturnType<typeof replayRecentCheckins>> | { error: string };
+  try {
+    checkins = await replayRecentCheckins();
+  } catch (err) {
+    checkins = { error: String(err) };
+  }
+
   return NextResponse.json({
     imported: ctx.counts.imported,
     enriched: ctx.counts.enriched,
     deduped,
+    checkins,
     messagesFound,
     skipped: ctx.skipped.length,
     errors: ctx.errors,
