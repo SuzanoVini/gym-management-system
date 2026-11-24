@@ -24,6 +24,9 @@ export default function MemberRosterTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
                 Member Since
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">
+                Last Check-in
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
               <th className="px-6 py-3" />
             </tr>
@@ -31,7 +34,7 @@ export default function MemberRosterTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
                   No members match your filters.
                 </td>
               </tr>
@@ -46,6 +49,9 @@ export default function MemberRosterTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {member.join_date || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {member.last_checkin_date || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span

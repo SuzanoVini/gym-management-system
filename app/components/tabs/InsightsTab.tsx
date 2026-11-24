@@ -6,6 +6,7 @@ import DateRangeFilter, { type DateRangeOption } from '@/components/ui/DateRange
 import { useAnalyticsData } from '@/hooks/useAnalyticsData';
 import { useDismissedInsights } from '@/hooks/useDismissedInsights';
 import { useInsights } from '@/hooks/useInsights';
+import { useMembers } from '@/hooks/useMembers';
 import { useRevenueSetting } from '@/hooks/useRevenueSetting';
 import type { Insight } from '@/types';
 import { InsightCard } from './InsightCard';
@@ -61,10 +62,14 @@ export default function InsightsTab({ followUps }: InsightsTabProps) {
     customEndDate,
   });
 
+  const { members, attendanceCoveredSince } = useMembers();
+
   const { insights: baseInsights } = useInsights({
     ...filteredData,
     allData,
     revenuePerMember,
+    members,
+    attendanceCoveredSince,
   });
 
   const insights = withFollowUpInsight(followUps, baseInsights);

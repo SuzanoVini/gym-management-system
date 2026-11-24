@@ -3,6 +3,7 @@ import type {
   PostgrestResponse,
   SupabaseClient,
 } from '@supabase/supabase-js';
+import { reportConsoleWarn } from '@/lib/logger';
 import type { Member, MemberImportRow } from '@/types';
 import { supabase } from './client';
 
@@ -31,6 +32,17 @@ export const fetchLastMemberSyncAt = async (): Promise<string | null> => {
     throw error;
   }
   return data?.last_sync_at ?? null;
+};
+
+// Start of the unbroken attendance-webhook window. Null on any failure: the only
+// consumer is an insight that hides itself without it.
+export const fetchAttendanceCoveredSince = async (): Promise<string | null> => {
+  const { data, error } = await supabase.rpc('zenplanner_attendance_covered_since');
+  if (error) {
+    reportConsoleWarn('Attendance coverage unavailable', error.message);
+    return null;
+  }
+  return (data as string | null) ?? null;
 };
 
 export const subscribeToMembers = (callback: (payload: unknown) => void) => {

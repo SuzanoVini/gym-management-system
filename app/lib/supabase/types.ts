@@ -480,6 +480,7 @@ export type Database = {
           email: string | null;
           id: string;
           join_date: string | null;
+          last_checkin_date: string | null;
           last_sync_at: string | null;
           membership_type: string | null;
           name: string;
@@ -494,6 +495,7 @@ export type Database = {
           email?: string | null;
           id?: string;
           join_date?: string | null;
+          last_checkin_date?: string | null;
           last_sync_at?: string | null;
           membership_type?: string | null;
           name: string;
@@ -508,6 +510,7 @@ export type Database = {
           email?: string | null;
           id?: string;
           join_date?: string | null;
+          last_checkin_date?: string | null;
           last_sync_at?: string | null;
           membership_type?: string | null;
           name?: string;
@@ -852,10 +855,15 @@ export type Database = {
       };
     };
     Functions: {
+      apply_zenplanner_checkins: {
+        Args: { since: string };
+        Returns: { intros_marked: number; members_updated: number };
+      };
       current_user_id: { Args: never; Returns: string };
       is_authenticated: { Args: never; Returns: boolean };
       is_owner: { Args: never; Returns: boolean };
       mark_unsigned_intros: { Args: never; Returns: number };
+      zenplanner_attendance_covered_since: { Args: never; Returns: string | null };
     };
     Enums: {
       attendance_status: 'Yes' | 'No' | '';

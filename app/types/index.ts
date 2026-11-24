@@ -106,6 +106,8 @@ export interface Member extends BaseRecord {
   status?: 'Active' | 'On Hold' | 'Inactive';
   join_date?: string;
   last_sync_at?: string;
+  /** Local date of the latest Zen Planner check-in, set by the attendance webhook. */
+  last_checkin_date?: string | null;
 }
 
 /**
